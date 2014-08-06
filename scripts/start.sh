@@ -1,0 +1,1 @@
+gunicorn -b adswhy.cfa.harvard.edu:8123 -w 49 guni:app

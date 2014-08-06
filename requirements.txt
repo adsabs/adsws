@@ -1,0 +1,14 @@
+Flask>=0.9
+gunicorn
+Flask-SQLAlchemy
+Flask-Security
+Flask-Assets
+SQLAlchemy
+Werkzeug
+alembic
+blinker
+ipaddress
+mimerender
+Cerberus
+jsmin==2.0.3
+cssmin

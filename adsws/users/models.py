@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.users.models
+    adsws.users.models
     ~~~~~~~~~~~~~~~~~~~~~
 
     User models

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.frontend.assets
+    adsws.frontend.assets
     ~~~~~~~~~~~~~~~~~~~~~~~~~
 
     frontend application asset "pipeline"
@@ -10,14 +10,14 @@ from flask_assets import Environment, Bundle
 
 
 #: application css bundle
-css_overholt = Bundle("less/overholt.less",
-                       filters="less", output="css/overholt.css",
+css_adsws = Bundle("less/adsws.less",
+                       filters="less", output="css/adsws.css",
                        debug=False)
 
 #: consolidated css bundle
-css_all = Bundle("css/bootstrap.min.css", css_overholt,
+css_all = Bundle("css/bootstrap.min.css", css_adsws,
                  "css/bootstrap-responsive.min.css",
-                 filters="cssmin", output="css/overholt.min.css")
+                 filters="cssmin", output="css/adsws.min.css")
 
 #: vendor js bundle
 js_vendor = Bundle("js/vendor/jquery-1.10.1.min.js",

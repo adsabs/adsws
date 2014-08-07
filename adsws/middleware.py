@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.middleware
+    adsws.middleware
     ~~~~~~~~~~~~~~~~~~~
 
     middleware module

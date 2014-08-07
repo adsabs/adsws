@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.helpers
+    adsws.helpers
     ~~~~~~~~~~~~~~~~
 
-    overholt helpers module
+    adsws helpers module
 """
 
 import pkgutil

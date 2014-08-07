@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.models
+    adsws.models
     ~~~~~~~~~~~~~~~
 
     consolodated models module

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.core
+    adsws.core
     ~~~~~~~~~~~~~
 
-    core module
+    core module: loaded by every app that runs in ADSWS container
 """
 
 from flask_mail import Mail
@@ -20,14 +20,14 @@ mail = Mail()
 security = Security()
 
 
-class OverholtError(Exception):
+class AdsWSError(Exception):
     """Base application error class."""
 
     def __init__(self, msg):
         self.msg = msg
 
 
-class OverholtFormError(Exception):
+class AdsWSFormError(Exception):
     """Raise when an error processing a form occurs."""
 
     def __init__(self, errors=None):

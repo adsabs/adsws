@@ -3,7 +3,7 @@
     wsgi
     ~~~~
 
-    overholt wsgi module
+    adsws wsgi module
 """
 
 from werkzeug.serving import run_simple

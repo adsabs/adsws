@@ -3,6 +3,7 @@ gunicorn
 Flask-SQLAlchemy
 Flask-Security
 Flask-Assets
+Flask-Script
 SQLAlchemy
 Werkzeug
 alembic

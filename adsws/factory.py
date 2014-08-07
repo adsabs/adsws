@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.factory
+    adsws.factory
     ~~~~~~~~~~~~~~~~
 
-    overholt factory module
+    adsws factory module
 """
 
 import os
@@ -20,7 +20,7 @@ from .models import User, Role
 def create_app(package_name, package_path, settings_override=None,
                register_security_blueprint=True):
     """Returns a :class:`Flask` application instance configured with common
-    functionality for the Overholt platform.
+    functionality for the AdsWS platform.
 
     :param package_name: application package name
     :param package_path: application package path
@@ -33,6 +33,8 @@ def create_app(package_name, package_path, settings_override=None,
 
     app.config.from_object('adsws.settings')
     app.config.from_pyfile('settings.cfg', silent=True)
+    app.config.from_envvar('ADSWS_SETTINGS_PATH', silent=True)
+    app.config.from_envvar('ADSWS_SETTINGS_PATH:%s' % (package_name,), silent=True)
     app.config.from_object(settings_override)
 
     db.init_app(app)
@@ -48,7 +50,7 @@ def create_app(package_name, package_path, settings_override=None,
 
 
 def create_celery_app(app=None):
-    app = app or create_app('overholt', os.path.dirname(__file__))
+    app = app or create_app('adsws', os.path.dirname(__file__))
     celery = Celery(__name__, broker=app.config['CELERY_BROKER_URL'])
     celery.conf.update(app.config)
     TaskBase = celery.Task

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    overholt.users
+    adsws.users
     ~~~~~~~~~~~~~~
 
-    overholt users package
+    adsws users package
 """
 
 from ..core import Service

@@ -29,12 +29,12 @@ def create_app(package_name, package_path, settings_override=None,
                                         Blueprint should be registered. Defaults
                                         to `True`.
     """
-    app = Flask(package_name, instance_relative_config=True)
+    app = Flask(package_name, instance_relative_config=False)
 
     app.config.from_object('adsws.settings')
-    app.config.from_pyfile('settings.cfg', silent=True)
-    app.config.from_envvar('ADSWS_SETTINGS_PATH', silent=True)
-    app.config.from_envvar('ADSWS_SETTINGS_PATH:%s' % (package_name,), silent=True)
+    app.config.from_pyfile('settings.py', silent=True)
+    app.config.from_envvar('ADSWS_SETTINGS', silent=True)
+    app.config.from_envvar('ADSWS_SETTINGS_%s' % (package_name,), silent=True)
     app.config.from_object(settings_override)
 
     db.init_app(app)

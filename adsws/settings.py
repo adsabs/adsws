@@ -4,7 +4,4 @@ DEBUG = False
 #Flask setting for unittest
 TESTING = False 
 
-SOLR_URL = 'http://localhost:9000/solr/select'
-
-SECRET_KEY = 'sfsdflsdfdl'
-
+SQLALCHEMY_DATABASE_URI = 'sqlite:///adsws.sqlite'

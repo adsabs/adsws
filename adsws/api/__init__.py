@@ -26,9 +26,10 @@ def create_app(settings_override=None, register_security_blueprint=False):
     app.json_encoder = JSONEncoder
 
     # Register custom error handlers
-    app.errorhandler(AdsWSError)(on_adsws_error)
-    app.errorhandler(AdsWSFormError)(on_adsws_form_error)
-    app.errorhandler(404)(on_404)
+    if not app.config.get('DEBUG', False):
+        app.errorhandler(AdsWSError)(on_adsws_error)
+        app.errorhandler(AdsWSFormError)(on_adsws_form_error)
+        app.errorhandler(404)(on_404)
 
     return app
 
@@ -38,7 +39,7 @@ def route(bp, *args, **kwargs):
 
     def decorator(f):
         @bp.route(*args, **kwargs)
-        @login_required
+        #@login_required
         @wraps(f)
         def wrapper(*args, **kwargs):
             sc = 200
@@ -46,7 +47,12 @@ def route(bp, *args, **kwargs):
             if isinstance(rv, tuple):
                 sc = rv[1]
                 rv = rv[0]
-            return jsonify(dict(data=rv)), sc
+            if isinstance(rv, basestring):
+                return rv, sc # assuming it is a json string
+            elif isinstance(rv, dict):
+                return jsonify(rv), sc
+            else:
+                return jsonify(dict(data=rv)), sc
         return f
 
     return decorator

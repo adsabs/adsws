@@ -4,8 +4,12 @@ Flask-SQLAlchemy
 Flask-Security
 Flask-Assets
 Flask-Script
+Flask-OAuthlib
+Flask-WTF
+WTForms-Alchemy
 SQLAlchemy
 Werkzeug
+requests
 alembic
 blinker
 ipaddress

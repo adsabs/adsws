@@ -42,6 +42,7 @@ def create_app(package_name, package_path, settings_override=None,
     security.init_app(app, SQLAlchemyUserDatastore(db, User, Role),
                       register_blueprint=register_security_blueprint)
 
+    print 'register_blueprints(%s, %s, %s' % (app, package_name, package_path)
     register_blueprints(app, package_name, package_path)
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)

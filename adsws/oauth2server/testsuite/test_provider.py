@@ -7,7 +7,7 @@ import logging
 
 from flask import url_for
 
-from invenio.testsuite import InvenioTestCase, make_test_suite, \
+from adsws.testsuite import FlaskAppTestCase, make_test_suite, \
     run_test_suite
 from adsws.core import db
 
@@ -22,11 +22,13 @@ from .helpers import create_client
 
 logging.basicConfig(level=logging.DEBUG)
 
+from adsws import api 
 
-class OAuth2ProviderTestCase(InvenioTestCase):
+class OAuth2ProviderTestCase(FlaskAppTestCase):
     def create_app(self):
         try:
-            app = super(OAuth2ProviderTestCase, self).create_app()
+            #app = super(OAuth2ProviderTestCase, self).create_app()
+            app = api.create_app()
             app.testing = True
             app.config.update(dict(
                 OAUTH2_CACHE_TYPE='simple',
@@ -35,9 +37,10 @@ class OAuth2ProviderTestCase(InvenioTestCase):
             client.http_request = MagicMock(
                 side_effect=self.patch_request(app)
             )
+            return app
         except Exception as e:
             print(e)
-        return app
+            raise
 
     def patch_request(self, app):
         test_client = app.test_client()
@@ -66,23 +69,23 @@ class OAuth2ProviderTestCase(InvenioTestCase):
         super(OAuth2ProviderTestCase, self).setUp()
         # Set environment variable DEBUG to true, to allow testing without
         # SSL in oauthlib.
-        if self.app.config.get('CFG_SITE_SECURE_URL').startswith('http://'):
+        if self.app.config.get('SITE_SECURE_URL').startswith('http://'):
             self.os_debug = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '')
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
 
         from ..models import Client
         from adsws.users.models import User
 
-        self.base_url = self.app.config.get('CFG_SITE_SECURE_URL')
+        self.base_url = self.app.config.get('SITE_SECURE_URL')
 
         # Create needed objects
         u = User(
-            email='info@invenio-software.org'
+            email='info@adslabs.org'
         )
         u.password = "tester"
 
         u2 = User(
-            email='abuse@invenio-software.org'
+            email='abuse@adslabs.org'
         )
         u2.password = "tester2"
 
@@ -127,7 +130,7 @@ class OAuth2ProviderTestCase(InvenioTestCase):
     def tearDown(self):
         super(OAuth2ProviderTestCase, self).tearDown()
         # Set back any previous value of DEBUG environment variable.
-        if self.app.config.get('CFG_SITE_SECURE_URL').startswith('http://'):
+        if self.app.config.get('SITE_SECURE_URL').startswith('http://'):
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = self.os_debug
         self.base_url = None
 
@@ -269,26 +272,26 @@ class OAuth2ProviderTestCase(InvenioTestCase):
         # Create a remote account (linked account)
         r = self.client.get(
             url_for('oauth2server_settings.index'),
-            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
+            base_url=self.app.config.get('SITE_SECURE_URL'),
         )
         self.assertStatus(r, 401)
         self.login("tester", "tester")
 
         res = self.client.get(
             url_for('oauth2server_settings.index'),
-            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
+            base_url=self.app.config.get('SITE_SECURE_URL'),
         )
         self.assert200(res)
 
         res = self.client.get(
             url_for('oauth2server_settings.client_new'),
-            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
+            base_url=self.app.config.get('SITE_SECURE_URL'),
         )
         self.assert200(res)
 
         res = self.client.post(
             url_for('oauth2server_settings.client_new'),
-            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
+            base_url=self.app.config.get('SITE_SECURE_URL'),
             data=dict(
                 name='Test',
                 description='Test description',

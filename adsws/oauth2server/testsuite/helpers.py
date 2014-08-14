@@ -12,11 +12,11 @@ def create_client(app, name, **kwargs):
         consumer_key='dev',
         consumer_secret='dev',
         request_token_params={'scope': 'user'},
-        base_url=app.config['CFG_SITE_SECURE_URL'],
+        base_url=app.config['SITE_SECURE_URL'],
         request_token_url=None,
         access_token_method='POST',
-        access_token_url='%s/oauth/token' % app.config['CFG_SITE_SECURE_URL'],
-        authorize_url='%s/oauth/authorize' % app.config['CFG_SITE_SECURE_URL'],
+        access_token_url='%s/oauth/token' % app.config['SITE_SECURE_URL'],
+        authorize_url='%s/oauth/authorize' % app.config['SITE_SECURE_URL'],
     )
     default.update(kwargs)
 

@@ -1,21 +1,4 @@
 # -*- coding: utf-8 -*-
-##
-## This file is part of Invenio.
-## Copyright (C) 2014 CERN.
-##
-## Invenio is free software; you can redistribute it and/or
-## modify it under the terms of the GNU General Public License as
-## published by the Free Software Foundation; either version 2 of the
-## License, or (at your option) any later version.
-##
-## Invenio is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Invenio; if not, write to the Free Software Foundation, Inc.,
-## 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
 
 from __future__ import absolute_import, print_function
 
@@ -26,8 +9,8 @@ from flask import url_for
 
 from invenio.testsuite import InvenioTestCase, make_test_suite, \
     run_test_suite
-from invenio.ext.sqlalchemy import db
-from invenio.base.globals import cfg
+from adsws.core import db
+
 from mock import MagicMock
 from flask_oauthlib.client import prepare_request
 try:
@@ -88,18 +71,18 @@ class OAuth2ProviderTestCase(InvenioTestCase):
             os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
 
         from ..models import Client
-        from invenio.modules.accounts.models import User
+        from adsws.users.models import User
 
         self.base_url = self.app.config.get('CFG_SITE_SECURE_URL')
 
         # Create needed objects
         u = User(
-            email='info@invenio-software.org', nickname='tester'
+            email='info@invenio-software.org'
         )
         u.password = "tester"
 
         u2 = User(
-            email='abuse@invenio-software.org', nickname='tester2'
+            email='abuse@invenio-software.org'
         )
         u2.password = "tester2"
 
@@ -286,26 +269,26 @@ class OAuth2ProviderTestCase(InvenioTestCase):
         # Create a remote account (linked account)
         r = self.client.get(
             url_for('oauth2server_settings.index'),
-            base_url=cfg['CFG_SITE_SECURE_URL'],
+            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
         )
         self.assertStatus(r, 401)
         self.login("tester", "tester")
 
         res = self.client.get(
             url_for('oauth2server_settings.index'),
-            base_url=cfg['CFG_SITE_SECURE_URL'],
+            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
         )
         self.assert200(res)
 
         res = self.client.get(
             url_for('oauth2server_settings.client_new'),
-            base_url=cfg['CFG_SITE_SECURE_URL'],
+            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
         )
         self.assert200(res)
 
         res = self.client.post(
             url_for('oauth2server_settings.client_new'),
-            base_url=cfg['CFG_SITE_SECURE_URL'],
+            base_url=self.app.config.get('CFG_SITE_SECURE_URL'),
             data=dict(
                 name='Test',
                 description='Test description',

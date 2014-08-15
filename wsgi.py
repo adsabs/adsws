@@ -10,9 +10,9 @@ from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 
 from adsws import api
-from adsws import frontend
+from adsws import blueprint
 
-application = DispatcherMiddleware(frontend.create_app(), {
+application = DispatcherMiddleware(blueprint.create_app(), {
     '/api': api.create_app()
 })
 

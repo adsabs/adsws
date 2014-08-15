@@ -32,7 +32,7 @@ from flask import url_for
 
 nottest = unittest.skip('nottest')
 
-@nottest
+
 def run_test_suite(testsuite, warn_user=False):
     """"Run given testsuite.
 
@@ -52,15 +52,14 @@ class FlaskAppTestCase(_TestCase):
 
     @property
     def config(self):
-        """Configuration property."""
-        cfg = {
-            'db_uri': 'SQLALCHEMY_DATABASE_URI',
+        return self._config 
+    
+    def __init__(self, *args, **kwargs):
+        self._config = {
+            'SQLALCHEMY_DATABASE_URI' : 'sqlite://'
         }
-        out = {}
-        for (k, v) in iteritems(cfg):
-            if hasattr(self, k):
-                out[v] = getattr(self, k)
-        return out
+        super(_TestCase, self).__init__(*args, **kwargs)
+        
 
     def create_app(self):
         """Create the Flask application for testing."""
@@ -87,11 +86,11 @@ class FlaskAppTestCase(_TestCase):
         """Return a short description of the test case."""
         return
     
-class WebapiTestCase(TestCase):
+class AdsWSTestCase(TestCase):
     pass
 
 
-class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
+class AdsWSAppTestCase(FlaskTestCaseMixin, AdsWSTestCase):
 
     def _create_app(self):
         raise NotImplementedError
@@ -100,7 +99,7 @@ class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
         self.user = {}
 
     def setUp(self):
-        super(WebapiTestCase, self).setUp()
+        super(AdsWSTestCase, self).setUp()
         self.app = self._create_app()
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
@@ -110,7 +109,7 @@ class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
         self._create_csrf_token()
 
     def tearDown(self):
-        super(WebapiTestCase, self).tearDown()
+        super(AdsWSTestCase, self).tearDown()
         #db.drop_all()
         self.app_context.pop()
 

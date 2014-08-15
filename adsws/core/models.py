@@ -6,4 +6,4 @@
     consolodated models module
 """
 
-from .users.models import *
+from .clients.models import Client, Role

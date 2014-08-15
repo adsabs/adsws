@@ -91,6 +91,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
 
         db.session.add(u)
         db.session.add(u2)
+        db.session.commit()
 
         c1 = Client(
             client_id='dev',

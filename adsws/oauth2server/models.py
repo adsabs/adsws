@@ -65,7 +65,7 @@ class Client(db.Model):
 
     """
 
-    __tablename__ = 'oauth2CLIENT'
+    __tablename__ = 'oauth2client'
 
     name = db.Column(
         db.String(40),
@@ -97,7 +97,7 @@ class Client(db.Model):
         default=u'',
     )
 
-    user_id = db.Column(db.ForeignKey('user.id'))
+    user_id = db.Column(db.ForeignKey('users.id'))
     """ Creator of the client application """
 
     client_id = db.Column(db.String(255), primary_key=True)
@@ -171,12 +171,12 @@ class Client(db.Model):
 
     def reset_client_id(self):
         self.client_id = gen_salt(
-            current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN')
+            current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
         )
 
     def reset_client_secret(self):
         self.client_secret = gen_salt(
-            current_app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN')
+            current_app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN', 50)
         )
 
 
@@ -184,13 +184,13 @@ class Token(db.Model):
     """
     A bearer token is the final token that can be used by the client.
     """
-    __tablename__ = 'oauth2TOKEN'
+    __tablename__ = 'oauth2token'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     """ Object ID """
 
     client_id = db.Column(
-        db.String(40), db.ForeignKey('oauth2CLIENT.client_id'),
+        db.String(40), db.ForeignKey('oauth2client.client_id'),
         nullable=False,
     )
     """ Foreign key to client application """
@@ -199,7 +199,7 @@ class Token(db.Model):
     """ SQLAlchemy relationship to client application """
 
     user_id = db.Column(
-        db.Integer, db.ForeignKey('user.id')
+        db.Integer, db.ForeignKey('users.id')
     )
     """ Foreign key to user """
 
@@ -250,7 +250,7 @@ class Token(db.Model):
             client_id=c.client_id,
             user_id=user_id,
             access_token=gen_salt(
-                current_app.config.get('OAUTH2_TOKEN_PERSONAL_SALT_LEN')
+                current_app.config.get('OAUTH2_TOKEN_PERSONAL_SALT_LEN', 40)
             ),
             expires=None,
             _scopes=scopes,
@@ -263,3 +263,7 @@ class Token(db.Model):
         db.session.commit()
 
         return t
+
+
+__all__ = ['Client',
+           'Token']

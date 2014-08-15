@@ -7,6 +7,7 @@ Flask-Script
 Flask-OAuthlib
 Flask-WTF
 Flask-Testing
+Flask-Registry
 WTForms-Alchemy
 SQLAlchemy
 Werkzeug
@@ -21,3 +22,4 @@ cssmin
 zato-apitest
 requests_oauthlib
 unittest2
+six

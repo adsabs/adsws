@@ -1,35 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-    adsws.core
-    ~~~~~~~~~~~~~
 
-    core module: loaded by every app that runs in ADSWS container
-"""
-
-from flask_mail import Mail
-from flask_security import Security
-from .ext.sqlalchemy import db
-
-#: Flask-Mail extension instance
-mail = Mail()
-
-#: Flask-Security extension instance
-security = Security()
-
-
-class AdsWSError(Exception):
-    """Base application error class."""
-
-    def __init__(self, msg):
-        self.msg = msg
-
-
-class AdsWSFormError(Exception):
-    """Raise when an error processing a form occurs."""
-
-    def __init__(self, errors=None):
-        self.errors = errors
-
+from adsws.core import db
 
 class Service(object):
     """A :class:`Service` instance encapsulates common SQLAlchemy model

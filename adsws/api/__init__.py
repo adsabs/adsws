@@ -11,16 +11,14 @@ from functools import wraps
 from flask import jsonify
 from flask_security import login_required
 
-from ..core import AdsWSError, AdsWSFormError
-from ..helpers import JSONEncoder
+from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
 
-def create_app(settings_override=None, register_security_blueprint=False):
+def create_app(**kwargs_config):
     """Returns the AdsWS API application instance"""
 
-    app = factory.create_app(__name__, __path__, settings_override,
-                             register_security_blueprint=register_security_blueprint)
+    app = factory.create_app(app_name=__name__, **kwargs_config)
 
     # Set the default JSON encoder
     app.json_encoder = JSONEncoder

@@ -1,4 +1,13 @@
-from flask_security import Security
+from flask.ext.security import Security, SQLAlchemyUserDatastore, \
+    UserMixin, RoleMixin, login_required
 
-#: Flask-Security extension instance
-security = Security()
+from adsws.core import db, Client, Role
+
+security = Security()    
+
+def setup_app(app):
+
+    user_datastore = SQLAlchemyUserDatastore(db, Client, Role)
+    security.init_app(app, user_datastore)
+
+    return app

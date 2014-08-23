@@ -18,10 +18,12 @@ from . import assets
 def create_app(**kwargs_config):
     """Returns the AdsWS dashboard application instance"""
     if 'EXTENSIONS' in kwargs_config:
+        kwargs_config['EXTENSIONS'].append('adsws.ext.sqlalchemy')
+        kwargs_config['EXTENSIONS'].append('adsws.ext.mail')
         kwargs_config['EXTENSIONS'].append('adsws.ext.security')
         kwargs_config['PACKAGES'].append('adsws.frontend')
     else:
-        kwargs_config['EXTENSIONS'] = ['adsws.ext.security']
+        kwargs_config['EXTENSIONS'] = ['adsws.ext.sqlalchemy', 'adsws.ext.mail', 'adsws.ext.security']
         kwargs_config['PACKAGES'] = ['adsws.frontend']
         
     app = factory.create_app(__name__, **kwargs_config)

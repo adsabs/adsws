@@ -49,6 +49,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     app = Flask(app_name, instance_path=instance_path, instance_relative_config=False)
 
     app.config.from_object('adsws.config')
+    app.config.from_object('%s.config' % app_name)
     app.config.from_envvar('ADSWS_SETTINGS', silent=True)
     app.config.from_envvar('ADSWS_SETTINGS_%s' % (app_name,), silent=True)
     app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
@@ -82,6 +83,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     # takes precedence)
     ConfigurationRegistry(app)
     
+    configure_logging(app)
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
@@ -103,3 +105,27 @@ def register_secret_key(app):
         warnings.warn(fill_secret_key, UserWarning)
 
     app.config["SECRET_KEY"] = SECRET_KEY
+    
+    
+def configure_logging(app):
+    """Configure file(info) and email(error) logging."""
+
+    if app.debug or app.testing:
+        # Skip debug and test mode. Just check standard output.
+        return
+
+    import logging
+    from logging.handlers import SMTPHandler
+
+    # Set info level on logger, which might be overwritten by handers.
+    # Suppress DEBUG messages.
+    app.logger.setLevel(logging.INFO)
+
+    info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
+    info_file_handler = logging.handlers.RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
+    info_file_handler.setLevel(logging.INFO)
+    info_file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s '
+        '[in %(pathname)s:%(lineno)d]')
+    )
+    app.logger.addHandler(info_file_handler)

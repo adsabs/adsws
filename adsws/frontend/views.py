@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request
 from adsws.ext.security import login_required
+from flask import current_app
 
 blueprint = Blueprint(
     'frontend',
@@ -12,3 +13,8 @@ blueprint = Blueprint(
 @login_required
 def index():
     return 'hello world'
+
+@blueprint.route('/hello', methods=['GET'])
+def hello():
+    return '%s' % current_app.config.get('DEBUG')
+

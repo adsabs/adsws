@@ -4,8 +4,11 @@ USERNAME_LEN_MIN = 1
 USERNAME_LEN_MAX = 250
 
 # http://pythonhosted.org/Flask-Security/configuration.html
+SECURITY_CONFIRMABLE = False
 SECURITY_REGISTERABLE = True
-
+SECURITY_CHANGEABLE = True
+SECURITY_PASSWORDLESS = False
+SECURITY_RECOVERABLE = True
 
 
 # https://flask-email.readthedocs.org/en/latest/#

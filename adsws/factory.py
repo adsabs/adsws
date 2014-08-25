@@ -9,6 +9,8 @@
 import os
 import warnings
 import inspect
+import logging
+import logging.handlers
 from collections import namedtuple
 from flask import Flask
 
@@ -47,9 +49,15 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     
     
     app = Flask(app_name, instance_path=instance_path, instance_relative_config=False)
+    
+    # Handle both URLs with and without trailing slashes by Flask.
+    app.url_map.strict_slashes = False
 
     app.config.from_object('adsws.config')
-    app.config.from_object('%s.config' % app_name)
+    try:
+        app.config.from_object('%s.config' % app_name)
+    except ImportError:
+        pass
     app.config.from_envvar('ADSWS_SETTINGS', silent=True)
     app.config.from_envvar('ADSWS_SETTINGS_%s' % (app_name,), silent=True)
     app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
@@ -114,14 +122,12 @@ def configure_logging(app):
         # Skip debug and test mode. Just check standard output.
         return
 
-    import logging
-    from logging.handlers import SMTPHandler
 
     # Set info level on logger, which might be overwritten by handers.
     # Suppress DEBUG messages.
     app.logger.setLevel(logging.INFO)
 
-    info_log = os.path.join(app.config['LOG_FOLDER'], 'info.log')
+    info_log = os.path.join(app.instance_path, 'info.log')
     info_file_handler = logging.handlers.RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
     info_file_handler.setLevel(logging.INFO)
     info_file_handler.setFormatter(logging.Formatter(

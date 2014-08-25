@@ -3,8 +3,10 @@ gunicorn
 Flask-SQLAlchemy
 Flask-Security
 Flask-Assets
+Flask-Menu
+Flask-Breadcrumbs
 Flask-Script
-Flask-OAuthlib
+Flask-OAuthlib==0.6.0
 Flask-WTF
 Flask-Testing
 Flask-Registry

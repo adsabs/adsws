@@ -15,11 +15,11 @@ from .errors import AdsWSError, AdsWSFormError
 from .service import Service
 from .helpers import JSONEncoder, JsonSerializer
 
-from .clients.models import Client, Role
+from .users.models import User, Role
 
 
-class ClientManipulator(Service):
-    __model__ = Client
+class UserManipulator(Service):
+    __model__ = User
 
-client_manipulator = ClientManipulator()
+user_manipulator = UserManipulator()
 

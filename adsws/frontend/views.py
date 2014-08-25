@@ -9,10 +9,14 @@ blueprint = Blueprint(
     template_folder="./templates",
 )
 
-@blueprint.route('/index', methods=['GET', 'POST'])
-@login_required
+@blueprint.route('/', methods=['GET', 'POST'])
 def index():
     return 'hello world'
+
+@blueprint.route('/secret', methods=['GET', 'POST'])
+@login_required
+def secret():
+    return 'secret'
 
 @blueprint.route('/hello', methods=['GET'])
 def hello():

@@ -8,7 +8,7 @@ from wtforms import (ValidationError, HiddenField, BooleanField, TextField,
 from wtforms.validators import Required, Length, EqualTo, Email
 from flask.ext.wtf.html5 import EmailField
 
-from adsws.core import client_manipulator
+from adsws.core import user_manipulator
 from flask import current_app
 
 
@@ -33,11 +33,11 @@ class SignupForm(Form):
     submit = SubmitField('Sign up')
 
     def validate_name(self, field):
-        if client_manipulator.first(name=field.data) is not None:
+        if user_manipulator.first(name=field.data) is not None:
             raise ValidationError(u'This username is taken')
 
     def validate_email(self, field):
-        if client_manipulator.first(email=field.data) is not None:
+        if user_manipulator.first(email=field.data) is not None:
             raise ValidationError(u'This email is taken')
 
 
@@ -74,9 +74,9 @@ class CreateProfileForm(Form):
     submit = SubmitField(u'Create Profile')
 
     def validate_name(self, field):
-        if client_manipulator.first(name=field.data) is not None:
+        if user_manipulator.first(name=field.data) is not None:
             raise ValidationError(u'The username which you select not available.')
 
     def validate_email(self, field):
-        if client_manipulator.first(email=field.data) is not None:
+        if user_manipulator.first(email=field.data) is not None:
             raise ValidationError(u'The email which you select not available.')

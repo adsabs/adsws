@@ -26,14 +26,14 @@ from adsws.factory import create_app
     
 from unittest import TestCase
 from .utils import FlaskTestCaseMixin
-from flask.ext.testing import TestCase as _TestCase
+from flask.ext.testing import TestCase as FlaskTestCase
 
 from flask import url_for
 
 nottest = unittest.skip('nottest')
 
 
-def run_test_suite(testsuite, warn_user=False):
+def run_test_suite(testsuite):
     """"Run given testsuite.
 
     Convenience function to embed in test suites.
@@ -47,7 +47,7 @@ def make_test_suite(*test_cases):
                                for case in test_cases])
 
 
-class FlaskAppTestCase(_TestCase):
+class FlaskAppTestCase(FlaskTestCase):
     """Base test case for AdsWS Flask apps."""
 
     @property
@@ -58,7 +58,7 @@ class FlaskAppTestCase(_TestCase):
         self._config = {
             'SQLALCHEMY_DATABASE_URI' : 'sqlite://'
         }
-        super(_TestCase, self).__init__(*args, **kwargs)
+        super(FlaskTestCase, self).__init__(*args, **kwargs)
         
 
     def create_app(self):
@@ -69,18 +69,20 @@ class FlaskAppTestCase(_TestCase):
 
     def login(self, username, password):
         """Log in as username and password."""
-        return self.client.post(url_for('frontend.login'),
-                                base_url=self.app.config('SITE_SECURE_URL'),
+        r = self.client.post('/login',
+                                base_url=self.app.config.get('SITE_SECURE_URL'),
                                 #rewrite_to_secure_url(request.base_url),
-                                data=dict(nickname=username,
+                                data=dict(email=username,
                                           password=password),
                                 follow_redirects=True)
+        self.assertTrue('<form action="/login"' not in r.data)
 
     def logout(self):
         """Log out."""
-        return self.client.get(url_for('frontend.logout'),
-                               base_url=self.app.config('SITE_SECURE_URL'),
+        r = self.client.get('/logout',
+                               base_url=self.app.config.get('SITE_SECURE_URL'),
                                follow_redirects=True)
+        self.assertTrue('<form action="/logout"' not in r.data)
 
     def shortDescription(self):
         """Return a short description of the test case."""

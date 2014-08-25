@@ -19,7 +19,7 @@ from sqlalchemy_utils import URLType
 
 
 def upgrade():
-    op.create_table('clients',
+    op.create_table('users',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('login', sa.String(length=255), nullable=True),
     sa.Column('email', sa.String(length=255), nullable=True),
@@ -43,11 +43,11 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
-    op.create_table('roles_clients',
+    op.create_table('roles_users',
     sa.Column('client_id', sa.Integer(), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
-    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint()
     )
     op.create_table('permissions',
@@ -57,18 +57,18 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
-    op.create_table('permissions_clients',
+    op.create_table('permissions_users',
     sa.Column('client_id', sa.Integer(), nullable=True),
     sa.Column('perm_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['perm_id'], ['permissions.id'], ),
-    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
+    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint()
     )
     
-    clients = table('clients', column('id', Integer),
+    users = table('users', column('id', Integer),
                   column('name', String), 
                   column('login', String))
-    op.bulk_insert(clients,
+    op.bulk_insert(users,
                 [
                     {'id':1, 'name':'admin', 'login': 'admin@ads.org'},
                 ],
@@ -110,7 +110,7 @@ def upgrade():
         sa.Column('is_internal', sa.Boolean(), nullable=True),
         sa.Column('_redirect_uris', sa.Text(), nullable=True),
         sa.Column('_default_scopes', sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
+        sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
         sa.PrimaryKeyConstraint('client_id')
         
     )
@@ -128,7 +128,7 @@ def upgrade():
         sa.Column('is_personal', sa.Boolean(), nullable=True),
         sa.Column('is_internal', sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(['client_id'], ['oauth2client.client_id'], ),
-        sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
+        sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('access_token'),
         sa.UniqueConstraint('refresh_token')
@@ -141,8 +141,9 @@ def upgrade():
 
 def downgrade():
     op.drop_table('permissions')
-    op.drop_table('clients')
+    op.drop_table('permissions_users')
+    op.drop_table('users')
     op.drop_table('roles')
-    op.drop_table('clients')
+    op.drop_table('roles_users')
     op.drop_table('oauth2token')
     op.drop_table('oauth2client')

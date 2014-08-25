@@ -1,0 +1,620 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import, print_function
+
+import os
+import logging
+
+from flask import url_for
+
+from adsws.testsuite import FlaskAppTestCase, make_test_suite, \
+    run_test_suite
+from adsws.core import db
+
+from mock import MagicMock
+from flask_oauthlib.client import prepare_request
+try:
+    from six.moves.urllib.parse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
+
+from .helpers import create_client
+
+logging.basicConfig(level=logging.DEBUG)
+
+from adsws import factory 
+
+class OAuth2ProviderTestCase(FlaskAppTestCase):
+    def create_app(self):
+        try:
+            #app = super(OAuth2ProviderTestCase, self).create_app()
+            #app = api.create_app()
+            app = factory.create_app('adsws.modules.oauth2server',
+                    SQLALCHEMY_DATABASE_URI='sqlite://',
+                    TESTING = True,
+                    LOGIN_DISABLED = False, # necessary to exercise flask_login+oauth2
+                    WTF_CSRF_ENABLED = False,
+                    DEBUG=False,
+                    SQLALCHEMY_ECHO = False,
+                    SITE_SECURE_URL='http://localhost',
+                    EXTENSIONS=['adsws.ext.template',
+                                'adsws.ext.sqlalchemy', 
+                                'adsws.ext.mail',
+                                'adsws.ext.menu', 
+                                'adsws.ext.security'],
+                    PACKAGES=['adsws.modules.oauth2server'])
+            app.testing = True
+            app.config.update(dict(
+                OAUTH2_CACHE_TYPE='simple',
+            ))
+            client = create_client(app, 'oauth2test')
+            client.http_request = MagicMock(
+                side_effect=self.patch_request(app)
+            )
+            db.create_all(app=app)
+            return app
+        except Exception as e:
+            print(e)
+            raise
+
+    def patch_request(self, app):
+        test_client = app.test_client()
+
+        def make_request(uri, headers=None, data=None, method=None):
+            uri, headers, data, method = prepare_request(
+                uri, headers, data, method
+            )
+            if not headers and data is not None:
+                headers = {
+                    'Content-Type': ' application/x-www-form-urlencoded'
+                }
+
+            # test client is a `werkzeug.test.Client`
+            parsed = urlparse(uri)
+            uri = '%s?%s' % (parsed.path, parsed.query)
+            resp = test_client.open(
+                uri, headers=headers, data=data, method=method
+            )
+            # for compatible
+            resp.code = resp.status_code
+            return resp, resp.data
+        return make_request
+
+    def setUp(self):
+        super(OAuth2ProviderTestCase, self).setUp()
+        # Set environment variable DEBUG to true, to allow testing without
+        # SSL in oauthlib.
+        if self.app.config.get('SITE_SECURE_URL').startswith('http://'):
+            self.os_debug = os.environ.get('OAUTHLIB_INSECURE_TRANSPORT', '')
+            os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
+
+        from ..models import OAuthClient, Scope
+        from adsws.core import user_manipulator
+        from ..registry import scopes as scopes_registry
+        
+        # Register a test scope
+        scopes_registry.register(Scope('test:scope'))
+
+        self.base_url = self.app.config.get('SITE_SECURE_URL')
+
+        # Create needed objects
+        u = user_manipulator.new(
+            email='tester@adslabs.org',
+            password = 'tester',
+            active=True
+        )
+
+        u2 = user_manipulator.new(
+            email='tester2@adslabs.org',
+            password = 'tester2',
+            active=True
+        )
+        
+        user_manipulator.save(u)
+        user_manipulator.save(u2)
+
+        c1 = OAuthClient(
+            client_id='dev',
+            client_secret='dev',
+            name='dev',
+            description='',
+            is_confidential=False,
+            user_id=u.id,
+            _redirect_uris='%s/oauth2test/authorized' % self.base_url,
+            _default_scopes="test:scope"
+        )
+
+        c2 = OAuthClient(
+            client_id='confidential',
+            client_secret='confidential',
+            name='confidential',
+            description='',
+            is_confidential=True,
+            user_id=u.id,
+            _redirect_uris='%s/oauth2test/authorized' % self.base_url,
+            _default_scopes="test:scope"
+        )
+
+        db.session.add(c1)
+        db.session.add(c2)
+        db.session.commit()
+
+        self.objects = [u, u2, c1, c2]
+
+        # Create a personal access token as well.
+        from ..models import OAuthToken
+        self.personal_token = OAuthToken.create_personal(
+            'test-personal', 1, scopes=[], is_internal=True
+        )
+
+    def tearDown(self):
+        super(OAuth2ProviderTestCase, self).tearDown()
+        # Set back any previous value of DEBUG environment variable.
+        if self.app.config.get('SITE_SECURE_URL').startswith('http://'):
+            os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = self.os_debug
+        self.base_url = None
+
+        for o in self.objects:
+            db.session.delete(o)
+        db.session.commit()
+
+    def parse_redirect(self, location, parse_fragment=False):
+        from werkzeug.urls import url_parse, url_decode, url_unparse
+        scheme, netloc, script_root, qs, anchor = url_parse(location)
+        return (
+            url_unparse((scheme, netloc, script_root, '', '')),
+            url_decode(anchor if parse_fragment else qs)
+        )
+
+    def test_client_salt(self):
+        from ..models import OAuthClient
+
+        c = OAuthClient(
+            name='Test something',
+            is_confidential=True,
+            user_id=1,
+        )
+
+        c.gen_salt()
+        assert len(c.client_id) == \
+            self.app.config.get('OAUTH2_CLIENT_ID_SALT_LEN')
+        assert len(c.client_secret) == \
+            self.app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN')
+
+        db.session.add(c)
+        db.session.commit()
+
+
+    def test_invalid_authorize_requests(self):
+        # First login on provider site
+        self.login("tester@adslabs.org", "tester")
+
+        for client_id in ['dev', 'confidential']:
+            redirect_uri = '%s/oauth2test/authorized' % self.base_url
+            scope = 'test:scope'
+            response_type = 'code'
+
+            error_url = url_for('oauth2server.errors')
+
+            # Valid request authorize request
+            r = self.client.get(url_for(
+                'oauth2server.authorize', redirect_uri=redirect_uri,
+                scope=scope, response_type=response_type, client_id=client_id,
+            ))
+            self.assertStatus(r, 200)
+
+            # Invalid scope
+            r = self.client.get(url_for(
+                'oauth2server.authorize', redirect_uri=redirect_uri,
+                scope='INVALID', response_type=response_type,
+                client_id=client_id,
+            ))
+            self.assertStatus(r, 302)
+            next_url, data = self.parse_redirect(r.location)
+            # not working in recent flask 0.7
+            #self.assertEqual(data['error'], 'invalid_scope')
+            assert error_url in next_url # TODO: test the absolute url
+
+            # Invalid response type
+            r = self.client.get(url_for(
+                'oauth2server.authorize', redirect_uri=redirect_uri,
+                scope=scope, response_type='invalid', client_id=client_id,
+            ))
+            self.assertStatus(r, 302)
+            next_url, data = self.parse_redirect(r.location)
+            # not working in recent flask 0.7
+            #self.assertEqual(data['error'], 'unauthorized_client')
+            assert error_url in next_url # TODO: test the absolute url
+
+            # Missing arguments
+            r = self.client.get(url_for(
+                'oauth2server.authorize', client_id=client_id,
+            ))
+            self.assertStatus(r, 302)
+            next_url, data = self.parse_redirect(r.location)
+            #self.assertEqual(data['error'], 'invalid_request')
+            assert error_url in next_url # TODO: test the absolute url
+
+            # Invalid cilent_id
+            r = self.client.get(url_for(
+                'oauth2server.authorize', redirect_uri=redirect_uri,
+                scope=scope, response_type=response_type, client_id='invalid',
+            ))
+            self.assertStatus(r, 302)
+            next_url, data = self.parse_redirect(r.location)
+            #self.assertEqual(data['error'], 'invalid_client_id')
+            assert error_url in next_url # TODO: test the absolute url
+
+            r = self.client.get(next_url, query_string=data)
+            #assert 'invalid_client_id' in r.data
+            
+    def test_refresh_flow(self):
+        # First login on provider site
+        self.login("tester@adslabs.org", "tester")
+
+        data = dict(
+            redirect_uri='%s/oauth2test/authorized' % self.base_url,
+            scope='test:scope',
+            response_type='code',
+            client_id='confidential',
+            state='mystate'
+        )
+
+        r = self.client.get(url_for('oauth2server.authorize', **data))
+        self.assertStatus(r, 200)
+
+        data['confirm'] = 'yes'
+        data['scope'] = 'test:scope'
+        data['state'] = 'mystate'
+
+        # Obtain one time code
+        r = self.client.post(
+            url_for('oauth2server.authorize'), data=data
+        )
+        self.assertStatus(r, 302)
+        next_url, res_data = self.parse_redirect(r.location)
+        assert res_data['code']
+        assert res_data['state'] == 'mystate'
+
+        # Exchange one time code for access token
+        r = self.client.post(
+            url_for('oauth2server.access_token'), data=dict(
+                client_id='confidential',
+                client_secret='confidential',
+                grant_type='authorization_code',
+                code=res_data['code'],
+            )
+        )
+        self.assertStatus(r, 200)
+        assert r.json['access_token']
+        assert r.json['refresh_token']
+        assert r.json['scope'] == 'test:scope'
+        assert r.json['token_type'] == 'Bearer'
+        refresh_token = r.json['refresh_token']
+        old_access_token = r.json['access_token']
+
+        # Access token valid
+        r = self.client.get(url_for('oauth2server.info',
+                            access_token=old_access_token))
+        self.assert200(r)
+
+        # Obtain new access token with refresh token
+        r = self.client.post(
+            url_for('oauth2server.access_token'), data=dict(
+                client_id='confidential',
+                client_secret='confidential',
+                grant_type='refresh_token',
+                refresh_token=refresh_token,
+            )
+        )
+        self.assertStatus(r, 200)
+        assert r.json['access_token']
+        assert r.json['refresh_token']
+        assert r.json['access_token'] != old_access_token
+        assert r.json['refresh_token'] != refresh_token
+        assert r.json['scope'] == 'test:scope'
+        assert r.json['token_type'] == 'Bearer'
+
+        # New access token valid
+        r = self.client.get(url_for('oauth2server.info',
+                                    access_token=r.json['access_token']))
+        self.assert200(r)
+
+        # Old access token no longer valid
+        r = self.client.get(url_for('oauth2server.info',
+                                    access_token=old_access_token,),
+                            base_url=self.app.config['SITE_SECURE_URL'])
+        self.assert401(r)
+    
+    def test_web_auth_flow(self):
+        # Go to login - should redirect to oauth2 server for login an
+        # authorization
+        #r = self.client.get('/oauth2test/test-ping')
+        #self.assertStatus(r, 403)
+
+        # First login on provider site
+        self.login("tester@adslabs.org", "tester")
+
+        r = self.client.get('/oauth2test/login')
+        self.assertStatus(r, 302)
+        next_url, data = self.parse_redirect(r.location)
+
+        # Authorize page
+        r = self.client.get(next_url, query_string=data)
+        self.assertStatus(r, 200)
+
+        # User confirms request
+        data['confirm'] = 'yes'
+        data['scope'] = 'test:scope'
+        data['state'] = ''
+
+        r = self.client.post(next_url, data=data)
+        self.assertStatus(r, 302)
+        next_url, data = self.parse_redirect(r.location)
+        assert next_url == '%s/oauth2test/authorized' % self.base_url
+        assert 'code' in data
+
+        # User is redirected back to client site.
+        # - The client view /oauth2test/authorized will in the
+        #   background fetch the access token.
+        r = self.client.get(next_url, query_string=data)
+        self.assertStatus(r, 200)
+
+        # Authentication flow has now been completed, and the access
+        # token can be used to access protected resources.
+        r = self.client.get('/oauth2test/test-ping')
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+        # Authentication flow has now been completed, and the access
+        # token can be used to access protected resources.
+        r = self.client.get('/oauth2test/test-ping')
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+        r = self.client.get('/oauth2test/test-info')
+        self.assert200(r)
+        assert r.json.get('client') == 'confidential'
+        assert r.json.get('user') == self.objects[0].id
+        assert r.json.get('scopes') == [u'test:scope']
+
+        # Access token doesn't provide access to this URL.
+        r = self.client.get(
+            '/oauth2test/test-invalid',
+            base_url=self.app.config['SITE_SECURE_URL']
+        )
+        self.assertStatus(r, 401)
+
+        # # Now logout
+        r = self.client.get('/oauth2test/logout')
+        self.assertStatus(r, 200)
+        assert r.data == "logout"
+
+        # And try to access the information again
+        r = self.client.get('/oauth2test/test-ping')
+        self.assert403(r)
+        
+    def test_implicit_flow(self):
+        # First login on provider site
+        self.login("tester@adslabs.org", "tester")
+
+        for client_id in ['dev', 'confidential']:
+            data = dict(
+                redirect_uri='%s/oauth2test/authorized' % self.base_url,
+                response_type='token',  # For implicit grant type
+                client_id=client_id,
+                scope='test:scope',
+                state='teststate'
+            )
+
+            # Authorize page
+            r = self.client.get(url_for(
+                'oauth2server.authorize',
+                **data
+            ))
+            self.assertStatus(r, 200)
+
+            # User confirms request
+            data['confirm'] = 'yes'
+            data['scope'] = 'test:scope'
+            data['state'] = 'teststate'
+
+            r = self.client.post(url_for('oauth2server.authorize'), data=data)
+            self.assertStatus(r, 302)
+            # Important - access token exists in URI fragment and must not be
+            # sent to the client.
+            next_url, data = self.parse_redirect(r.location, parse_fragment=True)
+
+            assert data['access_token']
+            assert data['token_type'] == 'Bearer'
+            assert data['state'] == 'teststate'
+            assert data['scope'] == 'test:scope'
+            assert data.get('refresh_token') is None
+            assert next_url == '%s/oauth2test/authorized' % self.base_url
+
+            # Authentication flow has now been completed, and the client can
+            # use the access token to make request to the provider.
+            r = self.client.get(url_for('oauth2server.info',
+                                access_token=data['access_token']))
+            self.assert200(r)
+            assert r.json.get('client') == client_id
+            assert r.json.get('user') == self.objects[0].id
+            assert r.json.get('scopes') == [u'test:scope']
+    
+    def test_client_flow(self):
+        data = dict(
+            client_id='dev',
+            client_secret='dev',  # A public client should NOT do this!
+            grant_type='client_credentials',
+            scope='test:scope',
+        )
+
+        # Public clients are not allowed to use grant_type=client_credentials
+        r = self.client.post(url_for(
+            'oauth2server.access_token',
+            **data
+        ))
+        self.assertStatus(r, 401)
+        self.assertEqual(r.json['error'], 'invalid_client')
+
+        data = dict(
+            client_id='confidential',
+            client_secret='confidential',
+            grant_type='client_credentials',
+            scope='test:scope',
+        )
+
+        # Retrieve access token using client_crendentials
+        r = self.client.post(url_for(
+            'oauth2server.access_token',
+            **data
+        ))
+        self.assertStatus(r, 200)
+        data = r.json
+        assert data['access_token']
+        assert data['token_type'] == 'Bearer'
+        assert data['scope'] == 'test:scope'
+        assert data.get('refresh_token') is None
+
+        # Authentication flow has now been completed, and the client can
+        # use the access token to make request to the provider.
+        r = self.client.get(url_for('oauth2server.info',
+                            access_token=data['access_token']))
+        self.assert200(r)
+        assert r.json.get('client') == 'confidential'
+        assert r.json.get('user') == self.objects[0].id
+        assert r.json.get('scopes') == [u'test:scope']
+        
+    def test_auth_flow_denied(self):
+        # First login on provider site
+        self.login("tester@adslabs.org", "tester")
+
+        r = self.client.get('/oauth2test/login')
+        self.assertStatus(r, 302)
+        next_url, data = self.parse_redirect(r.location)
+
+        # Authorize page
+        r = self.client.get(next_url, query_string=data)
+        self.assertStatus(r, 200)
+
+        # User rejects request
+        data['confirm'] = 'no'
+        data['scope'] = 'test:scope'
+        data['state'] = ''
+
+        r = self.client.post(next_url, data=data)
+        self.assertStatus(r, 302)
+        next_url, data = self.parse_redirect(r.location)
+        assert next_url == '%s/oauth2test/authorized' % self.base_url
+        assert data.get('error') == 'access_denied'
+
+        # Returned
+        r = self.client.get(next_url, query_string=data)
+        self.assert200(r)
+        assert r.data == "Access denied: error=access_denied"
+
+    def test_personal_access_token(self):
+        r = self.client.get(
+            '/oauth/ping',
+            query_string="access_token=%s" % self.personal_token.access_token
+        )
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+        # Access token is not valid for this scope
+        r = self.client.get(
+            '/oauth/info/',
+            query_string="access_token=%s" % self.personal_token.access_token,
+            base_url=self.app.config['SITE_SECURE_URL']
+        )
+        self.assertStatus(r, 401)
+    
+    def test_resource_auth_methods(self):
+        # Query string
+        r = self.client.get(
+            '/oauth/ping',
+            query_string="access_token=%s" % self.personal_token.access_token
+        )
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+        # POST request body
+        r = self.client.post(
+            '/oauth/ping',
+            data=dict(access_token=self.personal_token.access_token),
+        )
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+        # Authorization Header
+        r = self.client.get(
+            '/oauth/ping',
+            headers=[
+                ("Authorization",
+                 "Bearer %s" % self.personal_token.access_token),
+            ]
+        )
+        self.assert200(r)
+        self.assertEqual(r.json, dict(ping='pong'))
+
+    def test_settings_index(self):
+        # Create a remote account (linked account)
+        self.login("tester@adslabs.org", "tester")
+
+        res = self.client.get(
+            url_for('oauth2server_settings.index'),
+            base_url=self.app.config['SITE_SECURE_URL'],
+        )
+        self.assert200(res)
+
+        res = self.client.get(
+            url_for('oauth2server_settings.client_new'),
+            base_url=self.app.config['SITE_SECURE_URL'],
+        )
+        self.assert200(res)
+
+        # Valid POST
+        res = self.client.post(
+            url_for('oauth2server_settings.client_new'),
+            base_url=self.app.config['SITE_SECURE_URL'],
+            data=dict(
+                name='Test',
+                description='Test description',
+                website='http://invenio-software.org',
+                redirect_uris="http://localhost/oauth/authorized/"
+            )
+        )
+        self.assertStatus(res, 302)
+
+        # Invalid redirect_uri (must be https)
+        res = self.client.post(
+            url_for('oauth2server_settings.client_new'),
+            base_url=self.app.config['SITE_SECURE_URL'],
+            data=dict(
+                name='Test',
+                description='Test description',
+                website='http://invenio-software.org',
+                redirect_uris="http://example.org/oauth/authorized/"
+            )
+        )
+        self.assertStatus(res, 200)
+
+        # Valid
+        res = self.client.post(
+            url_for('oauth2server_settings.client_new'),
+            base_url=self.app.config['SITE_SECURE_URL'],
+            data=dict(
+                name='Test',
+                description='Test description',
+                website='http://invenio-software.org',
+                redirect_uris="https://example.org/oauth/authorized/\n"
+                              "http://localhost:4000/oauth/authorized/"
+            )
+        )
+        self.assertStatus(res, 302)
+        
+TEST_SUITE = make_test_suite(OAuth2ProviderTestCase)
+
+
+if __name__ == "__main__":
+    run_test_suite(TEST_SUITE)

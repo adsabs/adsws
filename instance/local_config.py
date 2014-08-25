@@ -8,7 +8,7 @@ ACCOUNT_VERIFICATION_SECRET ='b9688f02e3e32db123dd209bdc076df3297bb6ed28ae2fa3'
 DEBUG = True
 
 # Flask-Sqlalchemy: http://packages.python.org/Flask-SQLAlchemy/config.html
-SQLALCHEMY_ECHO = True
+SQLALCHEMY_ECHO = False
 
 CLASSIC_LOGIN_URL = 'http://adsabs.harvard.edu/cgi-bin/maint/manage_account/credentials'
 

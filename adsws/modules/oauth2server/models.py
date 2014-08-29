@@ -11,6 +11,10 @@ from sqlalchemy_utils import URLType
 from adsws.core import db, user_manipulator
 from adsws.modules.classic.user import ClassicUserInfo
 
+from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, \
+    InvalidRedirectURIError
+import six
+from six.moves.urllib_parse import urlparse
 
 class OAuthUserProxy():
     """
@@ -84,7 +88,7 @@ class OAuthClient(db.Model):
             validators=[validators.Required()]
         )
     )
-    """ Human readable name of the application """
+    """ Human readable name of the application. """
 
     description = db.Column(
         db.Text(),
@@ -95,7 +99,7 @@ class OAuthClient(db.Model):
                         ' (displayed to users).',
         )
     )
-    """ Human readable description """
+    """ Human readable description. """
 
     website = db.Column(
         URLType(),
@@ -107,36 +111,34 @@ class OAuthClient(db.Model):
     )
 
     user_id = db.Column(db.ForeignKey('users.id'))
-    """ Creator of the client application """
+    """ Creator of the client application. """
 
     client_id = db.Column(db.String(255), primary_key=True)
-    """ Client application ID """
+    """ Client application ID. """
 
     client_secret = db.Column(
         db.String(255), unique=True, index=True, nullable=False
     )
-    """ Client application secret """
+    """ Client application secret. """
 
     is_confidential = db.Column(db.Boolean, default=True)
     """ Determine if client application is public or not.  """
 
     is_internal = db.Column(db.Boolean, default=False)
-    """ Determins if client application is an internal application """
+    """ Determins if client application is an internal application. """
 
     _redirect_uris = db.Column(db.Text)
-    """
-    A comma-separated list of redirect URIs. First URI is the default URI.
-    """
+    """A newline-separated list of redirect URIs. First is the default URI."""
 
     _default_scopes = db.Column(db.Text)
-    """
-    A comma-separated list of default scopes of the client. The value of the
-    scope parameter is expressed as a list of space-delimited,
+    """A space-separated list of default scopes of the client.
+
+    The value of the scope parameter is expressed as a list of space-delimited,
     case-sensitive strings.
     """
 
     user = db.relationship('User')
-    """ Relationship to user """
+    """ Relationship to user. """
 
     @property
     def allowed_grant_types(self):
@@ -158,8 +160,42 @@ class OAuthClient(db.Model):
     @property
     def redirect_uris(self):
         if self._redirect_uris:
-            return self._redirect_uris.split()
+            return self._redirect_uris.splitlines()
         return []
+
+    @redirect_uris.setter
+    def redirect_uris(self, value):
+        """ Validate and store redirect URIs for client. """
+        if isinstance(value, six.text_type):
+            value = value.split("\n")
+
+        value = [v.strip() for v in value]
+
+        for v in value:
+            self.validate_redirect_uri_form(v)
+
+        self._redirect_uris = "\n".join(value) or ""
+
+    
+    
+    @staticmethod
+    def validate_redirect_uri_form(value):
+        """ Validate a redirect URI.
+
+        A redirect URL must utilize https or redirect to localhost.
+
+        :param value: Value to validate.
+        :raises: InvalidRedirectURIError, InsecureTransportError
+        """
+        sch, netloc, path, par, query, fra = urlparse(value)
+        if not (sch and netloc):
+            raise InvalidRedirectURIError()
+        if sch != 'https':
+            if ':' in netloc:
+                netloc, port = netloc.split(':', 1)
+            if not (netloc in ('localhost', '127.0.0.1') and sch == 'http'):
+                raise InsecureTransportError()
+        return True
 
     @property
     def default_redirect_uri(self):
@@ -170,9 +206,19 @@ class OAuthClient(db.Model):
 
     @property
     def default_scopes(self):
+        """ List of default scopes for client. """
         if self._default_scopes:
-            return self._default_scopes.split()
+            return self._default_scopes.split(" ")
         return []
+
+    def validate_scopes(self, scopes):
+        """ Validate if client is allowed to access scopes. """
+        from .registry import scopes as scopes_registry
+
+        for s in set(scopes):
+            if s not in scopes_registry:
+                return False
+        return True
 
     def gen_salt(self):
         self.reset_client_id()
@@ -180,16 +226,13 @@ class OAuthClient(db.Model):
 
     def reset_client_id(self):
         self.client_id = gen_salt(
-            current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
+            current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN')
         )
 
     def reset_client_secret(self):
         self.client_secret = gen_salt(
-            current_app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN', 50)
+            current_app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN')
         )
-        
-    #I could implement 'validate_redirect_uri' method to check
-    #
 
 class OAuthToken(db.Model):
     """

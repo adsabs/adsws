@@ -12,7 +12,7 @@ import inspect
 import logging
 import logging.handlers
 from collections import namedtuple
-from flask import Flask
+from flask import Flask, g
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -95,9 +95,21 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
+    app.before_request(set_translations)
+    
     return app
 
+def set_translations():
+    """Add under ``g._`` an already configured internationalization function.
 
+    Translations will be returned as unicode objects.
+    """
+    ## Well, let's make it global now
+    def _(s, **kwargs):
+        return s % kwargs
+    g._ = _
+    
+    
 def register_secret_key(app):
     """Register sercret key in application configuration."""
     SECRET_KEY = app.config.get('SECRET_KEY') or \

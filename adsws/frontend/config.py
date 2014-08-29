@@ -25,3 +25,5 @@ MAIL_USE_SSL = False
 MAIL_USERNAME = 'admin@adws.com'
 MAIL_PASSWORD = 'password'
 MAIL_DEFAULT_SENDER = MAIL_USERNAME
+
+OAUTH2_CACHE_TYPE = 'simple'

@@ -48,7 +48,6 @@ blueprint = Blueprint(
     template_folder="../templates",
 )
 
-
 #
 # Decorator
 #

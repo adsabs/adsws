@@ -44,10 +44,10 @@ def upgrade():
     sa.UniqueConstraint('name')
     )
     op.create_table('roles_users',
-    sa.Column('client_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('role_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
-    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint()
     )
     op.create_table('permissions',
@@ -58,10 +58,10 @@ def upgrade():
     sa.UniqueConstraint('name')
     )
     op.create_table('permissions_users',
-    sa.Column('client_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('perm_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['perm_id'], ['permissions.id'], ),
-    sa.ForeignKeyConstraint(['client_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint()
     )
     
@@ -103,7 +103,7 @@ def upgrade():
         sa.Column('name', sa.String(length=40), nullable=True),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('website', URLType(), nullable=True),
-        sa.Column('client_id', sa.Integer(), nullable=True),
+        sa.Column('user_id', sa.Integer(), nullable=True),
         sa.Column('client_id', sa.String(length=255), nullable=False),
         sa.Column('client_secret', sa.String(length=255), nullable=False),
         sa.Column('is_confidential', sa.Boolean(), nullable=True),
@@ -119,7 +119,7 @@ def upgrade():
         sa.Column('id', sa.Integer(), autoincrement=True,
                   nullable=False),
         sa.Column('client_id', sa.String(length=40), nullable=False),
-        sa.Column('client_id', sa.Integer(), nullable=True),
+        sa.Column('user_id', sa.Integer(), nullable=True),
         sa.Column('token_type', sa.String(length=255), nullable=True),
         sa.Column('access_token', sa.String(length=255), nullable=True),
         sa.Column('refresh_token', sa.String(length=255), nullable=True),

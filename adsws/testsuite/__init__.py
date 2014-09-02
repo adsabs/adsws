@@ -15,10 +15,10 @@ CFG_TESTUTILS_VERBOSE = 1
 import os
 import sys
 import time
-pyv = sys.version_info
-if pyv[0] == 2 and pyv[1] < 7:
+# Flask-Testing is doing it this way (so we must follow)
+try:
     import unittest2 as unittest
-else:
+except ImportError:
     import unittest
 
 from six import iteritems
@@ -26,14 +26,15 @@ from adsws.factory import create_app
     
 from unittest import TestCase
 from .utils import FlaskTestCaseMixin
-from flask.ext.testing import TestCase as _TestCase
+from flask.ext.testing import TestCase as FlaskTestCase
 
 from flask import url_for
 
 nottest = unittest.skip('nottest')
 
-@nottest
-def run_test_suite(testsuite, warn_user=False):
+
+
+def run_test_suite(testsuite):
     """"Run given testsuite.
 
     Convenience function to embed in test suites.
@@ -47,20 +48,19 @@ def make_test_suite(*test_cases):
                                for case in test_cases])
 
 
-class FlaskAppTestCase(_TestCase):
+class FlaskAppTestCase(FlaskTestCase):
     """Base test case for AdsWS Flask apps."""
 
     @property
     def config(self):
-        """Configuration property."""
-        cfg = {
-            'db_uri': 'SQLALCHEMY_DATABASE_URI',
+        return self._config 
+    
+    def __init__(self, *args, **kwargs):
+        self._config = {
+            'SQLALCHEMY_DATABASE_URI' : 'sqlite://'
         }
-        out = {}
-        for (k, v) in iteritems(cfg):
-            if hasattr(self, k):
-                out[v] = getattr(self, k)
-        return out
+        super(FlaskTestCase, self).__init__(*args, **kwargs)
+        
 
     def create_app(self):
         """Create the Flask application for testing."""
@@ -70,28 +70,32 @@ class FlaskAppTestCase(_TestCase):
 
     def login(self, username, password):
         """Log in as username and password."""
-        return self.client.post(url_for('frontend.login'),
-                                base_url=self.app.config('SITE_SECURE_URL'),
+        r = self.client.post('/login',
+                                base_url=self.app.config.get('SITE_SECURE_URL'),
                                 #rewrite_to_secure_url(request.base_url),
-                                data=dict(nickname=username,
+                                data=dict(email=username,
                                           password=password),
                                 follow_redirects=True)
+        self.assertTrue('<form action="/login"' not in r.data)
+        return r
 
     def logout(self):
         """Log out."""
-        return self.client.get(url_for('frontend.logout'),
-                               base_url=self.app.config('SITE_SECURE_URL'),
+        r = self.client.get('/logout',
+                               base_url=self.app.config.get('SITE_SECURE_URL'),
                                follow_redirects=True)
+        self.assertTrue('<form action="/logout"' not in r.data)
+        return r
 
     def shortDescription(self):
         """Return a short description of the test case."""
         return
     
-class WebapiTestCase(TestCase):
+class AdsWSTestCase(TestCase):
     pass
 
 
-class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
+class AdsWSAppTestCase(FlaskTestCaseMixin, AdsWSTestCase):
 
     def _create_app(self):
         raise NotImplementedError
@@ -100,7 +104,7 @@ class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
         self.user = {}
 
     def setUp(self):
-        super(WebapiTestCase, self).setUp()
+        super(AdsWSTestCase, self).setUp()
         self.app = self._create_app()
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
@@ -110,7 +114,7 @@ class WebapiAppTestCase(FlaskTestCaseMixin, WebapiTestCase):
         self._create_csrf_token()
 
     def tearDown(self):
-        super(WebapiTestCase, self).tearDown()
+        super(AdsWSTestCase, self).tearDown()
         #db.drop_all()
         self.app_context.pop()
 

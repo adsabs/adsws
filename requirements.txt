@@ -3,10 +3,13 @@ gunicorn
 Flask-SQLAlchemy
 Flask-Security
 Flask-Assets
+Flask-Menu
+Flask-Breadcrumbs
 Flask-Script
-Flask-OAuthlib
+Flask-OAuthlib==0.6.0
 Flask-WTF
 Flask-Testing
+Flask-Registry
 WTForms-Alchemy
 SQLAlchemy
 Werkzeug
@@ -21,3 +24,4 @@ cssmin
 zato-apitest
 requests_oauthlib
 unittest2
+six

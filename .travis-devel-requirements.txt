@@ -3,14 +3,10 @@ gunicorn
 Flask-SQLAlchemy
 Flask-Security
 Flask-Assets
-Flask-Menu
-Flask-Breadcrumbs
 Flask-Script
-Flask-OAuthlib==0.6.0
+Flask-OAuthlib
 Flask-WTF
 Flask-Testing
-Flask-Registry
-Flask-Email
 WTForms-Alchemy
 SQLAlchemy
 Werkzeug
@@ -22,8 +18,6 @@ mimerender
 Cerberus
 jsmin==2.0.3
 cssmin
-zato-apitest
 requests_oauthlib
 unittest2
-six
 -e .

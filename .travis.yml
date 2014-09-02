@@ -1,0 +1,39 @@
+# -*- coding: utf-8 -*-
+##
+## This file is part of ADSWS
+## Copyright (C) 2014 ADSLABS
+##
+## ADSWS is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License as
+## published by the Free Software Foundation; either version 2 of the
+## License, or (at your option) any later version.
+
+
+# Travis CI file, that integrates with coveralls for reporting test coverage.
+
+language: python
+
+python:
+  - "2.6"
+  - "2.7"
+
+env:
+  #- REQUIREMENTS=lowest
+  #- REQUIREMENTS=release
+  - REQUIREMENTS=devel
+
+install:
+  - "pip install --upgrade pip  --use-mirrors"
+  - "pip install coveralls pep257 --use-mirrors"
+  - "pip install pytest pytest-pep8 pytest-cov pytest-cache --use-mirrors"
+  - "pip install -r .travis-$REQUIREMENTS-requirements.txt"
+
+script:
+  - "pep257 --ignore=D100,D101,D102,D103 adsws"
+  - "python setup.py test"
+
+after_success:
+  - "coveralls"
+
+notifications:
+  email: false

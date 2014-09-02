@@ -15,10 +15,10 @@ CFG_TESTUTILS_VERBOSE = 1
 import os
 import sys
 import time
-pyv = sys.version_info
-if pyv[0] == 2 and pyv[1] < 7:
+# Flask-Testing is doing it this way (so we must follow)
+try:
     import unittest2 as unittest
-else:
+except ImportError:
     import unittest
 
 from six import iteritems
@@ -31,6 +31,7 @@ from flask.ext.testing import TestCase as FlaskTestCase
 from flask import url_for
 
 nottest = unittest.skip('nottest')
+
 
 
 def run_test_suite(testsuite):
@@ -76,6 +77,7 @@ class FlaskAppTestCase(FlaskTestCase):
                                           password=password),
                                 follow_redirects=True)
         self.assertTrue('<form action="/login"' not in r.data)
+        return r
 
     def logout(self):
         """Log out."""
@@ -83,6 +85,7 @@ class FlaskAppTestCase(FlaskTestCase):
                                base_url=self.app.config.get('SITE_SECURE_URL'),
                                follow_redirects=True)
         self.assertTrue('<form action="/logout"' not in r.data)
+        return r
 
     def shortDescription(self):
         """Return a short description of the test case."""

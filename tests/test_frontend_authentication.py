@@ -6,7 +6,7 @@ from adsws.core import user_manipulator, db
 from flask_login import current_user, login_user, logout_user
 
 class LoginTestCase(FlaskAppTestCase):
-    ''' Tests for results of the login_user function '''
+    '''Authenticate users using ADS Classic (if necessary)'''
 
     def create_app(self):
         app = frontend.create_app(
@@ -50,17 +50,7 @@ class LoginTestCase(FlaskAppTestCase):
         user_manipulator.create(email='villain', password='villain', active=True)
         user_manipulator.create(email='client', password='client', active=True)
         
-    def login(self, username, password):
-        """Log in as username and password."""
-        return self.client.post(url_for('security.login'),
-                                data=dict(email=username,
-                                          password=password),
-                                follow_redirects=True)
-
-    def logout(self):
-        """Log out."""
-        return self.client.get(url_for('security.logout'),
-                               follow_redirects=True)        
+            
 
     def _get_remember_cookie(self, test_client):
         our_cookies = test_client.cookie_jar._cookies['localhost.local']['/']

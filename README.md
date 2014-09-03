@@ -1,18 +1,32 @@
+========================
+ADSWS - ADS Web Services
+========================
 
-webapi
-======
+.. image:: https://travis-ci.org/adsabs/adsws.png?branch=master
+    :target: https://travis-ci.org/adsabs/adsws
+.. image:: https://coveralls.io/repos/adsabs/adsws/badge.png?branch=master
+    :target: https://coveralls.io/r/adsabs/adsws
 
-All things that should be exposed as web service through API
 
+About
+=====
+ADSWS is a set of tools to expose (any) web services - both internal and
+external - inside/outside of ADS.
 
-installation
+Installation
 ============
 
-To create/upgrade database:
-  
-  $ update alembic.ini (sqlalchemy.url)
-  $ alembic upgrade head
+    git clone https://github.com/adsabs/adsws.git
+    cd adsws
+    virtualenv python
+    pip install -r requirements.txt 
+    pip install -r dev-requirements.txt
+    vim instance/local_config.py # edit edit
+        
 
 
+Testing
+=======
+Running the test suite is as simple as: ::
 
-The initial project was modelled according to: https://github.com/mattupstate/overholt
+    ./run-tests.sh

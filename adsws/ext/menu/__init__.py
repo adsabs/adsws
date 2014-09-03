@@ -1,6 +1,6 @@
 """Administration menu."""
 
-from flask.ext.menu import Menu
+from flask.ext.menu import Menu, register_menu
 
 menu = Menu()
 
@@ -12,4 +12,3 @@ def setup_app(app):
     @app.before_first_request
     def register_item():
         item = app.extensions['menu'].submenu('main.admin')
-        item.register('admin.index', 'Admin')

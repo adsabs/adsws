@@ -6,7 +6,7 @@ Flask-Assets
 Flask-Menu
 Flask-Breadcrumbs
 Flask-Script
-Flask-OAuthlib==0.6.0
+Flask-OAuthlib
 Flask-WTF
 Flask-Testing
 Flask-Registry

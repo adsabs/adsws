@@ -21,7 +21,9 @@ Installation
     virtualenv python
     pip install -r requirements.txt 
     pip install -r dev-requirements.txt
-    vim instance/local_config.py # edit edit
+    alembic upgrade head
+    vim instance/local_config.py # edit edit edit...
+    python wsgi.py
         
 
 

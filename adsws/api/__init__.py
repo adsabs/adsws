@@ -9,7 +9,6 @@
 from functools import wraps
 
 from flask import jsonify
-from flask_security import login_required
 
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
@@ -37,7 +36,6 @@ def route(bp, *args, **kwargs):
 
     def decorator(f):
         @bp.route(*args, **kwargs)
-        #@login_required
         @wraps(f)
         def wrapper(*args, **kwargs):
             sc = 200

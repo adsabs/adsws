@@ -27,3 +27,12 @@ MAIL_PASSWORD = 'password'
 MAIL_DEFAULT_SENDER = MAIL_USERNAME
 
 OAUTH2_CACHE_TYPE = 'simple'
+
+EXTENSIONS = ['adsws.ext.template',
+               'adsws.ext.menu',
+               'adsws.ext.sqlalchemy',
+               'adsws.ext.email' ,
+               'adsws.ext.mail', 
+               'adsws.ext.security']
+
+PACKAGES = ['adsws.frontend', 'adsws.modules.oauth2server']

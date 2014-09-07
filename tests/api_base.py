@@ -2,12 +2,11 @@
 import os
 import logging
 import json
-from adsws.testsuite import FlaskAppTestCase, make_test_suite, run_test_suite
+from adsws.testsuite import FlaskAppTestCase
 from flask import Flask, session, url_for, request, jsonify, abort
 from adsws import api
 from adsws.core import user_manipulator, db
 from flask_login import current_user, login_user, logout_user
-from datetime import datetime, timedelta
 
 from flask_oauthlib.client import OAuth
 from mock import MagicMock
@@ -29,7 +28,7 @@ class ApiTestCase(FlaskAppTestCase):
         app = api.create_app(
                 SQLALCHEMY_DATABASE_URI='sqlite://',
                 WTF_CSRF_ENABLED = False,
-                TESTING = True,
+                TESTING = False,
                 SITE_SECURE_URL='http://localhost',
                 SECURITY_POST_LOGIN_VIEW='/postlogin'
                 )
@@ -84,6 +83,9 @@ class ApiTestCase(FlaskAppTestCase):
         
         self.oauth = OAuth(self.app)
         
+        # have the remote app ready
+        self.authenticate()
+        
         
     def authenticate(self):
         
@@ -95,15 +97,13 @@ class ApiTestCase(FlaskAppTestCase):
         
         # authorize the user - normally, this would happen as a middle step
         # before /oauth/authorize is accessed
-        print 'test', id(session._get_current_object())
         self.login('montysolr', 'montysolr')
         
         # 0. client authentication
         
         # this doesn't work because the session object will be different
-        # r = self.remote_client.authorize(callback=url_for('authorized', _external=True))
-        print 'test', id(session._get_current_object())
-        r = self.client.get('/oauth2test/login')
+        r = self.remote_client.authorize(callback=url_for('authorized', _external=True))
+        #r = self.client.get('/oauth2test/login')
         next_url, data = self.parse_redirect(r.location)
         
         # 2. user grants permissions to the client
@@ -121,41 +121,9 @@ class ApiTestCase(FlaskAppTestCase):
         resp = json.loads(r.data)
         self.assertTrue('access_token' in resp)
         
-        print 'test', id(session._get_current_object())
-        self.assertEqual(self.remote_client.get_request_token(), resp['access_token'])
-        print self.remote_client.get_request_token()
+        self.assertEqual(self.remote_client.get_request_token()[0], resp['access_token'])
         
         
-
-        if False:
-            print r.data
-        
-            r = self.remote_client.authorize(callback=url_for('authorized', _external=True))
-            print r.location
-            
-            r = self.client.get(r.location.split('?')[0], query_string=r.location.split('?')[1])
-            
-            expires = datetime.utcnow() + timedelta(seconds=3600)
-            tok = OAuthToken(
-                access_token='secret token',
-                refresh_token='secret token',
-                _scopes='api:search api:update',
-                expires=expires,
-                client=c1,
-                user=user,
-                is_personal=False,
-            )
-            db.session.add(tok)
-            db.session.commit()
-
-        
-
-    def test_search(self):
-        print 'test', id(session._get_current_object())
-        self.authenticate()
-        resp = self.remote_client.get('/api/1/search')
-        print resp.data
-
 
 
 def create_client(app, name, **kwargs):
@@ -174,7 +142,7 @@ def create_client(app, name, **kwargs):
 
     oauth = OAuth(app)
     remote = oauth.remote_app(name, **default)
-    print 'client', id(session._get_current_object())
+    stack = []
     
     @app.route('/oauth2test/login')
     def login():
@@ -182,7 +150,7 @@ def create_client(app, name, **kwargs):
 
     @app.route('/oauth2test/logout')
     def logout():
-        session.pop('confidential_token', None)
+        stack.pop()
         return "logout"
     
     @app.route('/client/authorized')
@@ -193,16 +161,13 @@ def create_client(app, name, **kwargs):
                 request.args.get('error', "unknown")
             )
         if isinstance(resp, dict) and 'access_token' in resp:
-            session['confidential_token'] = (resp['access_token'], '')
-            print id(session._get_current_object())
-            print 'client', id(session._get_current_object())
+            stack.append((resp['access_token'], ''))
             return jsonify(resp)
         return str(resp)
 
     @remote.tokengetter
     def get_oauth_token():
-        print 'client', id(session._get_current_object())
-        return session.get('confidential_token')
+        return stack[-1]
     
     def patch_request(app):
         test_client = app.test_client()
@@ -234,7 +199,3 @@ def create_client(app, name, **kwargs):
     return remote
 
 
-TESTSUITE = make_test_suite(ApiTestCase)
-
-if __name__ == '__main__':
-    run_test_suite(TESTSUITE)

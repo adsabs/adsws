@@ -7,10 +7,10 @@ from .. import route
 
 from adsws.modules.oauth2server.provider import oauth2
 
-blueprint = Blueprint('search', __name__)
+blueprint = Blueprint('solr', __name__)
 
 @route(blueprint, '/search', methods=['GET'])
-@oauth2.require_oauth('montysolr:search')
+@oauth2.require_oauth('api:search')
 def search():
     """Searches SOLR."""
     headers = request.headers
@@ -30,4 +30,11 @@ def cleanup_solr_request(payload):
     # we disallow 'return everything'
     if 'fl' not in payload:
         payload['fl'] = 'id'
+    else:
+        disallowed = {'body':1, 'full': 1}
+        fields = payload['fl'][0].split(',')
+        fields = filter(lambda x: x not in disallowed, fields)
+        if len(fields) == 0:
+            fields.append('id')
+        payload['fl'][0] = ','.join(fields)
     return payload

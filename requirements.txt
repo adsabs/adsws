@@ -22,8 +22,6 @@ mimerender
 Cerberus
 jsmin==2.0.3
 cssmin
-zato-apitest
-requests_oauthlib
 unittest2
 six
 -e .

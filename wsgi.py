@@ -13,7 +13,7 @@ from adsws import api
 from adsws import frontend
 
 application = DispatcherMiddleware(frontend.create_app(), {
-    '/api': api.create_app()
+    '/api/1': api.create_app()
 })
 
 if __name__ == "__main__":

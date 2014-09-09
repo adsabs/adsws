@@ -19,3 +19,7 @@ SITE_SECURE_URL = 'http://0.0.0.0:5000'
 SQLALCHEMY_DATABASE_URI = 'sqlite:////dvt/workspace/adsws/adsws.sqlite'
 
 OAUTH2_CACHE_TYPE='simple'
+
+
+import logging
+logging.basicConfig(level=logging.DEBUG)

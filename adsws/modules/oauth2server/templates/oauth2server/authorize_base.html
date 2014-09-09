@@ -21,7 +21,7 @@
     {% if loop.first %}<table class="table table-striped table-bordered"><tbody>{% endif %}
       <tr>
         <td><span>{{group.grouper}}</span></td>
-        <td><ul>{% for scope in group.list %}<li>{{scope.help_text}}</li>{% endfor %}</ul></td>
+        <td><ul>{% for scope in group.list %}<li>{{scope.id}} {{scope.help_text}}</li>{% endfor %}</ul></td>
       </tr>
     {% if loop.last %}</tbody></table>{% endif %}
   {% endfor %}

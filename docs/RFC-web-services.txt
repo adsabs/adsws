@@ -38,8 +38,8 @@ user 'montysolr@adslabs.org' can have privileges to use API (and can grant
 other clients right to use the API - more on that below).
 
 
-Web service: user authentication
-================================
+Authentication server
+=====================
 
 We have a dedicated web service which provides the following endpoints:
 
@@ -53,6 +53,17 @@ We have a dedicated web service which provides the following endpoints:
 	
 
 This service needs to be accessed over HTTPS.
+
+The same service also provide OATH2 authorization. It exposes user accounts
+to other OAuth clients. But it also acts as OAuth client - it can authenticate
+users using 3rd party service (e.g. users who have accounts with Google, Github,
+Twitter etc). For every one of these users, the authentication service will
+create a unique record (unique by their email).
+
+The authentication server exposes ADS Classic accounts (ie. it can authenticate
+users against the ADS Classic) - this is similar to 3rd party services; the
+difference is that we are using proprietary ADS Classic protocol (and it is only
+a fallback - ADS Classic user accounts should go away).
 
 
 Clients

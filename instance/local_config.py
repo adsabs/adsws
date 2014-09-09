@@ -23,3 +23,6 @@ OAUTH2_CACHE_TYPE='simple'
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+# Stuff that should be added for every application
+CORE_PACKAGES = ['adsws.ext.session']

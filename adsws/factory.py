@@ -68,6 +68,9 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
+    
+    # add CORE_ variables to their non-core values
+    update_config(app)
 
     # ====================
     # Application assembly
@@ -126,6 +129,26 @@ def register_secret_key(app):
 
     app.config["SECRET_KEY"] = SECRET_KEY
     
+
+def update_config(app):
+    for k, v in app.config.items():
+        if k.startswith('CORE_'):
+            key = k[5:]
+            if key in app.config:
+                if isinstance(app.config.get(key), type(v)):
+                    if isinstance(v, list):
+                        for x in v:
+                            app.config.get(key).append(x)
+                    elif isinstance(v, dict):
+                        app.config.get(key).update(v)
+                    else:
+                        app.logger.warning('Ignoring overwrite: %s=%s %s=%s'
+                                       % (k, v, key, app.config.get(key)))
+                else:
+                    app.logger.warning('Incompatible type ignored: %s=%s %s=%s'
+                                       % (k, v, key, app.config.get(key)))
+            else:
+                app.config[key] = v
     
 def configure_logging(app):
     """Configure file(info) and email(error) logging."""

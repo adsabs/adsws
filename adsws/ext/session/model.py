@@ -36,7 +36,7 @@ class Session(db.Model):
                             server_default='', primary_key=True)
     session_expiry = db.Column(db.DateTime, nullable=True, index=True)
     session_object = db.Column(db.LargeBinary, nullable=True)
-    uid = db.Column(db.Integer(15, unsigned=True), nullable=False, index=True)
+    uid = db.Column(db.Integer(), nullable=False, index=True)
 
     def get_session(self, name, expired=False):
         where = Session.session_key == name

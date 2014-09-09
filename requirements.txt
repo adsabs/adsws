@@ -12,6 +12,7 @@ Flask-WTF
 Flask-Testing
 Flask-Registry
 Flask-Email
+Flask-Mail
 WTForms-Alchemy
 SQLAlchemy
 Werkzeug

@@ -1,4 +1,4 @@
-from flask_login import current_user
+from flask_login import current_user, login_user
 
 from flask import Blueprint, request, session
 from flask import current_app
@@ -15,5 +15,7 @@ def bootstrap():
     
     out = {}
     
-    if current_user.is_authenticated():
+    if not current_user.is_authenticated():
+        login_user(current_app.config.get('ANONYMOUS_USER'), remember=False)
+        
     

@@ -50,7 +50,7 @@ class Storage(SessionStorage):
         if not self.db.engine.dialect.has_table(self.db.engine,
                                                 self.model.__tablename__):
             self.model.__table__.create(bind=self.db.engine)
-            self.db.commit()
+            self.db.session.commit()
 
     @locked_cached_property
     def db(self):
@@ -86,16 +86,7 @@ class Storage(SessionStorage):
         s = self.setter(name, value, timeout=timeout)
         self.db.session.merge(s)
         self.db.session.commit()
-
-        session_expiry = datetime.utcnow() + timeout
-        s = Session()
-        s.uid = current_user.get_id()
-        s.session_key = name
-        s.session_object = value
-        s.session_expiry = session_expiry
-        #FIXME REPLACE OR UPDATE
-        self.db.session.merge(s)
-        self.db.session.commit()
+        
 
     def get(self, name):
         return getattr(self.getter(name), self.value)

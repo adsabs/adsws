@@ -88,7 +88,20 @@ class LoginTestCase(FlaskAppTestCase):
     def test_login_user(self):
         u = self.login('admin', 'admin')
         self.assertEqual(u.data, 'Welcome!')
-
+        
+    def test_session_is_saved(self):
+        from adsws.ext.session.backends.sqlalchemy import Session
+        s = Session.query.first()
+        self.assertEqual(s, None)
+        self.client.get('/username')
+        s = Session.query.first()
+        self.assertEqual(s.uid, -1)
+        
+        with self.app.test_client() as c:
+            c.get('/username')
+            
+        c = Session.query.count()
+        self.assertEqual(c, 2)
 
 TESTSUITE = make_test_suite(LoginTestCase)
 

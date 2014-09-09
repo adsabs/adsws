@@ -84,7 +84,7 @@ class SessionInterface(FlaskSessionInterface):
 
     def generate_sid(self):
         """Generates unique session identifier."""
-        sid = uuid4().hex
+        sid = str(uuid4())
         return sid
 
     def get_session_expiration_time(self, app, session):

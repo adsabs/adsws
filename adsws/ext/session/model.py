@@ -46,7 +46,7 @@ class Session(db.Model):
         return self.query.filter(where).one()
 
     def set_session(self, name, value, timeout=None):
-        uid = current_user.get_id()
+        uid = current_user.get_id() or -1 # anonymous user == -1
         session_expiry = datetime.utcnow() + timeout
         return Session(session_key=name,
                        session_object=value,

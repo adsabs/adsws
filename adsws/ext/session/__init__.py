@@ -34,8 +34,7 @@ def setup_app(app):
 
     app.config.setdefault('SESSION_COOKIE_NAME', 'ADSWSSESSION')
     app.config.setdefault(
-        'PERMANENT_SESSION_LIFETIME',
-        app.config.get('WEBSESSION_EXPIRY_LIMIT_REMEMBER') * ONE_DAY)
+        'PERMANENT_SESSION_LIFETIME', ONE_DAY)
     ## Let's attach our session handling, which is bridging with the native
     ## session handling.
     app.session_interface = SessionInterface()

@@ -211,9 +211,8 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             ))
             self.assertStatus(r, 302)
             next_url, data = self.parse_redirect(r.location)
-            # not working in recent flask 0.7
-            #self.assertEqual(data['error'], 'invalid_scope')
-            assert error_url in next_url # TODO: test the absolute url
+            self.assertEqual(data['error'], 'invalid_scope')
+            assert redirect_uri in next_url
 
             # Invalid response type
             r = self.client.get(url_for(
@@ -222,9 +221,8 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             ))
             self.assertStatus(r, 302)
             next_url, data = self.parse_redirect(r.location)
-            # not working in recent flask 0.7
-            #self.assertEqual(data['error'], 'unauthorized_client')
-            assert error_url in next_url # TODO: test the absolute url
+            self.assertEqual(data['error'], 'unauthorized_client')
+            assert redirect_uri in next_url
 
             # Missing arguments
             r = self.client.get(url_for(
@@ -232,8 +230,8 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             ))
             self.assertStatus(r, 302)
             next_url, data = self.parse_redirect(r.location)
-            #self.assertEqual(data['error'], 'invalid_request')
-            assert error_url in next_url # TODO: test the absolute url
+            self.assertEqual(data['error'], 'invalid_request')
+            assert error_url in next_url
 
             # Invalid cilent_id
             r = self.client.get(url_for(
@@ -242,11 +240,11 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             ))
             self.assertStatus(r, 302)
             next_url, data = self.parse_redirect(r.location)
-            #self.assertEqual(data['error'], 'invalid_client_id')
-            assert error_url in next_url # TODO: test the absolute url
+            self.assertEqual(data['error'], 'invalid_client_id')
+            assert error_url in next_url
 
             r = self.client.get(next_url, query_string=data)
-            #assert 'invalid_client_id' in r.data
+            assert 'invalid_client_id' in r.data
             
     def test_refresh_flow(self):
         # First login on provider site

@@ -75,10 +75,19 @@ def authorize(*args, **kwargs):
     assert current_user.is_anonymous() is False
     
     if request.method == 'GET':
-        client_id = kwargs.get('client_id')
-        client = OAuthClient.query.filter_by(client_id=client_id).first()
-        kwargs['client'] = client
-        return render_template('oauth2server/authorize.html', **kwargs)
+        client = OAuthClient.query.filter_by(
+            client_id=kwargs.get('client_id')
+        ).first()
+
+        if not client:
+            abort(404)
+
+        ctx = dict(
+            client=client,
+            oauth_request=kwargs.get('request'),
+            scopes=map(lambda x: scopes[x], kwargs.get('scopes', []))
+        )
+        return render_template('oauth2server/authorize.html', **ctx)
 
     confirm = request.form.get('confirm', 'no')
     return confirm == 'yes'

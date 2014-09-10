@@ -16,7 +16,7 @@ class FactoryTest(FlaskAppTestCase):
         
     def test_factory(self):
         self.assertEqual(self.app.config.get('FOO'), 'bar', "The app didn't get property: foo")
-        rootf = os.path.realpath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '../adsws'))
+        rootf = os.path.realpath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '../../adsws'))
         self.assertEqual(self.app.root_path, rootf, "root_path is not correct")
         self.assertEqual(self.app.instance_path, os.path.realpath(os.path.join(rootf, '../instance')), "instance_path is not correct")
 
@@ -32,7 +32,7 @@ class FactoryTestCustomInstanceDir(FlaskAppTestCase):
         
         
     def test_custom_config(self):
-        rootf = os.path.realpath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '../adsws'))
+        rootf = os.path.realpath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '../../adsws'))
         self.assertEqual(self.app.config.get('BAR'), 'baz')
         self.assertEqual(self.app.root_path, rootf, "root_path is not correct")
         self.assertEqual(self.app.instance_path, self.config['instance_path'])

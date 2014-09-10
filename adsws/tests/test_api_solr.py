@@ -1,4 +1,5 @@
-from tests.api_base import ApiTestCase
+from __future__ import absolute_import
+from adsws.tests.api_base import ApiTestCase
 from flask import url_for
 from adsws.testsuite import make_test_suite, run_test_suite
 import httpretty
@@ -17,7 +18,7 @@ class TestSolr(ApiTestCase):
             httpretty.POST, self.app.config.get('SOLR_SEARCH_HANDLER'),
             body=request_callback)
         
-        resp = self.remote_client.get(url_for('solr.search'),
+        resp = self.remote_client.get(url_for('api_solr.search'),
                     data={'q': 'star', 'fl': 'body,title'})
         self.assertEqual(resp.status, 200)
         
@@ -37,7 +38,7 @@ class TestSolr(ApiTestCase):
                   { "bibcode":"2005JGRC..110.4003N" },
                   { "bibcode":"2005JGRC..110.4004Y" }]}}""")
 
-        resp = self.remote_client.get(url_for('solr.search'))
+        resp = self.remote_client.get(url_for('api_solr.search'))
         self.assertEqual(resp.status, 200)
         self.assertTrue('responseHeader' in json.loads(resp.data))
 

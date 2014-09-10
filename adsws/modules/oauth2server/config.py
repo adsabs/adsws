@@ -6,7 +6,7 @@ OAUTH2_CACHE_TYPE = 'redis'
 OAUTH2_PROVIDER_ERROR_ENDPOINT = 'oauth2server.errors'
 """ Error view endpoint """
 
-OAUTH2_PROVIDER_TOKEN_EXPIRES_IN = 100
+OAUTH2_PROVIDER_GRANT_EXPIRES_IN = 100
 """ Life time of a grant token """
 
 OAUTH2_PROVIDER_TOKEN_EXPIRES_IN = 3600

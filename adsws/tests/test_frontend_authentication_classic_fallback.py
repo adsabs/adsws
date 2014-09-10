@@ -52,7 +52,8 @@ class LoginTestCase(FlaskAppTestCase):
 
 
     def test_normal_login(self):
-        u = self.login('admin', 'admin')
+        self.login('admin', 'admin')
+        u = self.client.get('/username')
         self.assertEqual(u.data, 'admin')
         
     @patch('adsws.modules.classic.user.user_query', MagicMock(return_value={
@@ -82,7 +83,8 @@ class LoginTestCase(FlaskAppTestCase):
     ))
     def test_login_through_classic(self):
         # user does not exist yet
-        u = self.login('classic', 'classic')
+        self.login('classic', 'classic')
+        u = self.client.get('/username')
         self.assertEqual(u.data, 'classic')
         
     

@@ -75,16 +75,18 @@ class FlaskAppTestCase(FlaskTestCase):
                                 #rewrite_to_secure_url(request.base_url),
                                 data=dict(email=username,
                                           password=password),
-                                follow_redirects=True)
-        self.assertTrue('<form action="/login"' not in r.data)
+                                follow_redirects=False)
+        self.assertTrue('/login' not in r.location)
+        #self.assertTrue('<form action="/login"' not in r.data)
         return r
 
     def logout(self):
         """Log out."""
         r = self.client.get('/logout',
                                base_url=self.app.config.get('SITE_SECURE_URL'),
-                               follow_redirects=True)
-        self.assertTrue('<form action="/logout"' not in r.data)
+                               follow_redirects=False)
+        self.assertTrue('/logout' not in r.location)
+        #self.assertTrue('<form action="/logout"' not in r.data)
         return r
 
     def shortDescription(self):

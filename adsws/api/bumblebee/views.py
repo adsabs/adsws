@@ -11,9 +11,9 @@ from adsws.core import db, user_manipulator
 from adsws.modules.oauth2server.provider import oauth2
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 
-blueprint = Blueprint('api_bumblebee', __name__)
+blueprint = Blueprint('api_bumblebee', __name__, url_prefix='/bumblebee')
 
-@route(blueprint, '/bootstrap', methods=['GET'])
+@route(blueprint, '/bootstrap', methods=['GET', 'POST']) #XXX: just a temporary measure, only GET should be allowed
 def bootstrap():
     """Returns the datastruct necessary for Bumblebee bootstrap."""
     

@@ -7,7 +7,7 @@ from .. import route
 
 from adsws.modules.oauth2server.provider import oauth2
 
-blueprint = Blueprint('solr', __name__)
+blueprint = Blueprint('api_solr', __name__)
 
 @route(blueprint, '/search', methods=['GET'])
 @oauth2.require_oauth('api:search')

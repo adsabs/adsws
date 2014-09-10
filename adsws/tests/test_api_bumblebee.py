@@ -1,10 +1,15 @@
-from tests.api_base import ApiTestCase
+from adsws.core import user_manipulator
+from adsws.tests.api_base import ApiTestCase
 from flask import url_for
 from adsws.testsuite import make_test_suite, run_test_suite
 import httpretty
 import json
 
 class TestBumbleBee(ApiTestCase):
+    
+    def setUp(self):
+        super(ApiTestCase, self).setUp()
+        user_manipulator.create(email='anonymous@adslabs.org', id=-1)
     
     @httpretty.activate
     def test_bootstrap(self):
@@ -23,12 +28,15 @@ class TestBumbleBee(ApiTestCase):
 
         
         r = self.client.get(url_for('api_bumblebee.bootstrap'))
+        self.assertTrue(r.status_code, 200)
         data = json.loads(r.data)
-        self.assertTrue('access_key' in data)
-        self.assertTrue('expire_in' in data)
-        self.assertEqual(data['username'], 'anonymous')
+        self.assertTrue(data['access_token'])
+        self.assertTrue(data['refresh_token'])
+        self.assertTrue(data['expire_in'])
+        self.assertTrue(data['token_type'])
+        self.assertEqual(data['username'], 'anonymous@adslabs.org')
         
-        headers = {'Authorization: %s' % data['access_token']}
+        headers = [('Authorization', 'Bearer:%s' % data['access_token'])]
         r = self.client.get(url_for('api_solr.search'), headers=headers)
         self.assertTrue('responseHeader' in json.loads(r.data))
         

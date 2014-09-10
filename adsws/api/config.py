@@ -8,4 +8,5 @@ EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.security',]
 
 PACKAGES = ['adsws.modules.oauth2server',
-            'adsws.api.solr']
+            'adsws.api.solr',
+            'adsws.api.bumblebee']

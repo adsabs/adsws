@@ -1,4 +1,5 @@
-from tests.api_base import ApiTestCase
+from __future__ import absolute_import
+from adsws.tests.api_base import ApiTestCase
 from flask import url_for
 from adsws.testsuite import make_test_suite, run_test_suite
 import httpretty

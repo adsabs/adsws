@@ -2,8 +2,7 @@ from datetime import datetime, timedelta
 
 from flask_login import current_user, login_user
 
-from flask import Blueprint, request, session
-from flask import current_app, session
+from flask import Blueprint, current_app, session, abort
 from werkzeug.security import gen_salt
 
 from .. import route
@@ -20,11 +19,16 @@ def bootstrap():
     
     scopes = current_app.config.get('API_BUMBLEBEE_BOOTSTRAP_DEFAULT_SCOPES', 
                                                               " ".join(['api:search'
-                                                               ])
+                                                               ]))
     
     if not current_user.is_authenticated():
-        login_user(user_manipulator.get(current_app.config.get('ANONYMOUS_USER', 'anonymous@adslabs.org')), 
-                   remember=False, force=True)
+        u = user_manipulator.first(email=current_app.config.get('API_BUMBLEBEEE_BOOTSTRAP_USER', 
+                                                                'anonymous@adslabs.org'))
+        if u is None:
+            current_app.logger.error("There is no user record for: API_BUMBLEBEEE_BOOTSTRAP_USER")
+            abort(500)
+            
+        login_user(u, remember=False, force=True)
     
     client = None
     if '_oauth_client' in session:
@@ -35,13 +39,13 @@ def bootstrap():
             
     if client is None:
         client = OAuthClient(user_id=current_user.get_id(),
-                        name='Bumblebee UI client',
-                        description='This client is created for any user that accesses ADS 2.0 interface',
-                        website='http://adslabs.org/bumblebee',
+                        name=u'Bumblebee UI client',
+                        description=u'This client is created for any user that accesses ADS 2.0 interface',
+                        website=u'http://adslabs.org/bumblebee',
                         is_confidential=False,
                         is_internal=True,
                         _redirect_uris=current_app.config.get('API_BUMBLEBEE_BOOTSTRAP_REDIRECT_URIS', 
-                                                              "\n".join(['https://adslabs.org/bumblebee',
+                                                              u"\n".join(['https://adslabs.org/bumblebee',
                                                                'http://adslabs.org/bumblebee',
                                                                'https://adslabs.org',
                                                                'http://adslabs.org'
@@ -57,8 +61,9 @@ def bootstrap():
     
     token = OAuthToken.query.filter_by(client_id=client.client_id, 
                                        user_id=current_user.get_id(),
-                                       is_internal=True,
-                                       is_confidential=False).first()
+                                       is_personal=False,
+                                       is_internal=True
+                                       ).first()
     if token is None:
         expires = datetime.utcnow() + timedelta(seconds=int(
                             current_app.config.get('API_BUMBLEBEE_BOOTSTRAP_EXPIRES_IN', 3600*24)))
@@ -71,7 +76,7 @@ def bootstrap():
             refresh_token=gen_salt(
                 current_app.config.get('OAUTH2_TOKEN_PERSONAL_SALT_LEN', 40)
             ),
-            expires=None,
+            expires=expires,
             _scopes=scopes,
             is_personal=False,
             is_internal=True,
@@ -84,4 +89,6 @@ def bootstrap():
             'access_token': token.access_token,
             'refresh_token': token.refresh_token,
             'username': current_user.email,
+            'expire_in': token.expires,
+            'token_type': 'Bearer'
             }

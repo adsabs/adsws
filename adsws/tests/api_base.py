@@ -17,7 +17,7 @@ except ImportError:
     from urllib.parse import urlparse
 
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 class ApiTestCase(FlaskAppTestCase):
     '''Authenticate users using ADS Classic (if necessary)'''
@@ -27,7 +27,6 @@ class ApiTestCase(FlaskAppTestCase):
         
         app = api.create_app(
                 SQLALCHEMY_DATABASE_URI='sqlite://',
-                SQLALCHEMY_ECHO=True,
                 WTF_CSRF_ENABLED = False,
                 TESTING = False,
                 SITE_SECURE_URL='http://localhost',

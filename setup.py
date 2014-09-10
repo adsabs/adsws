@@ -44,7 +44,7 @@ with open(os.path.join('adsws', 'version.py'), 'rt') as f:
 
 setup(
     name='adsws',
-    packages=['adsws', 'tests'],
+    packages=['adsws'],
     version=version,
     description='ADS Web Services',
     author='adslabs.org',

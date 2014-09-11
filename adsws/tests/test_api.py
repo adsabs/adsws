@@ -63,8 +63,11 @@ class ApiTestCase(FlaskAppTestCase):
         
     
     def test_options(self):
-        r = self.client.options('/gp', headers=[('Origin', 'http://localhost')])
+        r = self.client.options('/gp', headers=[
+                        ('Origin', 'http://localhost'),
+                        ('Access-Control-Request-Headers', 'accept, x-bb-api-client-version, content-type')])
         self.assertEqual(r.headers.get('Access-Control-Allow-Methods'), 'GET, OPTIONS, POST')
+        self.assertEqual(r.headers.get('Access-Control-Allow-Headers'), 'accept, x-bb-api-client-version, content-type')
         
         
 TESTSUITE = make_test_suite(ApiTestCase)

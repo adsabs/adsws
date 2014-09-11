@@ -59,8 +59,9 @@ def route(bp, *args, **kwargs):
                 to_add.append(("Access-Control-Allow-Methods", methods))
                 # Allow a max age of one day
                 to_add.append(("Access-Control-Max-Age", 24 * 3600))
-                # Chrome/Webkit wants this
-                to_add.append(("Access-Control-Allow-Headers", "Content-Type"))
+                
+                if request.headers.get('Access-Control-Request-Headers'):
+                    to_add.append(("Access-Control-Allow-Headers", request.headers.get('Access-Control-Request-Headers')))
             else:
                 rv = f(*args, **kwargs)
             

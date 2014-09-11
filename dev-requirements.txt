@@ -5,3 +5,4 @@ pytest-pep8
 cloud
 coverage
 mock
+httpretty

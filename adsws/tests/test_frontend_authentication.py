@@ -3,7 +3,7 @@ from adsws.testsuite import FlaskAppTestCase, make_test_suite, run_test_suite
 from flask import Flask, session, url_for
 from adsws import frontend
 from adsws.core import user_manipulator, db
-from flask_login import current_user, login_user, logout_user
+from flask_login import current_user, login_user, logout_user, login_required
 
 class LoginTestCase(FlaskAppTestCase):
     '''Authenticate users using ADS Classic (if necessary)'''
@@ -12,7 +12,6 @@ class LoginTestCase(FlaskAppTestCase):
         app = frontend.create_app(
                 SQLALCHEMY_DATABASE_URI='sqlite://',
                 WTF_CSRF_ENABLED = False,
-                TESTING = True,
                 SECURITY_POST_LOGIN_VIEW='/welcome'
                 )
 
@@ -26,7 +25,11 @@ class LoginTestCase(FlaskAppTestCase):
             if current_user.is_authenticated():
                 return current_user.email
             return u'Anonymous'
-
+        
+        @app.route('/private')
+        @login_required
+        def private():
+            return current_user.email
         
         @app.route('/empty_session')
         def empty_session():
@@ -88,6 +91,13 @@ class LoginTestCase(FlaskAppTestCase):
     def test_login_user(self):
         u = self.login('admin', 'admin')
         self.assertTrue('/welcome' in u.location)
+        
+    def test_login_required(self):
+        r = self.client.get('/private', follow_redirects=True)
+        self.assertTrue('Login' in r.data)
+        self.login('admin', 'admin')
+        r = self.client.get('/private', follow_redirects=True)
+        self.assertEqual('admin', r.data)
         
     def test_session_is_saved(self):
         from adsws.ext.session.backends.sqlalchemy import Session

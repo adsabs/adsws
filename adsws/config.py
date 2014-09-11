@@ -1,7 +1,7 @@
 
 #flask Setting for debug view in case of errors
 DEBUG = False
-#Flask setting for unittest
+#Flask setting for unittest (be sure this value is FALSE on real site!)
 TESTING = False 
 
 # Be careful; if using sqlite AND the path is relative

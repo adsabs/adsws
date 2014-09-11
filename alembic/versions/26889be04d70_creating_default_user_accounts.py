@@ -14,7 +14,7 @@ from alembic import op
 import sqlalchemy as safrom sqlalchemy.sql import table, column
 from werkzeug.security import gen_saltfrom adsws.core.users.models import User
 from adsws.factory import create_appfrom adsws.core import db app = create_app('upgrade',                 EXTENSIONS = ['adsws.ext.sqlalchemy',                               'adsws.ext.security'])
-def upgrade():    with app.app_context() as c:        u = User(id=-1, name='Anonymous',                 login='anonymous@adslabs.org',                 email='anonymous@adslabs.org',                  password=gen_salt(12))        db.session.add(u)        db.session.commit()    
+def upgrade():    with app.app_context() as c:        u = User(id=0, name='Anonymous',                 login='anonymous@adslabs.org',                 email='anonymous@adslabs.org',                  password=gen_salt(12))        db.session.add(u)        db.session.commit()    
     
 def downgrade():    with app.app_context() as c:
-        anonymous = User.query.get(-1)        if anonymous:            db.session.delete(anonymous)            db.session.commit()
+        anonymous = User.query.get(0)        if anonymous:            db.session.delete(anonymous)            db.session.commit()

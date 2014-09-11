@@ -6,6 +6,7 @@ SECRET_KEY ='bd19d213dcdb6c444759fe9404dd3003d6d736e3f999a914'
 ACCOUNT_VERIFICATION_SECRET ='b9688f02e3e32db123dd209bdc076df3297bb6ed28ae2fa3'
 
 DEBUG = True
+TESTING=False
 
 # Flask-Sqlalchemy: http://packages.python.org/Flask-SQLAlchemy/config.html
 SQLALCHEMY_ECHO = False

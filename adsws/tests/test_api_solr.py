@@ -41,6 +41,20 @@ class TestSolr(ApiTestCase):
         resp = self.remote_client.get(url_for('api_solr.search'))
         self.assertEqual(resp.status, 200)
         self.assertTrue('responseHeader' in json.loads(resp.data))
+        
+        
+    @httpretty.activate
+    def test_qtree(self):
+        httpretty.register_uri(
+                httpretty.POST, self.app.config.get('SOLR_QTREE_HANDLER'),
+                content_type='application/json',
+                status=200,
+                body="""{"foo": "bar"}""")
+
+        resp = self.remote_client.get(url_for('api_solr.qtree'))
+        self.assertEqual(resp.status, 200)
+        self.assertTrue('foo' in json.loads(resp.data))
+        
 
 TESTSUITE = make_test_suite(TestSolr)
 

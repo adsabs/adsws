@@ -24,6 +24,20 @@ def search():
                       data=urlencode(payload, doseq=True), headers=headers)
     return r.text, r.status_code
 
+@route(blueprint, '/qtree', methods=['GET'])
+@oauth2.require_oauth('api:search')
+def qtree():
+    """Retursn parse query tree."""
+    headers = request.headers
+    payload = dict(request.args)
+    payload = cleanup_solr_request(payload)
+    
+    headers = dict(headers.items())
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    
+    r = requests.post(current_app.config.get('SOLR_QTREE_HANDLER'), 
+                      data=urlencode(payload, doseq=True), headers=headers)
+    return r.text, r.status_code
     
 def cleanup_solr_request(payload):
     payload['wt'] = 'json'

@@ -40,15 +40,31 @@ def create_app(**kwargs_config):
 
 def route(bp, *args, **kwargs):
     kwargs.setdefault('strict_slashes', False)
-
+    
+    methods = 'GET, POST, OPTIONS, HEAD'
+    if 'methods' in kwargs:
+        kwargs['methods'].append('OPTIONS')
+        methods = ', '.join(sorted(x.upper() for x in kwargs['methods']))
+        
     def decorator(f):
         @bp.route(*args, **kwargs)
         @wraps(f)
         def wrapper(*args, **kwargs):
-            sc = 200
-            rv = f(*args, **kwargs)
             
-            response = None
+            response = rv = None
+            sc = 200
+            to_add = []
+            
+            if (request.method == "OPTIONS"):
+                to_add.append(("Access-Control-Allow-Methods", methods))
+                # Allow a max age of one day
+                to_add.append(("Access-Control-Max-Age", 24 * 3600))
+                # Chrome/Webkit wants this
+                to_add.append(("Access-Control-Allow-Headers", "Content-Type"))
+            else:
+                rv = f(*args, **kwargs)
+            
+            
             
             if isinstance(rv, tuple):
                 response = make_response(rv[0], rv[1])
@@ -64,6 +80,8 @@ def route(bp, *args, **kwargs):
             if current_app.config.get('CORS_DOMAINS', None):
                 if request.headers.get('Origin') in current_app.config.get('CORS_DOMAINS'):
                     response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin'))
+            for h in to_add:
+                response.headers.add(*h)
             return response
         return f
 

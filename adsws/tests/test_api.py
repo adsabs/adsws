@@ -30,6 +30,10 @@ class ApiTestCase(FlaskAppTestCase):
         def test():
             return dict(foo='bar')
         
+        @api.route(blueprint, '/gp', methods=['GET', 'POST'])
+        def gp():
+            return dict(foo='bar')
+        
         @app.errorhandler(404)
         def handle_404(e):
             raise e
@@ -57,6 +61,10 @@ class ApiTestCase(FlaskAppTestCase):
         r = self.client.get('/test', headers=[('Origin', 'http://localhost:5000')])
         self.assertEqual(r.headers.get('Access-Control-Allow-Origin', None), None)
         
+    
+    def test_options(self):
+        r = self.client.options('/gp', headers=[('Origin', 'http://localhost')])
+        self.assertEqual(r.headers.get('Access-Control-Allow-Methods'), 'GET, OPTIONS, POST')
         
         
 TESTSUITE = make_test_suite(ApiTestCase)

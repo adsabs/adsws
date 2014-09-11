@@ -8,7 +8,8 @@
 
 from functools import wraps
 
-from flask import jsonify
+from flask import jsonify, current_app, Response, make_response,\
+    request
 
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
@@ -28,6 +29,12 @@ def create_app(**kwargs_config):
         app.errorhandler(AdsWSFormError)(on_adsws_form_error)
         app.errorhandler(404)(on_404)
 
+    if app.config.get('CUSTOM_HEADERS'):
+        @app.after_request
+        def after_request(response):
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+    
     return app
 
 
@@ -40,15 +47,24 @@ def route(bp, *args, **kwargs):
         def wrapper(*args, **kwargs):
             sc = 200
             rv = f(*args, **kwargs)
+            
+            response = None
+            
             if isinstance(rv, tuple):
-                sc = rv[1]
-                rv = rv[0]
-            if isinstance(rv, basestring):
-                return rv, sc # assuming it is a json string
+                response = make_response(rv[0], rv[1])
+            elif isinstance(rv, Response):
+                response = rv
+            elif isinstance(rv, basestring):
+                response = make_response(rv, sc) # assuming it is a json string
             elif isinstance(rv, dict):
-                return jsonify(rv), sc
+                response = make_response(jsonify(rv), sc)
             else:
-                return jsonify(dict(data=rv)), sc
+                response = make_response(jsonify(dict(data=rv)), sc)
+            
+            if current_app.config.get('CORS_DOMAINS', None):
+                if request.headers.get('Origin') in current_app.config.get('CORS_DOMAINS'):
+                    response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin'))
+            return response
         return f
 
     return decorator

@@ -10,3 +10,8 @@ EXTENSIONS = ['adsws.ext.menu',
 PACKAGES = ['adsws.modules.oauth2server',
             'adsws.api.solr',
             'adsws.api.bumblebee']
+
+CORS_DOMAINS = {
+                'http://localhost:8000': 1,
+                'http://adslabs.org': 1
+                }

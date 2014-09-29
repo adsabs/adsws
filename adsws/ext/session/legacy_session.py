@@ -106,7 +106,7 @@ class Session(CallbackDict, SessionMixin):
             return True
 
     def _get_uid(self):
-        return self.get('user_id', -1)
+        return self.get('user_id', None)
 
     def _set_uid(self, uid):
         if self.get('user_id') != uid:

@@ -16,6 +16,7 @@ external - inside/outside of ADS.
 Installation
 ============
 
+```
     git clone https://github.com/adsabs/adsws.git
     cd adsws
     virtualenv python
@@ -24,7 +25,10 @@ Installation
     alembic upgrade head
     vim instance/local_config.py # edit edit edit...
     python wsgi.py
-        
+```        
+
+In case you wondered: the secret keys committed into this repository are used
+only for development.
 
 
 Testing

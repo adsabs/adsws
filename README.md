@@ -1,11 +1,11 @@
-========================
+
 ADSWS - ADS Web Services
 ========================
 
-.. image:: https://travis-ci.org/adsabs/adsws.png?branch=master
-    :target: https://travis-ci.org/adsabs/adsws
-.. image:: https://coveralls.io/repos/adsabs/adsws/badge.png?branch=master
-    :target: https://coveralls.io/r/adsabs/adsws
+[![Travis Status](https://travis-ci.org/adsabs/adsws.png?branch=master)](https://travis-ci.org/adsabs/adsws)
+
+[![Coverage Status](https://img.shields.io/coveralls/adsabs/adsws.svg)](https://coveralls.io/r/adsabs/adsws)
+
 
 
 About
@@ -33,6 +33,10 @@ only for development.
 
 Testing
 =======
-Running the test suite is as simple as: ::
+Running the test suite:
 
     ./run-tests.sh
+
+or alternatively:
+
+    py.test adsws

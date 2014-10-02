@@ -9,10 +9,11 @@
 from functools import wraps
 
 from flask import jsonify, current_app, Response, make_response,\
-    request
+    request, abort
 
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
+from .models import OAuthClientLimits
 
 
 def create_app(**kwargs_config):
@@ -99,3 +100,32 @@ def on_adsws_form_error(e):
 
 def on_404(e):
     return jsonify(dict(error='Not found')), 404
+
+def limit_rate(*scopes):
+    """Protect resource with specified scopes."""
+    def get_curr_rate(oauth):
+        c = OAuthClientLimits.query.filter_by(client_id=oauth.client.client_id).first()
+        if c is None:
+            c = OAuthClientLimits(client_id=oauth.client.client_id)
+        return c
+    
+    def wrapper(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+
+            if hasattr(request, 'oauth') and request.oauth:
+                # TODO: this is just a temporary solution
+                max_rate = 1000
+                if request.oauth.user.is_authenticated():
+                    max_rate = 10000
+                
+                curr_rate = get_curr_rate(request.oauth)
+                curr_rate.increase()
+                
+                if curr_rate.totals() >= max_rate:
+                    abort(401)
+                return f(*args, **kwargs)
+
+            return abort(401)
+        return decorated
+    return wrapper

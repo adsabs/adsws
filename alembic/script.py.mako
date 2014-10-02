@@ -13,12 +13,6 @@ down_revision = ${repr(down_revision)}
 from alembic import op
 import sqlalchemy as sa
 
-from adsws.factory import create_app
-from adsws.core import db 
-
-app = create_app('upgrade',
-                 EXTENSIONS = ['adsws.ext.sqlalchemy',
-                               'adsws.ext.security'])
                                
 ${imports if imports else ""}
 

@@ -4,8 +4,8 @@ import logging
 import json
 from adsws.testsuite import FlaskAppTestCase
 from flask import Flask, session, url_for, request, jsonify, abort
-from adsws import api
 from adsws.core import user_manipulator, db
+from adsws import api
 from flask_login import current_user, login_user, logout_user
 
 from flask_oauthlib.client import OAuth

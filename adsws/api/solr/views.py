@@ -3,7 +3,7 @@ from flask import Blueprint, request
 from flask import current_app
 from urllib import urlencode
 
-from .. import route
+from .. import route, limit_rate
 
 from adsws.modules.oauth2server.provider import oauth2
 
@@ -11,6 +11,7 @@ blueprint = Blueprint('api_solr', __name__)
 
 @route(blueprint, '/search', methods=['GET'])
 @oauth2.require_oauth('api:search')
+@limit_rate()
 def search():
     """Searches SOLR."""
     headers = request.headers

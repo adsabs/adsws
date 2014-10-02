@@ -26,11 +26,13 @@ install:
   - "pip install --upgrade pip  --use-mirrors"
   - "pip install coveralls pep257 --use-mirrors"
   - "pip install pytest pytest-pep8 pytest-cov pytest-cache --use-mirrors"
+  - "pip install -r requirements.txt"
   - "pip install -r .travis-$REQUIREMENTS-requirements.txt"
 
 script:
-  - "pep257 --ignore=D100,D101,D102,D103 adsws"
-  - "python setup.py test"
+  #- "pep257 --ignore=D100,D101,D102,D103 adsws"
+  #- "python setup.py test"
+  - "py.test adsws"
 
 after_success:
   - "coveralls"

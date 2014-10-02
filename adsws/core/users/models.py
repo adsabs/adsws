@@ -22,10 +22,9 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    login = db.Column(db.String(255), unique=True)
-    name = db.Column(db.String(255))
-    email = db.Column(db.String(255))
+    email = db.Column(db.String(255), unique=True)
     _password = db.Column(db.String(120), name='password')
+    name = db.Column(db.String(255))
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime())
     last_login_at = db.Column(db.DateTime())

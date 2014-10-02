@@ -15,7 +15,7 @@ import sqlalchemy as db
 
 
 def upgrade():
-    op.create_table('session',        db.Column('session_key', db.String(32), nullable=False,                            server_default='', primary_key=True),        db.Column('session_expiry', db.DateTime, nullable=True, index=True),        db.Column('session_object', db.LargeBinary, nullable=True),        db.Column('uid', db.Integer(), nullable=False, index=True)    )
+    op.create_table('session',        db.Column('session_key', db.String(36), nullable=False,                            server_default='', primary_key=True),        db.Column('session_expiry', db.DateTime, nullable=True, index=True),        db.Column('session_object', db.LargeBinary, nullable=True),        db.Column('uid', db.Integer(), nullable=False, index=True)    )
 
 def downgrade():
     op.drop_table('session')

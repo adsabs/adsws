@@ -9,7 +9,7 @@ DEBUG = True
 TESTING=False
 
 # Flask-Sqlalchemy: http://packages.python.org/Flask-SQLAlchemy/config.html
-SQLALCHEMY_ECHO = False
+SQLALCHEMY_ECHO = True
 
 CLASSIC_LOGIN_URL = 'http://adsabs.harvard.edu/cgi-bin/maint/manage_account/credentials'
 
@@ -18,6 +18,8 @@ SITE_SECURE_URL = 'http://0.0.0.0:5000'
 
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:////dvt/workspace/adsws/adsws.sqlite'
+#SQLALCHEMY_DATABASE_URI = 'postgresql+pg8000://adsws:adsws@localhost/adsws'
+
 
 OAUTH2_CACHE_TYPE='simple'
 

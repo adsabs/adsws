@@ -29,3 +29,5 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Stuff that should be added for every application
 CORE_PACKAGES = []
+
+FALL_BACK_ADS_CLASSIC_LOGIN = True

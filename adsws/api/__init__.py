@@ -14,7 +14,7 @@ from flask import jsonify, current_app, Response, make_response,\
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 from .models import OAuthClientLimits
-
+from datetime import datetime, timedelta
 
 def create_app(**kwargs_config):
     """Returns the AdsWS API application instance"""
@@ -106,7 +106,13 @@ def limit_rate(*scopes):
     def get_curr_rate(oauth):
         c = OAuthClientLimits.query.filter_by(client_id=oauth.client.client_id).first()
         if c is None:
-            c = OAuthClientLimits(client_id=oauth.client.client_id)
+            expires = datetime.utcnow() + timedelta(
+                seconds=int(current_app.config.get(
+                    'MAX_RATE_EXPIRES_IN',
+                    3600
+                )))
+            
+            c = OAuthClientLimits(client_id=oauth.client.client_id, expires=expires)
         return c
     
     def wrapper(f):
@@ -115,9 +121,10 @@ def limit_rate(*scopes):
 
             if hasattr(request, 'oauth') and request.oauth:
                 # TODO: this is just a temporary solution
-                max_rate = 1000
-                if request.oauth.user.is_authenticated():
-                    max_rate = 10000
+                limits = current_app.config.get('MAX_RATE_LIMITS', {'default': 100})
+                max_rate = limits['default']
+                if request.oauth.user.email in limits:
+                    max_rate = limits[request.oauth.user.email]
                 
                 curr_rate = get_curr_rate(request.oauth)
                 curr_rate.increase()

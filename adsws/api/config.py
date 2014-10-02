@@ -19,3 +19,11 @@ CORS_DOMAINS = {
                 }
 
 VERSION = 'v1'
+
+# what is the rate of requests per day
+MAX_RATE_LIMITS = {
+    'default': 10000, # authenticated users
+    'anonymous@adslabs.org': 1000
+}
+
+MAX_RATE_EXPIRES_IN = 3600 * 24

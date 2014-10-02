@@ -9,7 +9,7 @@ DEBUG = True
 TESTING=False
 
 # Flask-Sqlalchemy: http://packages.python.org/Flask-SQLAlchemy/config.html
-SQLALCHEMY_ECHO = True
+SQLALCHEMY_ECHO = False
 
 CLASSIC_LOGIN_URL = 'http://adsabs.harvard.edu/cgi-bin/maint/manage_account/credentials'
 

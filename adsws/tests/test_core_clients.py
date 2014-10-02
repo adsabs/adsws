@@ -15,23 +15,23 @@ class UsersTest(FlaskAppTestCase):
     
     def test_sqlalchemy(self):
         from adsws.core import user_manipulator
-        user = user_manipulator.new(login='joe@email.com')
+        user = user_manipulator.new(email='joe@email.com')
         
-        userx = user_manipulator.first(login='joe@email.com')
+        userx = user_manipulator.first(email='joe@email.com')
         self.assertEqual(userx, None, 'user was there, and shouldnt')
 
         user_manipulator.save(user)
         
-        user = user_manipulator.first(login='joe@email.com')
-        self.assertEqual(user.login, 'joe@email.com', 'user not saved')
+        user = user_manipulator.first(email='joe@email.com')
+        self.assertEqual(user.email, 'joe@email.com', 'user not saved')
         
         from adsws.core.users.models import User
-        user = User(login='elias@email.com')
+        user = User(email='elias@email.com')
         db.session.add(user)
         db.session.commit()
         
-        user = user_manipulator.first(login='elias@email.com')
-        self.assertEqual(user.login, 'elias@email.com', 'user not saved')
+        user = user_manipulator.first(email='elias@email.com')
+        self.assertEqual(user.email, 'elias@email.com', 'user not saved')
     
         
 TEST_SUITE = make_test_suite(UsersTest)

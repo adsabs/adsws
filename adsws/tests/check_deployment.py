@@ -30,18 +30,22 @@ class DeploymentTestCase(unittest.TestCase):
         # we cannot use in-memory instance of database
 
         database_uri = 'sqlite:///%s/foo.sqlite' % tempfile.gettempdir().replace('\\', '/')
+        
+        database_uri = 'postgresql+pg8000://adsws:adsws@localhost/adsws'
+        
         self.tf = tempfile.mktemp()
         fd = open(self.tf, 'w')
         fd.write('''
 SQLALCHEMY_DATABASE_URI = '%s'
-SQLALCHEMY_ECHO = False
+SQLALCHEMY_ECHO = True
+DEBUG = True
         ''' % (database_uri,)
         )
         fd.close()
 
         os.environ['ADSWS_SETTINGS'] = self.tf
 
-        self.check_alembic_reads_correct_database(database_uri)
+        self.check_alembic_reads_correct_database(database_uri.replace(':adsws', ':XXXXX'))
 
         # run the real alembic upgrade head
         # the app will read the correct db setting
@@ -101,9 +105,10 @@ SQLALCHEMY_ECHO = False
 
     def check_alembic_reads_correct_database(self, db_uri):
         x = subprocess.check_output(['alembic', 'current'])
-        print x
+
         if not 'Current revision for ' + db_uri in x:
-            raise Exception('Ooohooo, refusing to run this test, it would change your db! Do you have use_flask_db_url in your alembic.ini?')
+            raise Exception('Ooohooo, refusing to run this test, it would change your db! Do you have use_flask_db_url in your alembic.ini?' +
+                            'We got:' + x + 'And we want: ' + db_uri)
 
 
     def getBrowser(self):

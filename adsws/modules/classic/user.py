@@ -29,13 +29,13 @@ class ClassicUserInfo():
         if not 'email' in user:
             raise Exception("Every user datastruct must contain 'email'")
         
-        self.uid = int(getdict(user, 'myadsid', '-1'))
-        self.login = self.email = getdict(user, 'email', '')
-        self.lastname = getdict(user, 'lastname', '')
-        self.firstname = getdict(user, 'firstname', '')
-        self.cookie = getdict(user, 'cookie', '')
-        self.msg = getdict(user, 'message', '')
-        self.loggedin = int(getdict(user, 'loggedin', '0'))
+        self.uid = int(user.get('myadsid', '-1'))
+        self.login = self.email = user.get('email', '')
+        self.lastname = user.get('lastname', '')
+        self.firstname = user.get('firstname', '')
+        self.cookie = user.get('cookie', '')
+        self.msg = user.get('message', '')
+        self.loggedin = int(user.get('loggedin', '0'))
         
         self._passwd_info = 0
         if password:
@@ -178,15 +178,6 @@ class ClassicUser(ClassicUserInfo):
         data = self._request(parameters, headers)
         if data:
             self._load(data)
-
-
-
-
-
-def getdict(d, v, default):
-    if v in d:
-        return d[v]
-    return default
 
 
 

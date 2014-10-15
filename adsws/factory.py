@@ -160,11 +160,16 @@ def configure_logging(app):
 
     # Set info level on logger, which might be overwritten by handers.
     # Suppress DEBUG messages.
-    app.logger.setLevel(logging.INFO)
+    # app.logger.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
 
-    info_log = os.path.join(app.instance_path, 'info.log')
-    info_file_handler = logging.handlers.RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
-    info_file_handler.setLevel(logging.INFO)
+    try:
+        from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHander
+    except ImportError:
+        RotatingFileHandler = logging.handlers.RotatingFileHandler 
+    
+    info_log = os.path.join(app.instance_path, 'adsws.log')
+    info_file_handler = RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
+    info_file_handler.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
     info_file_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s '
         '[in %(pathname)s:%(lineno)d]')

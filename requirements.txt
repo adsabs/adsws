@@ -26,4 +26,5 @@ jsmin==2.0.3
 cssmin
 unittest2
 six
+ConcurrentLogHandler
 -e .

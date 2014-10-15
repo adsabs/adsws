@@ -32,7 +32,7 @@ from adsws.ext.sqlalchemy import db
 class Session(db.Model):
     """Represents a Session record."""
     __tablename__ = 'session'
-    session_key = db.Column(db.String(32), nullable=False,
+    session_key = db.Column(db.String(255), nullable=False,
                             server_default='', primary_key=True)
     session_expiry = db.Column(db.DateTime, nullable=True, index=True)
     session_object = db.Column(db.LargeBinary, nullable=True)

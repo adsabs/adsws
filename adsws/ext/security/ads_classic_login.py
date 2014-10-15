@@ -4,6 +4,7 @@ from adsws.modules.classic.user import ClassicUserInfo, ClassicUser
 from werkzeug.security import gen_salt
 from adsws.core import user_manipulator
 from flask_security.confirmable import requires_confirmation
+from requests.models import HTTPError
 
 class AdsClassicFallBackLoginForm(LoginForm):
     
@@ -12,7 +13,12 @@ class AdsClassicFallBackLoginForm(LoginForm):
         if r is True:
             return r
         
-        cu = ClassicUserInfo(self.email.data, self.password.data)
+        cu = None
+        try:
+            cu = ClassicUserInfo(self.email.data, self.password.data)
+        except HTTPError:
+            return False  # if we can't contact ADS Classic, make it non-fatal
+
         if cu.is_authenticated(): # Classic did let them in....
             
             if self.user is None:  # User does not exist yet

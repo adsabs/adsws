@@ -78,7 +78,7 @@ def upgrade():
         sa.Column('is_internal', sa.Boolean(), nullable=True),
         sa.Column('_redirect_uris', sa.Text(), nullable=True),
         sa.Column('_default_scopes', sa.Text(), nullable=True),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], onupdate="CASCADE", ondelete="CASCADE"),
         sa.PrimaryKeyConstraint('client_id')
         
     )
@@ -95,8 +95,8 @@ def upgrade():
         sa.Column('_scopes', sa.Text(), nullable=True),
         sa.Column('is_personal', sa.Boolean(), nullable=True),
         sa.Column('is_internal', sa.Boolean(), nullable=True),
-        sa.ForeignKeyConstraint(['client_id'], ['oauth2client.client_id'], ),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+        sa.ForeignKeyConstraint(['client_id'], ['oauth2client.client_id'], onupdate="CASCADE", ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], onupdate="CASCADE", ondelete="CASCADE"),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('access_token'),
         sa.UniqueConstraint('refresh_token')

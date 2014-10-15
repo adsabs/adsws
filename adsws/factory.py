@@ -37,7 +37,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     
     # Force instance folder to always be located one level above adsws
     instance_path = instance_path or os.path.realpath(os.path.join(
-        os.path.dirname(inspect.getfile(inspect.currentframe())), '../instance'
+        get_root_path(), '../instance'
     ))
     
     # Create instance path
@@ -58,9 +58,9 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
         app.config.from_object('%s.config' % app_name)
     except ImportError:
         pass
+    app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
     app.config.from_envvar('ADSWS_SETTINGS', silent=True)
     app.config.from_envvar('ADSWS_SETTINGS_%s' % (app_name,), silent=True)
-    app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
     
     if kwargs_config:
         # Update application config from parameters.
@@ -101,6 +101,9 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     app.before_request(set_translations)
     
     return app
+
+def get_root_path():
+    return os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 def set_translations():
     """Add under ``g._`` an already configured internationalization function.

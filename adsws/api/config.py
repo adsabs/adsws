@@ -15,6 +15,7 @@ PACKAGES = ['adsws.modules.oauth2server',
 
 CORS_DOMAINS = {
                 'http://localhost:8000': 1,
+                'http://localhost:5000': 1,
                 'http://adslabs.org': 1
                 }
 
@@ -22,8 +23,8 @@ VERSION = 'v1'
 
 # what is the rate of requests per day
 MAX_RATE_LIMITS = {
-    'default': 10000, # authenticated users
-    'anonymous@adslabs.org': 1000
+    'default': 20000, # authenticated users
+    'anonymous@adslabs.org': 500
 }
 
 MAX_RATE_EXPIRES_IN = 3600 * 24

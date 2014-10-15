@@ -30,7 +30,7 @@ class OAuthClientLimits(db.Model):
         else:
             self.counter = (self.counter or 0) + 1
             
-        db.session.add(self)
+        db.session.merge(self)
         db.session.commit()
         return self
 

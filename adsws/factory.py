@@ -163,6 +163,8 @@ def configure_logging(app):
         RotatingFileHandler = logging.handlers.RotatingFileHandler 
         
     fn = os.path.join(app.instance_path,app.config.get('LOG_FILE','logs/adsws.log'))
+    if not os.path.exists(os.path.dirname(fn)):
+      os.makedirs(os.path.dirname(fn))
     rfh = RotatingFileHandler(fn, maxBytes=100000, backupCount=10)
     rfh.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s '

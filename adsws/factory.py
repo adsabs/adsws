@@ -14,6 +14,7 @@ import logging.handlers
 from collections import namedtuple
 
 from flask import Flask, g
+from flask import request
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -161,7 +162,34 @@ def configure_logging(app):
         from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHandler
     except ImportError:
         RotatingFileHandler = logging.handlers.RotatingFileHandler 
-        
+
+    def log_exception(exc_info):
+        """Override to default Flask.log_exception (more verbose logging on exceptions)"""
+        try:
+          oauth_user = request.oauth
+        except AttributeError:
+          oauth_user = None
+
+        app.logger.error(
+            """
+Request:     {method} {path}
+IP:          {ip}
+Agent:       {agent_platform} | {agent_browser} {agent_browser_version}
+Raw Agent:   {agent}
+Oauth2:      {oauth_user}
+            """.format(
+                method = request.method,
+                path = request.path,
+                ip = request.remote_addr,
+                agent_platform = request.user_agent.platform,
+                agent_browser = request.user_agent.browser,
+                agent_browser_version = request.user_agent.version,
+                agent = request.user_agent.string,
+                oauth_user = oauth_user
+            ), exc_info=exc_info
+        )
+    app.log_exception=log_exception
+
     fn = os.path.join(app.instance_path,app.config.get('LOG_FILE','logs/adsws.log'))
     if not os.path.exists(os.path.dirname(fn)):
       os.makedirs(os.path.dirname(fn))

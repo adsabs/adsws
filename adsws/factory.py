@@ -12,13 +12,14 @@ import inspect
 import logging
 import logging.handlers
 from collections import namedtuple
+
 from flask import Flask, g
+from flask import request
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
 
 from .middleware import HTTPMethodOverrideMiddleware
-
 
 class AttributeDict(dict):
     def __getattr__(self, name):
@@ -152,29 +153,59 @@ def update_config(app):
                                        % (k, v, key, app.config.get(key)))
             else:
                 app.config[key] = v
+
     
 def configure_logging(app):
-    """Configure file(info) and email(error) logging."""
-
-    if app.debug or app.testing:
-        # Skip debug and test mode. Just check standard output.
-        return
-
-
-    # Set info level on logger, which might be overwritten by handers.
-    # Suppress DEBUG messages.
-    # app.logger.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
+    """Configure logging."""
 
     try:
-        from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHander
+        from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHandler
     except ImportError:
         RotatingFileHandler = logging.handlers.RotatingFileHandler 
-    
-    info_log = os.path.join(app.instance_path, 'adsws.log')
-    info_file_handler = RotatingFileHandler(info_log, maxBytes=100000, backupCount=10)
-    info_file_handler.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
-    info_file_handler.setFormatter(logging.Formatter(
+
+    def log_exception(exc_info):
+        """Override to default Flask.log_exception (more verbose logging on exceptions)"""
+        try:
+          oauth_user = request.oauth
+        except AttributeError:
+          oauth_user = None
+
+        app.logger.error(
+            """
+Request:     {method} {path}
+IP:          {ip}
+Agent:       {agent_platform} | {agent_browser} {agent_browser_version}
+Raw Agent:   {agent}
+Oauth2:      {oauth_user}
+            """.format(
+                method = request.method,
+                path = request.path,
+                ip = request.remote_addr,
+                agent_platform = request.user_agent.platform,
+                agent_browser = request.user_agent.browser,
+                agent_browser_version = request.user_agent.version,
+                agent = request.user_agent.string,
+                oauth_user = oauth_user
+            ), exc_info=exc_info
+        )
+    app.log_exception=log_exception
+
+    fn = os.path.join(app.instance_path,app.config.get('LOG_FILE','logs/adsws.log'))
+    if not os.path.exists(os.path.dirname(fn)):
+      os.makedirs(os.path.dirname(fn))
+    rfh = RotatingFileHandler(fn, maxBytes=100000, backupCount=10)
+    rfh.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s '
         '[in %(pathname)s:%(lineno)d]')
     )
-    app.logger.addHandler(info_file_handler)
+    #NOTE: 
+    # Setting the level on just the handler seems to have *no* effect;
+    # setting the level on app.logger seems to have the desired effect.
+    # I do not understand this behavior
+    #rfh.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
+    app.logger.setLevel((app.config.get('LOG_LEVEL', logging.INFO)))
+    if rfh not in app.logger.handlers:
+      app.logger.addHandler(rfh)
+    app.logger.debug("Logging initialized")
+
+

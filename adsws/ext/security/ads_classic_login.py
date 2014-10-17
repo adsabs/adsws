@@ -21,7 +21,7 @@ class AdsClassicFallBackLoginForm(LoginForm):
 
         if cu.is_authenticated(): # Classic did let them in....
             
-            if self.user is None:  # User does not exist yet
+            if not hasattr(self, 'user') or self.user is None:  # User does not exist yet
                 user_manipulator.create(email=self.email.data, 
                                      password=self.password.data,
                                      name=cu.get_name(),

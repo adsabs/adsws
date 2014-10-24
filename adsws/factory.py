@@ -15,6 +15,7 @@ from collections import namedtuple
 
 from flask import Flask, g
 from flask import request
+from flask_sslify import SSLify
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -100,6 +101,10 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
     app.before_request(set_translations)
+    if app.config.get('HTTPS_ONLY',False):
+        #Contains the x-forwared-proto in the criteria already
+        # only works if app.debug=False
+        SSLify(app,permanent=True) #permanent=True responds with 302 instead of 301
     
     return app
 

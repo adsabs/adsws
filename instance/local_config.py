@@ -35,3 +35,4 @@ SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://adsws:adsws@'+os.environ.get('P
 # Stuff that should be added for every application
 CORE_PACKAGES = []
 
+HTTPS_ONLY=False

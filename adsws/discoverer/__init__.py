@@ -16,14 +16,17 @@ from urlparse import urljoin
 def discover(app):
   for service_uri, deploy_path in app.config.get('WEBSERVICES',{}).iteritems():
     url = urljoin(service_uri,app.config.get('WEBSERVICES_PUBLISH_ENDPOINT',''))
-    r = requests.get(url)
+    try:
+      r = requests.get(url)
+    except requests.exceptions.ConnectionError:
+      app.logger.info('Could not discover %s' % service_uri)
+      continue
     #validate(r.json())
     for resource, properties in r.json().iteritems():
       if resource.startswith('/'):
         resource = resource[1:]
       route = os.path.join(deploy_path,resource)
       remote_route = urljoin(service_uri,resource)
-      print remote_route
       view = ProxyView(remote_route)
       app.add_url_rule(route,route,view.get)
 

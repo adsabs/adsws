@@ -55,6 +55,18 @@ class TestSolr(ApiTestCase):
         self.assertEqual(resp.status, 200)
         self.assertTrue('foo' in json.loads(resp.data))
         
+    @httpretty.activate
+    def test_tvrh(self):
+        httpretty.register_uri(
+                httpretty.POST, self.app.config.get('SOLR_TVRH_HANDLER'),
+                content_type='application/json',
+                status=200,
+                body="""{"responseHeader":{"status":0,"QTime":179},"response":{"numFound":0,"start":0,"docs":[]}}""")
+
+        resp = self.remote_client.get(url_for('api_solr.tvrh'))
+        self.assertEqual(resp.status, 200)
+        self.assertTrue('responseHeader' in json.loads(resp.data))
+
 
 TESTSUITE = make_test_suite(TestSolr)
 

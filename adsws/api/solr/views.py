@@ -20,15 +20,32 @@ def search():
     
     headers = dict(headers.items())
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    
+
     r = requests.post(current_app.config.get('SOLR_SEARCH_HANDLER'), 
                       data=urlencode(payload, doseq=True), headers=headers)
+    return r.text, r.status_code
+
+@route(blueprint, '/tvrh', methods=['GET'])
+@oauth2.require_oauth('api:search','api:tvrh')
+@limit_rate()
+def tvrh():
+    """tvrh endpoint"""
+    headers = request.headers
+    payload = dict(request.args)
+    payload = cleanup_solr_request(payload,disallowed=None)
+    
+    headers = dict(headers.items())
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    
+    r = requests.post(current_app.config.get('SOLR_TVRH_HANDLER'), 
+                      data=urlencode(payload, doseq=True), headers=headers)
+    print r
     return r.text, r.status_code
 
 @route(blueprint, '/qtree', methods=['GET'])
 @oauth2.require_oauth('api:search')
 def qtree():
-    """Retursn parse query tree."""
+    """Returns parse query tree."""
     headers = request.headers
     payload = dict(request.args)
     payload = cleanup_solr_request(payload)
@@ -40,15 +57,15 @@ def qtree():
                       data=urlencode(payload, doseq=True), headers=headers)
     return r.text, r.status_code
     
-def cleanup_solr_request(payload):
+def cleanup_solr_request(payload,disallowed = ('body','full')):
     payload['wt'] = 'json'
     # we disallow 'return everything'
     if 'fl' not in payload:
         payload['fl'] = 'id'
     else:
-        disallowed = {'body':1, 'full': 1}
         fields = payload['fl'][0].split(',')
-        fields = filter(lambda x: x not in disallowed, fields)
+        if disallowed:
+            fields = filter(lambda x: x not in disallowed, fields)
         if len(fields) == 0:
             fields.append('id')
         payload['fl'][0] = ','.join(fields)

@@ -1,5 +1,6 @@
-from flask import Blueprint, request, current_app
+from flask import Blueprint, request, current_app, jsonify
 from flask.ext.restful import Resource
+import requests
 
 blueprint = Blueprint(
   'discoverer',
@@ -16,5 +17,8 @@ class ProxyView:
   def __init__(self,endpoint):
     self.endpoint = endpoint
 
-  def get(self):
-    return "generic view for <h1>%s</h1>" % self.endpoint
+  def get(self,*args):
+    r = requests.get(self.endpoint)
+    return jsonify(r.json())
+
+    #return "generic view for <h1>%s</h1>" % self.endpoint

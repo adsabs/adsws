@@ -1,4 +1,4 @@
-flask-classy
+flask-RESTful
 flask-sslify
 Flask>=0.9
 gunicorn

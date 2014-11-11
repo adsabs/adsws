@@ -28,6 +28,9 @@ def discover(app):
       route = os.path.join(deploy_path,resource)
       remote_route = urljoin(service_uri,resource)
       view = ProxyView(remote_route,service_uri,deploy_path)
+      if properties['scopes']:
+        print resource, properties['scopes']
+        view.get = oauth2.require_oauth(*properties['scopes'])(view.get)
       app.add_url_rule(route,route,view.get)
 
 

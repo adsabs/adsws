@@ -18,7 +18,7 @@ class ProxyView:
     self.endpoint = endpoint
 
   def get(self,*args):
-    r = requests.get(self.endpoint)
+    r = requests.get(self.endpoint,params=request.params)
     return jsonify(r.json())
 
     #return "generic view for <h1>%s</h1>" % self.endpoint

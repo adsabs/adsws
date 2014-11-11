@@ -1,5 +1,6 @@
 from flask import Blueprint, request, current_app, jsonify
 from flask.ext.restful import Resource
+from urlparse import urljoin
 import requests
 
 blueprint = Blueprint(
@@ -14,11 +15,14 @@ class StatusView(Resource):
     return {'app':current_app.name,'status': 'online'}, 200
 
 class ProxyView:
-  def __init__(self,endpoint):
+  '''Proxies a request to a webservice'''
+
+  def __init__(self,endpoint, service_uri, deploy_path):
     self.endpoint = endpoint
+    self.service_uri = service_uri
+    self.deploy_path = deploy_path
 
-  def get(self,*args):
-    r = requests.get(self.endpoint)
+  def get(self,**kwargs):
+    ep = urljoin(self.service_uri,request.full_path.replace(self.deploy_path,'',1))
+    r = requests.get(ep)
     return jsonify(r.json())
-
-    #return "generic view for <h1>%s</h1>" % self.endpoint

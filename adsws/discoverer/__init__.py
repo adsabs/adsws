@@ -27,7 +27,7 @@ def discover(app):
         resource = resource[1:]
       route = os.path.join(deploy_path,resource)
       remote_route = urljoin(service_uri,resource)
-      view = ProxyView(remote_route)
+      view = ProxyView(remote_route,service_uri,deploy_path)
       app.add_url_rule(route,route,view.get)
 
 

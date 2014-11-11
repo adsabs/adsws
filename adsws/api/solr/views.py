@@ -32,6 +32,7 @@ def tvrh():
     """tvrh endpoint"""
     headers = request.headers
     payload = dict(request.args)
+    print "tvrh endpoint entered", headers,payload
     payload = cleanup_solr_request(payload,disallowed=None)
     
     headers = dict(headers.items())

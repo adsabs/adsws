@@ -60,8 +60,8 @@ def add_arguments(parser):
 
   parser.add_argument(
     '--personal',
-    default=True,
-    action='store_false',
+    default=False,
+    action='store_true',
     dest='is_personal',
     help='Set the token type'
     )

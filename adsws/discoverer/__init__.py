@@ -21,7 +21,7 @@ def discover(app):
     except requests.exceptions.ConnectionError:
       app.logger.info('Could not discover %s' % service_uri)
       continue
-    #validate(r.json())
+    #validate(r.json()) #TODO; validate
     for resource, properties in r.json().iteritems():
       if resource.startswith('/'):
         resource = resource[1:]
@@ -29,7 +29,6 @@ def discover(app):
       remote_route = urljoin(service_uri,resource)
       view = ProxyView(remote_route,service_uri,deploy_path)
       if properties['scopes']:
-        print resource, properties['scopes']
         view.get = oauth2.require_oauth(*properties['scopes'])(view.get)
       app.add_url_rule(route,route,view.get)
 
@@ -45,4 +44,3 @@ def create_app(**kwargs_config):
 if __name__ == '__main__':
   app = Flask(__name__)
   app.run('0.0.0.0',5000,debug=True) 
-

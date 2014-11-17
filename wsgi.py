@@ -15,7 +15,7 @@ from adsws import discoverer
 
 application = DispatcherMiddleware(frontend.create_app(), {
     '/v1': api.create_app(),
-    '/services': discoverer.create_app(),
+    '/v1/services': discoverer.create_app(),
 })
 
 if __name__ == "__main__":

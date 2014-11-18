@@ -23,6 +23,8 @@ class ProxyView:
     self.deploy_path = deploy_path
 
   def get(self,**kwargs):
-    ep = urljoin(self.service_uri,request.full_path.replace(self.deploy_path,'',1))
+    path = request.full_path.replace(self.deploy_path,'',1)
+    path = path[1:] if path.startswith('/') else path
+    ep = urljoin(self.service_uri,path)
     r = requests.get(ep)
     return jsonify(r.json())

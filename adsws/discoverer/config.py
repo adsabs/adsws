@@ -10,3 +10,5 @@ WEBSERVICES = {
   'http://localhost:4000':'/sample_application',
   'http://localhost:3999':'/graphics',
 }
+
+CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']

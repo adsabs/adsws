@@ -37,7 +37,7 @@ def discover(app):
 def create_app(**kwargs_config):
   app = factory.create_app(__name__, **kwargs_config)
   api = Api(app)
-  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'))
+  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), headers=app.config.get('CORS_HEADERS'))
   api.add_resource(StatusView,'/status')
   discover(app)
   return app

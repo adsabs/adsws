@@ -65,6 +65,7 @@ class ApiTestCase(FlaskAppTestCase):
         
         # Register a test scope
         scopes_registry.register(Scope('api:search'))
+        scopes_registry.register(Scope('api:tvrh'))
         self.base_url = self.app.config.get('SITE_SECURE_URL')
         
         # create a client in the database
@@ -93,7 +94,7 @@ class ApiTestCase(FlaskAppTestCase):
                                'bumblebee',
                                consumer_key='bumblebee', 
                                consumer_secret='client secret',
-                               request_token_params={'scope': 'api:search'})
+                               request_token_params={'scope': ['api:search', 'api:tvrh']})
         
         # authorize the user - normally, this would happen as a middle step
         # before /oauth/authorize is accessed
@@ -108,7 +109,6 @@ class ApiTestCase(FlaskAppTestCase):
         
         # 2. user grants permissions to the client
         data['confirm'] = 'yes'
-        data['scope'] = 'api:search'
         
         r = self.client.post(url_for('oauth2server.authorize'), 
                              data=data)
@@ -131,7 +131,7 @@ def create_client(app, name, **kwargs):
     default = dict(
         consumer_key='confidential',
         consumer_secret='confidential',
-        request_token_params={'scope': 'test:scope'},
+        request_token_params={'scope': ['test:scope',]},
         base_url=app.config['SITE_SECURE_URL'],
         request_token_url=None,
         access_token_method='POST',

@@ -12,6 +12,7 @@ from views import ProxyView, StatusView
 from flask.ext.restful import Api
 from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
+from flask_cors import CORS
 
 def discover(app):
   for service_uri, deploy_path in app.config.get('WEBSERVICES',{}).iteritems():
@@ -36,6 +37,7 @@ def discover(app):
 def create_app(**kwargs_config):
   app = factory.create_app(__name__, **kwargs_config)
   api = Api(app)
+  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'))
   api.add_resource(StatusView,'/status')
   discover(app)
   return app

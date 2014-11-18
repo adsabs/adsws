@@ -1,3 +1,4 @@
+flask-cors
 flask-RESTful
 flask-sslify
 Flask>=0.9

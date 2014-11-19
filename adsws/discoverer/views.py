@@ -14,7 +14,7 @@ class StatusView(Resource):
   def get(self):
     return {'app':current_app.name,'status': 'online'}, 200
 
-class ProxyView:
+class ProxyView(Resource):
   '''Proxies a request to a webservice'''
 
   def __init__(self,endpoint, service_uri, deploy_path):
@@ -27,4 +27,11 @@ class ProxyView:
     path = path[1:] if path.startswith('/') else path
     ep = urljoin(self.service_uri,path)
     r = requests.get(ep)
+    return jsonify(r.json())
+
+  def post(self,**kwargs):
+    path = request.full_path.replace(self.deploy_path,'',1)
+    path = path[1:] if path.startswith('/') else path
+    ep = urljoin(self.service_uri,path)
+    r = requests.post(ep,data=request.form)
     return jsonify(r.json())

@@ -50,7 +50,8 @@ def discover(app):
           if method not in proxyview.methods:
             app.logger.warning("Could not create a ProxyView for method %s for %s" % (method,service_uri))
             continue  
-          view = proxyview.__getattribute__(method.lower())
+          #view = proxyview.__getattribute__(method.lower())
+          view = proxyview._dispatcher
 
           #Decorate with the service-defined oauth2 scopes
           if properties['scopes']:

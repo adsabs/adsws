@@ -7,27 +7,34 @@ import json
 
 class Stubdata:
   resources_route = {
-      "/resc1": {
+      "/GET": {
         "description": "desc for resc1",
         "methods": [
           "GET"
         ],
         "scopes": []
       },
-      "/resc2": {
+      "/POST": {
         "description": "desc for resc2",
         "methods": [
           "POST"
         ],
         "scopes": []
       },
-      "/resc3": {
+      "/GETPOST": {
         "description": "desc for resc3",
         "methods": [
           "GET",
           "POST",
         ],
         "scopes": []
+      },
+      "/SCOPED": {
+        "description": "desc for resc3",
+        "methods": [
+          "GET",
+        ],
+        "scopes": ['this-scope-shouldnt-exist']
       },
       "/resources": {
         "description": "Overview of available resources",
@@ -38,10 +45,12 @@ class Stubdata:
       }
     }
 
-  resc1 = {'resource': 'resc1'}
-  resc2 = {'resource': 'resc2'}
-  resc3_get =  {'resource': 'resc3','method':'get'}
-  resc3_post = {'resource': 'resc3','method':'post'}
+  GET = {'resource': 'GET'}
+  POST = {'resource': 'POST'}
+  GETPOST = {
+    'GET': {'resource': 'GETPOST','method':'get'},
+    'POST': {'resource': 'GETPOST','method':'post'},
+  }
 
 
 class DiscovererTestCase(FlaskAppTestCase):
@@ -67,19 +76,19 @@ class DiscovererTestCase(FlaskAppTestCase):
                            body=json.dumps(Stubdata.resources_route),
                            content_type="application/json")
 
-    httpretty.register_uri(httpretty.GET, "http://localhost:1233/resc1",
-                           body=json.dumps(Stubdata.resc1),
+    httpretty.register_uri(httpretty.GET, "http://localhost:1233/GET",
+                           body=json.dumps(Stubdata.GET),
                            content_type="application/json")
 
-    httpretty.register_uri(httpretty.POST, "http://localhost:1233/resc2",
-                           body=json.dumps(Stubdata.resc2),
+    httpretty.register_uri(httpretty.POST, "http://localhost:1233/POST",
+                           body=json.dumps(Stubdata.POST),
                            content_type="application/json")
 
-    httpretty.register_uri(httpretty.GET, "http://localhost:1233/resc3",
-                           body=json.dumps(Stubdata.resc3_get),
+    httpretty.register_uri(httpretty.GET, "http://localhost:1233/GETPOST",
+                           body=json.dumps(Stubdata.GETPOST['GET']),
                            content_type="application/json")
-    httpretty.register_uri(httpretty.POST, "http://localhost:1233/resc3",
-                           body=json.dumps(Stubdata.resc3_post),
+    httpretty.register_uri(httpretty.POST, "http://localhost:1233/GETPOST",
+                           body=json.dumps(Stubdata.GETPOST['POST']),
                            content_type="application/json")
 
     app_config = {
@@ -95,33 +104,38 @@ class DiscovererTestCase(FlaskAppTestCase):
   def test_resources_route(self):
     r = self.client.get('/test_webservice/resources')
     self.assertEqual(r.json,Stubdata.resources_route)
-        
-  def test_resc1(self):
-    r = self.client.get('/test_webservice/resc1')
-    self.assertEqual(r.json,Stubdata.resc1)
 
-    r = self.client.post('/test_webservice/resc1')
+  def test_GET_resc(self):
+    r = self.client.get('/test_webservice/GET')
+    self.assertEqual(r.json,Stubdata.GET)
+
+    r = self.client.post('/test_webservice/GET')
     self.assertEqual(r.status_code,405) #Expect to get 405 METHOD NOT ALLOWED
 
-  def test_resc2(self):
-    r = self.client.post('/test_webservice/resc2')
-    self.assertEqual(r.json,Stubdata.resc2)
+  def test_POST_resc(self):
+    r = self.client.post('/test_webservice/POST')
+    self.assertEqual(r.json,Stubdata.POST)
 
-    r = self.client.get('/test_webservice/resc2')
+    r = self.client.get('/test_webservice/POST')
     self.assertEqual(r.status_code,405) #Expect to get 405 METHOD NOT ALLOWED
 
-  def test_resc3(self):
-    r = requests.get("http://localhost:1233/resc3")
-    self.assertEqual(r.json(),Stubdata.resc3_get)
+  def test_GETPOST_resc(self):
+    r = requests.get("http://localhost:1233/GETPOST")
+    self.assertEqual(r.json(),Stubdata.GETPOST['GET'])
 
-    r = requests.post("http://localhost:1233/resc3")
-    self.assertEqual(r.json(),Stubdata.resc3_post)
+    r = requests.post("http://localhost:1233/GETPOST")
+    self.assertEqual(r.json(),Stubdata.GETPOST['POST'])
 
-    r = self.client.post('/test_webservice/resc3')
-    self.assertEqual(r.json,Stubdata.resc3_post)
+    r = self.client.post('/test_webservice/GETPOST')
+    self.assertEqual(r.json,Stubdata.GETPOST['POST'])
 
-    r = self.client.get('/test_webservice/resc3')
-    self.assertEqual(r.json,Stubdata.resc3_get)
+    r = self.client.get('/test_webservice/GETPOST')
+    self.assertEqual(r.json,Stubdata.GETPOST['GET'])
+
+  def test_SCOPED(self):
+    r = self.client.get('/test_webservice/SCOPED')
+    self.assertEqual(r.status_code,401)
+    #TODO: Make the scope, pass the token, see if we get 200 OK
 
 TESTSUITE = make_test_suite(DiscovererTestCase)
 

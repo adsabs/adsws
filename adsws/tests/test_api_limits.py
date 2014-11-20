@@ -37,6 +37,20 @@ class TestApiLimits(ApiTestCase):
         resp = self.remote_client.get(url_for('test_rate'))
         self.assertEqual(resp.status, 200)
         
+    def test_race_condition(self):
+        from adsws.api.models import OAuthClientLimits
+        from adsws.core import db
+        
+        c1 = OAuthClientLimits(client_id=1)
+        c2 = OAuthClientLimits(client_id=1)
+        
+        c1.counter = 1
+        db.session.add(c1)
+        db.session.commit()
+        db.session.expunge(c1)
+        
+        c2.increase()
+        self.assertEqual(c2.counter, 2);
 
 TESTSUITE = make_test_suite(TestApiLimits)
 

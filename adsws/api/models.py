@@ -1,5 +1,6 @@
 from adsws.core import db
 from datetime import datetime
+from sqlalchemy import exc
 
 class OAuthClientLimits(db.Model):
     """
@@ -29,10 +30,18 @@ class OAuthClientLimits(db.Model):
             self.counter = 1
         else:
             self.counter = (self.counter or 0) + 1
-            
-        db.session.merge(self)
-        db.session.commit()
+
+        db.session.begin_nested()
+        try:
+            db.session.add(self)
+            db.session.commit()
+        except exc.IntegrityError:
+            db.session.rollback()
+            db.session.merge(self) # fore re-sync from database
+            self.counter = (self.counter or 0) + 1
+            db.session.commit()
         return self
+
 
     def totals(self):
         """Total number of requests so far."""

@@ -27,6 +27,7 @@ class ApiTestCase(FlaskAppTestCase):
         
         app = api.create_app(
                 SQLALCHEMY_DATABASE_URI='sqlite://',
+                SQLALCHEMY_ECHO=False,
                 WTF_CSRF_ENABLED = False,
                 TESTING = False,
                 SITE_SECURE_URL='http://localhost',

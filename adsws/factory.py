@@ -60,6 +60,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
         app.config.from_object('%s.config' % app_name)
     except ImportError:
         pass
+    app.config.from_pyfile(os.path.join(instance_path, 'config.py'), silent=True)
     app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
     app.config.from_envvar('ADSWS_SETTINGS', silent=True)
     app.config.from_envvar('ADSWS_SETTINGS_%s' % (app_name,), silent=True)

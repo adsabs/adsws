@@ -36,6 +36,11 @@ class Stubdata:
         ],
         "scopes": ['this-scope-shouldnt-exist']
       },
+      "/ECHOPOST" : {
+        "description": "should echo back the post body",
+        "methods" : ['POST'],
+        "scopes": [],
+      },
       "/resources": {
         "description": "Overview of available resources",
         "methods": [
@@ -66,11 +71,11 @@ class DiscovererTestCase(FlaskAppTestCase):
     This method creates the mocked third-party webservices in addition to the discoverer
     '''
 
-    #Webservice on localhost:1233 which provides:
-    # /resources
-    # /resc1, methods GET
-    # /resc2, methods POST
-    # /resc3, methods GET,POST
+
+    def post_request_callback(request,uri,headers):
+      return (200,headers,request.body)
+
+
     httpretty.enable()
     httpretty.register_uri(httpretty.GET, "http://localhost:1233/resources",
                            body=json.dumps(Stubdata.resources_route),
@@ -91,6 +96,10 @@ class DiscovererTestCase(FlaskAppTestCase):
                            body=json.dumps(Stubdata.GETPOST['POST']),
                            content_type="application/json")
 
+    httpretty.register_uri(httpretty.POST, "http://localhost:1233/ECHOPOST",
+                           body=post_request_callback,
+                           content_type="application/json")
+
     app_config = {
       'WEBSERVICES': {
         # uri : deploy_path
@@ -104,6 +113,13 @@ class DiscovererTestCase(FlaskAppTestCase):
   def test_resources_route(self):
     r = self.client.get('/test_webservice/resources')
     self.assertEqual(r.json,Stubdata.resources_route)
+
+  def test_ECHOPOST_resc(self):
+    data = {'foo':'bar'}
+    r = requests.post('http://localhost:1233/ECHOPOST',data=json.dumps(data))
+    self.assertEqual(r.json(),data)
+    r = self.client.post('/test_webservice/ECHOPOST',data=json.dumps(data))
+    #self.assertEqual(r.json,data)
 
   def test_GET_resc(self):
     r = self.client.get('/test_webservice/GET')

@@ -2,6 +2,7 @@ from flask import Blueprint, request, current_app, jsonify
 from flask.ext.restful import Resource
 from urlparse import urljoin
 import requests
+import json
 
 blueprint = Blueprint(
   'discoverer',
@@ -36,5 +37,9 @@ class ProxyView(Resource):
     return jsonify(r.json())
 
   def post(self,ep,request,**kwargs):
-    r = requests.post(ep,data=request.form)
-    return jsonify(r.json())
+    data = json.dumps(request.data)
+    r = requests.post(ep,data=data)
+    resp = r.json()
+    if isinstance(resp, basestring): #Just necessary for httpretty in unittests
+      resp = json.loads(resp)
+    return jsonify(resp)

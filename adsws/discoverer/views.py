@@ -33,12 +33,13 @@ class ProxyView(Resource):
     return self.__getattribute__(request.method.lower())(ep,request)
 
   def get(self,ep,request,**kwargs):
-    r = requests.get(ep)
+    r = requests.get(ep,headers=request.headers)
     return jsonify(r.json())
 
   def post(self,ep,request,**kwargs):
-    data = json.dumps(request.data)
-    r = requests.post(ep,data=data)
+    if not isinstance(request.data,basestring):
+      request.data = json.dumps(request.data)
+    r = requests.post(ep,data=request.data,headers=request.headers)
     resp = r.json()
     if isinstance(resp, basestring): #Just necessary for httpretty in unittests
       resp = json.loads(resp)

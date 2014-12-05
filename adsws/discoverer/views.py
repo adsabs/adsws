@@ -2,6 +2,7 @@ from flask import Blueprint, request, current_app, jsonify
 from flask.ext.restful import Resource
 from urlparse import urljoin
 import requests
+import time
 
 blueprint = Blueprint(
   'discoverer',
@@ -32,7 +33,9 @@ class ProxyView(Resource):
     return self.__getattribute__(request.method.lower())(ep,request)
 
   def get(self,ep,request,**kwargs):
+    print "enter proxyview.get at", time.time()
     r = requests.get(ep)
+    print "return requests.get on ",ep,time.time()
     return jsonify(r.json())
 
   def post(self,ep,request,**kwargs):

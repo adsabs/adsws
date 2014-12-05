@@ -8,7 +8,6 @@
 
 import os
 import warnings
-import inspect
 import logging
 import logging.handlers
 from collections import namedtuple
@@ -21,10 +20,6 @@ from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
 
 from .middleware import HTTPMethodOverrideMiddleware
-
-class AttributeDict(dict):
-    def __getattr__(self, name):
-        return self[name]
 
 def create_app(app_name=None, instance_path=None, **kwargs_config):
     """Returns a :class:`Flask` application instance configured with common
@@ -39,7 +34,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
     
     # Force instance folder to always be located one level above adsws
     instance_path = instance_path or os.path.realpath(os.path.join(
-        get_root_path(), '../instance'
+        os.path.dirname(__file__), '../instance'
     ))
     
     # Create instance path
@@ -62,8 +57,6 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
         pass
     app.config.from_pyfile(os.path.join(instance_path, 'config.py'), silent=True)
     app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
-    app.config.from_envvar('ADSWS_SETTINGS', silent=True)
-    app.config.from_envvar('ADSWS_SETTINGS_%s' % (app_name,), silent=True)
     
     if kwargs_config:
         # Update application config from parameters.
@@ -108,9 +101,6 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
         SSLify(app,permanent=True) #permanent=True responds with 302 instead of 301
     
     return app
-
-def get_root_path():
-    return os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 def set_translations():
     """Add under ``g._`` an already configured internationalization function.

@@ -10,9 +10,9 @@ import requests
 from flask import current_app
 from views import ProxyView, StatusView
 from flask.ext.restful import Api
+from flask.ext.cors import CORS
 from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
-from flask_cors import CORS
 import traceback
 
 def discover(app):

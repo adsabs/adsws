@@ -25,10 +25,11 @@ def create_app(**kwargs_config):
     app.json_encoder = JSONEncoder
 
     # Register custom error handlers
-    if not app.config.get('DEBUG', False):
+    if not app.config.get('DEBUG'):
         app.errorhandler(AdsWSError)(on_adsws_error)
         app.errorhandler(AdsWSFormError)(on_adsws_form_error)
         app.errorhandler(404)(on_404)
+        app.errorhandler(401)(on_401)
 
     if app.config.get('CUSTOM_HEADERS'):
         @app.after_request
@@ -100,6 +101,9 @@ def on_adsws_form_error(e):
 
 def on_404(e):
     return jsonify(dict(error='Not found')), 404
+
+def on_401(e):
+    return jsonify(dict(error='Unauthorized')), 401
 
 def limit_rate(*scopes):
     """Protect resource with specified scopes."""

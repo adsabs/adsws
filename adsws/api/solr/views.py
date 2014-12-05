@@ -27,12 +27,11 @@ def search():
 
 @route(blueprint, '/tvrh', methods=['GET'])
 @oauth2.require_oauth('api:search','api:tvrh')
-@limit_rate()
 def tvrh():
     """tvrh endpoint"""
     headers = request.headers
     payload = dict(request.args)
-    print "tvrh endpoint entered", headers,payload
+    print "tvrh endpoint entered", request.cookies
     payload = cleanup_solr_request(payload,disallowed=None)
     
     headers = dict(headers.items())
@@ -40,7 +39,6 @@ def tvrh():
     
     r = requests.post(current_app.config.get('SOLR_TVRH_HANDLER'), 
                       data=urlencode(payload, doseq=True), headers=headers)
-    print r
     return r.text, r.status_code
 
 @route(blueprint, '/qtree', methods=['GET'])

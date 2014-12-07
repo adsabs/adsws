@@ -210,7 +210,7 @@ def token_new():
 
     if form.validate_on_submit():
         t = OAuthToken.create_personal(
-            form.data['name'], current_user.get_id()
+            form.data['name'], current_user.get_id(), scopes=['ads:default','api:search']
         )
         flash('Please copy the personal access token now. You won\'t see it'
               ' again!', category='info')

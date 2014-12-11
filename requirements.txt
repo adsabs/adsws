@@ -1,4 +1,4 @@
-flask-cors
+flask-cors==1.9.0
 flask-RESTful
 flask-sslify
 Flask>=0.9

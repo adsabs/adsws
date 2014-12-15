@@ -16,10 +16,13 @@ from .. import factory
 from .models import OAuthClientLimits
 from datetime import datetime, timedelta
 
+from flask.ext.ratelimiter import RateLimiter
+
 def create_app(**kwargs_config):
     """Returns the AdsWS API application instance"""
 
     app = factory.create_app(app_name=__name__, **kwargs_config)
+    ext = RateLimiter(app=app)
 
     # Set the default JSON encoder
     app.json_encoder = JSONEncoder

@@ -2,6 +2,8 @@ import requests
 from flask import Blueprint, request
 from flask import current_app
 from urllib import urlencode
+from flask.ext.ratelimiter import ratelimit
+
 
 from .. import route, limit_rate
 
@@ -11,7 +13,7 @@ blueprint = Blueprint('api_solr', __name__)
 
 @route(blueprint, '/search', methods=['GET'])
 @oauth2.require_oauth('api:search')
-@limit_rate()
+@ratelimit(5,30,scope_func=lambda: request.oauth.client_id, key_func=lambda:'api_search')
 def search():
     """Searches SOLR."""
     headers = request.headers

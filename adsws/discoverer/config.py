@@ -17,7 +17,7 @@ WEBSERVICES = {
   'http://localhost:1233/graphics/':'/graphics',
   'http://localhost:1233/metrics/':'/metrics',
   'http://localhost:1233/recommender/':'/recommender',
-  'adsws.sample_application.app': '/sample_application',
+#  'adsws.sample_application.app': '/sample_application',
 }
 
 CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']

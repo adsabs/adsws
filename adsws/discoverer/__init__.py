@@ -14,7 +14,18 @@ from flask.ext.cors import CORS
 from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
+from importlib import import_module
+import types
 
+def bootstrap_local_module(service_uri,deploy_path,app):
+  module = import_module(service_uri)
+  local_app=module.create_app()
+
+  for rule in local_app.url_map.iter_rules():
+    view = local_app.view_functions[rule.endpoint]
+    if view.view_class.scopes:
+      view = oauth2.require_oauth(*view.view_class.scopes)(view)
+    app.add_url_rule(rule.rule,rule.rule,view)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):
   url = urljoin(service_uri,app.config.get('WEBSERVICES_PUBLISH_ENDPOINT',''))
@@ -45,7 +56,6 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
       if method not in proxyview.methods:
         app.logger.warning("Could not create a ProxyView for method %s for %s" % (method,service_uri))
         continue  
-      #view = proxyview.__getattribute__(method.lower())
       view = proxyview._dispatcher
 
       #Decorate with the service-defined oauth2 scopes
@@ -83,6 +93,8 @@ def create_app(**kwargs_config):
   cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), headers=app.config.get('CORS_HEADERS'))
   api.add_resource(StatusView,'/status')
   discover(app)
+  for rule in app.url_map.iter_rules():
+    print rule.rule
   return app
 
 

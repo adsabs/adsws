@@ -21,7 +21,7 @@ from flask_registry import Registry, ExtensionRegistry, \
 
 from .middleware import HTTPMethodOverrideMiddleware
 
-def create_app(app_name=None, instance_path=None, **kwargs_config):
+def create_app(app_name=None, instance_path=None, static_path=None, static_folder=None, **kwargs_config):
     """Returns a :class:`Flask` application instance configured with common
     functionality for the AdsWS platform.
 
@@ -45,7 +45,7 @@ def create_app(app_name=None, instance_path=None, **kwargs_config):
         pass
     
     
-    app = Flask(app_name, instance_path=instance_path, instance_relative_config=False)
+    app = Flask(app_name, instance_path=instance_path, instance_relative_config=False, static_path=static_path, static_folder=static_folder)
     
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False

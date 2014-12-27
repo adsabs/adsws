@@ -8,6 +8,14 @@ PACKAGES = [
 ]
 
 
+CACHE = {
+  'CACHE_TYPE': 'redis',
+  'CACHE_REDIS_HOST': 'localhost',
+  'CACHE_REDIS_PORT': 6379,
+  'CACHE_REDIS_DB': 0,
+  'CACHE_KEY_PREFIX':'adsws_',
+}
+RATELIMITER_BACKEND = 'flaskcacheredis'
 
 WEBSERVICES_PUBLISH_ENDPOINT = 'resources'
 WEBSERVICES = {
@@ -17,7 +25,7 @@ WEBSERVICES = {
   'http://localhost:1233/graphics/':'/graphics',
   'http://localhost:1233/metrics/':'/metrics',
   'http://localhost:1233/recommender/':'/recommender',
-  'adsws.sample_application.app': '/test',
+  'adsws.solr.app':'/search',
 }
 
 CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']

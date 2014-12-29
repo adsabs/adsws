@@ -28,16 +28,14 @@ def bootstrap_local_module(service_uri,deploy_path,app):
     route = os.path.join(deploy_path,rule.rule[1:])
     if view.view_class.rate_limit:
       params = view.view_class.rate_limit
-      if len(params) < 3:
-        defaults = {
+      defaults = {
           'scope_func':lambda: request.oauth.client_id,
           'key_func': lambda: route,
-        }
-        params.append(defaults)
+      }
       view = ratelimit(params[0],
         per=          params[1],
-        scope_func=   params[2].get('scope_func',defaults['scope_func']),
-        key_func=     params[2].get('key_func',defaults['key_func']))(view)
+        scope_func=   defaults['scope_func'],
+        key_func=     defaults['key_func'])(view)
     if hasattr(view.view_class,'scopes'):
       view = oauth2.require_oauth(*view.view_class.scopes)(view)
     app.add_url_rule(route,route,view)
@@ -111,7 +109,7 @@ def create_app(**kwargs_config):
   
   api.add_resource(StatusView,'/status')
   discover(app)
-  
+
   return app
 
 

@@ -19,11 +19,13 @@ class StatusView(Resource):
 
 class Bootstrap(Resource):
   def get(self):
+    
     """Returns the datastruct necessary for Bumblebee bootstrap."""
-    scopes = current_app.config.get('BOOTSTRAP_SCOPES','ads:default')
+    scopes = ' '.join(current_app.config.get('BOOTSTRAP_SCOPES',['ads:default']))
     user_email = current_app.config.get('BOOTSTRAP_USER_EMAIL','anon@ads.org')
-    salt_length = current_app.config.get('BOOTSTRAP_SALT_LEN', 40)
+    salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
     expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
+
     if not current_user.is_authenticated():
       u = user_manipulator.first(email=user_email)
       if u is None:
@@ -85,5 +87,6 @@ class Bootstrap(Resource):
             #'refresh_token': token.refresh_token,
             #'username': current_user.email,
             'expire_in': token.expires.isoformat(),
-            'token_type': 'Bearer'
+            'token_type': 'Bearer',
+            'scopes': token.scopes,
             }

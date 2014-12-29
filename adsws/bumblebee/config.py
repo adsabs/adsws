@@ -7,9 +7,9 @@ EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',
               'adsws.ext.security',]
 
-PACKAGES = ['adsws.modules.oauth2server',
-            'adsws.bumblebee',]
-            
+#PACKAGES = ['adsws.modules.oauth2server',]
+
+CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']            
 CORS_DOMAINS = ['http://localhost:8000',
                 'http://localhost:5000',
                 'http://adslabs.org',]

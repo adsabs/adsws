@@ -83,7 +83,7 @@ class Bootstrap(Resource):
     return {
             'access_token': token.access_token,
             #'refresh_token': token.refresh_token,
-            'username': current_user.email,
+            #'username': current_user.email,
             'expire_in': token.expires.isoformat(),
             'token_type': 'Bearer'
             }

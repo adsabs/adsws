@@ -111,9 +111,7 @@ def create_app(**kwargs_config):
   
   api.add_resource(StatusView,'/status')
   discover(app)
-
-  for rule in app.url_map.iter_rules():
-    print rule.rule
+  
   return app
 
 

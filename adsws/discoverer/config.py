@@ -25,7 +25,10 @@ WEBSERVICES = {
   'http://localhost:1233/graphics/':'/graphics',
   'http://localhost:1233/metrics/':'/metrics',
   'http://localhost:1233/recommender/':'/recommender',
-  'adsws.solr.app':'/search',
+  'adsws.solr.app':'/solr',
 }
 
 CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']
+CORS_DOMAINS = ['http://localhost:8000',
+                'http://localhost:5000',
+                'http://adslabs.org',]

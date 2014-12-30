@@ -26,6 +26,10 @@ WEBSERVICES = {
   'http://localhost:1233/metrics/':'/metrics',
   'http://localhost:1233/recommender/':'/recommender',
   'adsws.solr.app':'/solr',
+  'adsws.graphics.app':'/graphics',
+}
+SQLALCHEMY_BINDS = {
+  'graphics_db': ''
 }
 
 CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept']

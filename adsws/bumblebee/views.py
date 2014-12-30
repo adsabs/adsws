@@ -7,17 +7,25 @@ from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 
 from adsws.core import db, user_manipulator
 
-
+from flask.ext.ratelimiter import ratelimit
 from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource
-from flask import Blueprint, current_app, session, abort
+from flask import Blueprint, current_app, session, abort, request
 
 class StatusView(Resource):
   '''Returns the status of this app'''
   def get(self):
     return {'app':current_app.name,'status': 'online'}, 200
 
+
+def scope_func():
+  #We could do something more complex in the future
+  return request.remote_addr
+
+
 class Bootstrap(Resource):
+  decorators = [ratelimit(2,10,scope_func=scope_func)] 
+
   def get(self):
     
     """Returns the datastruct necessary for Bumblebee bootstrap."""

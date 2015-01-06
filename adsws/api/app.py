@@ -7,17 +7,18 @@ from flask.ext.cors import CORS
 from flask.ext.login import LoginManager
 from flask import jsonify
 
-from views import StatusView,Bootstrap
+from views import StatusView,Bootstrap,ProtectedView
 
 def create_app(**kwargs_config):
   
   app = factory.create_app(app_name=__name__.replace('.app',''), **kwargs_config)
   api = Api(app)
   ratelimiter = RateLimiter(app=app)
-  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), headers=app.config.get('CORS_HEADERS'))
+  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), allow_headers=app.config.get('CORS_HEADERS'),methods=app.config.get('CORS_METHODS'))
 
   app.json_encoder = JSONEncoder
   api.add_resource(StatusView,'/status')
+  api.add_resource(ProtectedView,'/protected')
   api.add_resource(Bootstrap,'/bootstrap')
 
   # Register custom error handlers

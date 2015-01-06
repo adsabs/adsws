@@ -12,22 +12,25 @@ from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource
 from flask import Blueprint, current_app, session, abort, request
 
+def scope_func():
+  #We could do something more complex in the future
+  return request.remote_addr
+
+class ProtectedView(Resource):
+  '''This view is oauth2-authentication protected'''
+  decorators = [oauth2.require_oauth()]
+  def get(self):
+    return {'app':current_app.name,'oauth':request.oauth.user.email}
+
 class StatusView(Resource):
   '''Returns the status of this app'''
   def get(self):
     return {'app':current_app.name,'status': 'online'}, 200
 
-
-def scope_func():
-  #We could do something more complex in the future
-  return request.remote_addr
-
-
 class Bootstrap(Resource):
-  decorators = [ratelimit(2,10,scope_func=scope_func)] 
+  decorators = [ratelimit(400,86400,scope_func=scope_func)]
 
   def get(self):
-    
     """Returns the datastruct necessary for Bumblebee bootstrap."""
     scopes = ' '.join(current_app.config.get('BOOTSTRAP_SCOPES',['ads:default']))
     user_email = current_app.config.get('BOOTSTRAP_USER_EMAIL','anon@ads.org')
@@ -92,8 +95,8 @@ class Bootstrap(Resource):
 
     return {
             'access_token': token.access_token,
-            #'refresh_token': token.refresh_token,
-            #'username': current_user.email,
+            'refresh_token': token.refresh_token,
+            'username': current_user.email,
             'expire_in': token.expires.isoformat(),
             'token_type': 'Bearer',
             'scopes': token.scopes,

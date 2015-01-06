@@ -33,9 +33,8 @@ class ProxyView(Resource):
     return self.__getattribute__(request.method.lower())(ep,request)
 
   def get(self,ep,request,**kwargs):
-    print "enter proxyview.get at", time.time()
+    print "enter discoverer.get on %s" % ep
     r = requests.get(ep)
-    print "return requests.get on ",ep,time.time()
     return jsonify(r.json())
 
   def post(self,ep,request,**kwargs):

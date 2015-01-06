@@ -22,6 +22,9 @@ env:
   #- REQUIREMENTS=release
   - REQUIREMENTS=devel
 
+services:
+  - redis-server
+
 install:
   - "pip install --upgrade pip  --use-mirrors"
   - "pip install coveralls pep257 --use-mirrors"

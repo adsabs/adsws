@@ -26,6 +26,7 @@ class ApiTestCase(FlaskAppTestCase):
         os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'True'
         
         app = api.create_app(
+                SQLALCHEMY_BINDS=None,
                 SQLALCHEMY_DATABASE_URI='sqlite://',
                 WTF_CSRF_ENABLED = False,
                 TESTING = False,
@@ -66,6 +67,7 @@ class ApiTestCase(FlaskAppTestCase):
         # Register a test scope
         scopes_registry.register(Scope('api:search'))
         scopes_registry.register(Scope('api:tvrh'))
+        scopes_registry.register(Scope('ads:default'))
         self.base_url = self.app.config.get('SITE_SECURE_URL')
         
         # create a client in the database
@@ -88,13 +90,13 @@ class ApiTestCase(FlaskAppTestCase):
         self.authenticate()
         
         
-    def authenticate(self):
+    def authenticate(self,logout=True):
         
         self.remote_client = create_client(self.app,
                                'bumblebee',
                                consumer_key='bumblebee', 
                                consumer_secret='client secret',
-                               request_token_params={'scope': ['api:search', 'api:tvrh']})
+                               request_token_params={'scope': ['api:search', 'api:tvrh','ads:default']})
         
         # authorize the user - normally, this would happen as a middle step
         # before /oauth/authorize is accessed
@@ -122,8 +124,13 @@ class ApiTestCase(FlaskAppTestCase):
         self.assertTrue('access_token' in resp)
         
         self.assertEqual(self.remote_client.get_request_token()[0], resp['access_token'])
-        
-        self.logout()
+        self.token = resp['access_token']
+        if logout:
+            self.logout()
+    
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
 
 
 def create_client(app, name, **kwargs):

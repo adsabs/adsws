@@ -11,11 +11,11 @@ from werkzeug.wsgi import DispatcherMiddleware
 
 from adsws import frontend
 from adsws import discoverer
-from adsws import bumblebee
+from adsws import api
 
 application = DispatcherMiddleware(frontend.create_app(), {
     '/v1': discoverer.create_app(),
-    '/bumblebee': bumblebee.create_app(),
+    '/v1/api': api.create_app(),
 })
 
 if __name__ == "__main__":

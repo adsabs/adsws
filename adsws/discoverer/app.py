@@ -71,10 +71,20 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
         continue  
       view = proxyview._dispatcher
 
+      params = properties['rate_limit']
+      if params:
+        defaults = {
+            'scope_func':lambda: request.oauth.client_id,
+            'key_func': lambda: route,
+        }
+        view = ratelimit(params[0],
+          per=          params[1],
+          scope_func=   defaults['scope_func'],
+          key_func=     defaults['key_func'])(view)
+
       #Decorate with the service-defined oauth2 scopes
-      if properties['scopes']:
-        view = oauth2.require_oauth(*properties['scopes'])(view)
-      
+      view = oauth2.require_oauth(*properties['scopes'])(view)
+
       #Either make a new route with this view, or append the new method to an existing route
       #that has the same name
       try:

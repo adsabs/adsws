@@ -1,4 +1,3 @@
-
 import os
 import logging
 import json
@@ -16,36 +15,31 @@ try:
 except ImportError:
     from urllib.parse import urlparse
 
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'True'
 
 #logging.basicConfig(level=logging.DEBUG)
+
 
 class ApiTestCase(FlaskAppTestCase):
     '''Authenticate users using ADS Classic (if necessary)'''
 
-    def create_app(self):
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'True'
-        
-        app = api.create_app(
-                SQLALCHEMY_BINDS=None,
-                SQLALCHEMY_DATABASE_URI='sqlite://',
-                WTF_CSRF_ENABLED = False,
-                TESTING = False,
-                SITE_SECURE_URL='http://localhost',
-                SECURITY_POST_LOGIN_VIEW='/postlogin'
-                )
-        
-        @app.route('/postlogin')
-        def username():
-            if current_user.is_authenticated():
-                return current_user.email
-            return u'Anonymous'
-        
-        @app.errorhandler(404)
-        def handle_404(e):
-            raise e
 
-        db.create_all(app=app)
-        return app
+    # def create_app(self):
+        
+    #     app = api.create_app(
+    #             SQLALCHEMY_BINDS=None,
+    #             SQLALCHEMY_DATABASE_URI='sqlite://',
+    #             WTF_CSRF_ENABLED = False,
+    #             TESTING = False,
+    #             SITE_SECURE_URL='http://localhost',
+    #             SECURITY_POST_LOGIN_VIEW='/postlogin',
+    #             WEBSERVICES = {},
+    #             )
+        
+
+
+    #     db.create_all(app=app)
+    #     return app
     
     def parse_redirect(self, location, parse_fragment=False):
         from werkzeug.urls import url_parse, url_decode, url_unparse
@@ -56,6 +50,17 @@ class ApiTestCase(FlaskAppTestCase):
         )
         
     def setUp(self):
+        @self.app.route('/postlogin')
+        def username():
+            if current_user.is_authenticated():
+                return current_user.email
+            return u'Anonymous'
+        
+        @self.app.errorhandler(404)
+        def handle_404(e):
+            raise e
+        db.create_all(app=self.app)
+
         FlaskAppTestCase.setUp(self)
         
         user = user_manipulator.create(email='montysolr', password='montysolr', active=True)

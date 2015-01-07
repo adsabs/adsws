@@ -8,6 +8,7 @@ from flask.ext.login import LoginManager
 from flask import jsonify
 
 from views import StatusView,Bootstrap,ProtectedView
+from discoverer import discover
 
 def create_app(**kwargs_config):
   
@@ -20,6 +21,7 @@ def create_app(**kwargs_config):
   api.add_resource(StatusView,'/status')
   api.add_resource(ProtectedView,'/protected')
   api.add_resource(Bootstrap,'/bootstrap')
+  discover(app)
 
   # Register custom error handlers
   if not app.config.get('DEBUG'):

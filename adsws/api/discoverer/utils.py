@@ -1,22 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-    adsws.discoverer
-    ~~~~~~~~~~~~~~~~~~
-
-"""
 import os
-from .. import factory
 import requests
 from flask import current_app, request
-from views import ProxyView, StatusView
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
+from views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
 from importlib import import_module
-from flask.ext.ratelimiter import RateLimiter, ratelimit
-from flask.ext.cache import Cache
+from flask.ext.ratelimiter import ratelimit
 
 
 def bootstrap_local_module(service_uri,deploy_path,app):
@@ -96,10 +86,13 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
 
 
 def discover(app):
-  #Query each third-party service defined in the config for a route ('resources' by default)
-  #This route is expected to be present in all web-services, and describes which routes are present
-  #therein.
-  for service_uri, deploy_path in app.config.get('WEBSERVICES',{}).iteritems():
+  '''Query each third-party service defined in the config for a route ('resources' by default)
+  This route is expected to be present in all web-services, and describes which routes are present
+  therein.'''
+  WEBSERVICES = app.config.get('WEBSERVICES')
+  if not WEBSERVICES:
+    WEBSERVICES = {}
+  for service_uri, deploy_path in WEBSERVICES.iteritems():
     try:
       if service_uri.startswith('http'):
         bootstrap_remote_service(service_uri,deploy_path,app)
@@ -107,22 +100,3 @@ def discover(app):
         bootstrap_local_module(service_uri,deploy_path,app)    
     except:
       app.logger.warning("Problem discovering %s, skipping this service entirely: %s" % (service_uri,traceback.format_exc()))
-
-
-def create_app(**kwargs_config):
-  app = factory.create_app(__name__.replace('.app',''),**kwargs_config)
-  
-  api = Api(app)
-  ratelimiter = RateLimiter(app=app)
-  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), headers=app.config.get('CORS_HEADERS'))
-  cache = Cache(app,config=app.config['CACHE'])
-  
-  api.add_resource(StatusView,'/status')
-  discover(app)
-
-  return app
-
-
-if __name__ == '__main__':
-  app = Flask(__name__)
-  app.run('0.0.0.0',5000,debug=True) 

@@ -3,17 +3,13 @@ from flask.ext.restful import Resource
 from urlparse import urljoin
 import requests
 import time
+from adsws.modules.oauth2server.provider import oauth2
 
 blueprint = Blueprint(
   'discoverer',
   __name__,
   static_folder=None,
 )
-
-class StatusView(Resource):
-  '''Returns the status of this app'''
-  def get(self):
-    return {'app':current_app.name,'status': 'online'}, 200
 
 class ProxyView(Resource):
   '''Proxies a request to a webservice'''
@@ -33,7 +29,6 @@ class ProxyView(Resource):
     return self.__getattribute__(request.method.lower())(ep,request)
 
   def get(self,ep,request,**kwargs):
-    print "enter discoverer.get on %s" % ep
     r = requests.get(ep)
     return jsonify(r.json())
 

@@ -3,9 +3,22 @@ from adsws.tests.api_base import ApiTestCase
 from flask import current_app, url_for
 from adsws.testsuite import make_test_suite, run_test_suite
 import json
+from adsws import api
 
-class TestBumbleBee(ApiTestCase):
+class TestBootstrap(ApiTestCase):
     
+    def create_app(self):
+        app = api.create_app(
+                SQLALCHEMY_BINDS=None,
+                SQLALCHEMY_DATABASE_URI='sqlite://',
+                WTF_CSRF_ENABLED = False,
+                TESTING = False,
+                SITE_SECURE_URL='http://localhost',
+                SECURITY_POST_LOGIN_VIEW='/postlogin',
+                WEBSERVICES = {},
+                )
+        return app
+
     def test_bootstrap_anonymous(self):
         user_manipulator.create(email=current_app.config.get('BOOTSTRAP_USER_EMAIL'), id=-1)
         self.bootstrap('anonymous@adslabs.org')
@@ -29,7 +42,7 @@ class TestBumbleBee(ApiTestCase):
         r = self.client.get(url_for('protectedview'),headers={"Authorization": "Bearer %s" % data['access_token']})
         self.assertStatus(r,200)
 
-TESTSUITE = make_test_suite(TestBumbleBee)
+TESTSUITE = make_test_suite(TestBootstrap)
 
 if __name__ == '__main__':
     run_test_suite(TESTSUITE)

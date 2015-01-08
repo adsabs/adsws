@@ -9,13 +9,11 @@
 from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 
-from adsws import api
 from adsws import frontend
-from adsws import discoverer
+from adsws import api
 
 application = DispatcherMiddleware(frontend.create_app(), {
     '/v1': api.create_app(),
-    '/v1/services': discoverer.create_app(),
 })
 
 if __name__ == "__main__":

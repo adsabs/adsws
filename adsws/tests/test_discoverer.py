@@ -1,159 +1,185 @@
 from flask import Flask, session, url_for, request, jsonify, Blueprint, current_app
 from adsws.testsuite import FlaskAppTestCase, make_test_suite, run_test_suite
-from adsws import discoverer
+from api_base import ApiTestCase, create_client
+from adsws import api
 import requests
-import httpretty
+import subprocess
+# import httpretty
+import os
 import json
+import time
+from sample_microservice import Stubdata
 
-class Stubdata:
-  resources_route = {
-      "/GET": {
-        "description": "desc for resc1",
-        "methods": [
-          "GET"
-        ],
-        "scopes": []
-      },
-      "/POST": {
-        "description": "desc for resc2",
-        "methods": [
-          "POST"
-        ],
-        "scopes": []
-      },
-      "/GETPOST": {
-        "description": "desc for resc3",
-        "methods": [
-          "GET",
-          "POST",
-        ],
-        "scopes": []
-      },
-      "/SCOPED": {
-        "description": "desc for resc3",
-        "methods": [
-          "GET",
-        ],
-        "scopes": ['this-scope-shouldnt-exist']
-      },
-      "/ECHOPOST" : {
-        "description": "should echo back the post body",
-        "methods" : ['POST'],
-        "scopes": [],
-      },
-      "/resources": {
-        "description": "Overview of available resources",
-        "methods": [
-          "GET"
-        ],
-        "scopes": []
-      }
-    }
-
-  GET = {'resource': 'GET'}
-  POST = {'resource': 'POST'}
-  GETPOST = {
-    'GET': {'resource': 'GETPOST','method':'get'},
-    'POST': {'resource': 'GETPOST','method':'post'},
-  }
+LIVESERVER_WAIT_SECONDS = 2
 
 
-class DiscovererTestCase(FlaskAppTestCase):
+class DiscovererTestCase:
+  def setupRemoteServer(self):
+    path = os.path.join(os.path.dirname(__file__),'sample_microservice','app.py')
+    self.liveserver = subprocess.Popen(['python',path])
+    time.sleep(LIVESERVER_WAIT_SECONDS)
+  
+  def tearDownRemoteServer(self):
+    self.liveserver.kill()
+    time.sleep(LIVESERVER_WAIT_SECONDS)
+
+  def open(self,method,url,**kwargs):
+    #return self.client.open(url,method=method)
+    return self.client.open(url,method=method,headers={"Authorization": "Bearer %s" % self.token},**kwargs)
+
+class DiscoverLocalModuleTestCase(ApiTestCase,DiscovererTestCase):
   '''
-  . Mock third party services, including a /resources endpoint
-  . create discoverer app, connecting to the mocked resources
-  . Test that current_app has the bootstrapped routes
-  . Test GET, POST to the bootstrapped routes -> Backend services response
-
+  . Import a local module
+  . create the discoverer app, adding that module's routes to the api/discoverer
+  . test that the api/discoverer has these routes, and that they return the expected data
   '''
   def create_app(self):
-    '''
-    This method creates the mocked third-party webservices in addition to the discoverer
-    '''
-
-
-    def post_request_callback(request,uri,headers):
-      return (200,headers,request.body)
-
-
-    httpretty.enable()
-    httpretty.register_uri(httpretty.GET, "http://localhost:1233/resources",
-                           body=json.dumps(Stubdata.resources_route),
-                           content_type="application/json")
-
-    httpretty.register_uri(httpretty.GET, "http://localhost:1233/GET",
-                           body=json.dumps(Stubdata.GET),
-                           content_type="application/json")
-
-    httpretty.register_uri(httpretty.POST, "http://localhost:1233/POST",
-                           body=json.dumps(Stubdata.POST),
-                           content_type="application/json")
-
-    httpretty.register_uri(httpretty.GET, "http://localhost:1233/GETPOST",
-                           body=json.dumps(Stubdata.GETPOST['GET']),
-                           content_type="application/json")
-    httpretty.register_uri(httpretty.POST, "http://localhost:1233/GETPOST",
-                           body=json.dumps(Stubdata.GETPOST['POST']),
-                           content_type="application/json")
-
-    httpretty.register_uri(httpretty.POST, "http://localhost:1233/ECHOPOST",
-                           body=post_request_callback,
-                           content_type="application/json")
-
-    app_config = {
-      'WEBSERVICES': {
-        # uri : deploy_path
-        'http://localhost:1233/': '/test_webservice',
-      },
-      'WEBSERVICES_PUBLISH_ENDPOINT':'resources',
-    }
-    app = discoverer.create_app(**app_config)
+    app=api.create_app(
+      WEBSERVICES = {'adsws.tests.sample_microservice.app': '/test_webservice'},
+      WEBSERVICES_PUBLISH_ENDPOINT='resources',
+      SQLALCHEMY_BINDS=None,
+      SQLALCHEMY_DATABASE_URI='sqlite://',
+      WTF_CSRF_ENABLED = False,
+      TESTING = False,
+      SITE_SECURE_URL='http://localhost',
+      SECURITY_POST_LOGIN_VIEW='/postlogin',
+    )
     return app
 
+  def test_status_route(self):
+    r = self.open('GET','/status')
+    self.assertStatus(r,200)
+  
+  def test_protected_route(self):
+    r = self.open('GET','/protected')
+    self.assertStatus(r,200)
+  
   def test_resources_route(self):
-    r = self.client.get('/test_webservice/resources')
-    self.assertEqual(r.json,Stubdata.resources_route)
-
-  def test_ECHOPOST_resc(self):
-    data = {'foo':'bar'}
-    r = requests.post('http://localhost:1233/ECHOPOST',data=json.dumps(data))
-    self.assertEqual(r.json(),data)
-    r = self.client.post('/test_webservice/ECHOPOST',data=json.dumps(data))
-    #self.assertEqual(r.json,data)
-
+    r = self.open('GET','/test_webservice/resources')
+    self.assertStatus(r,200)
+    #Note:
+    #https://github.com/adsabs/adsabs-webservices-blueprint/issues/9
+    self.assertIn('/test_webservice/resources',r.json)
+  
   def test_GET_resc(self):
-    r = self.client.get('/test_webservice/GET')
+    r = self.open('GET','/test_webservice/GET')
     self.assertEqual(r.json,Stubdata.GET)
 
-    r = self.client.post('/test_webservice/GET')
-    self.assertEqual(r.status_code,405) #Expect to get 405 METHOD NOT ALLOWED
+    r = self.open('POST','/test_webservice/GET')
+    self.assertStatus(r,405) #Expect to get 405 METHOD NOT ALLOWED
 
   def test_POST_resc(self):
-    r = self.client.post('/test_webservice/POST')
+    r = self.open('POST','/test_webservice/POST')
     self.assertEqual(r.json,Stubdata.POST)
 
-    r = self.client.get('/test_webservice/POST')
-    self.assertEqual(r.status_code,405) #Expect to get 405 METHOD NOT ALLOWED
+    r = self.open('GET','/test_webservice/POST')
+    self.assertStatus(r,405) #Expect to get 405 METHOD NOT ALLOWED
 
   def test_GETPOST_resc(self):
-    r = requests.get("http://localhost:1233/GETPOST")
-    self.assertEqual(r.json(),Stubdata.GETPOST['GET'])
-
-    r = requests.post("http://localhost:1233/GETPOST")
-    self.assertEqual(r.json(),Stubdata.GETPOST['POST'])
-
-    r = self.client.post('/test_webservice/GETPOST')
+    r = self.open('POST','/test_webservice/GETPOST')
     self.assertEqual(r.json,Stubdata.GETPOST['POST'])
 
-    r = self.client.get('/test_webservice/GETPOST')
+    r = self.open('GET','/test_webservice/GETPOST')
     self.assertEqual(r.json,Stubdata.GETPOST['GET'])
 
   def test_SCOPED(self):
-    r = self.client.get('/test_webservice/SCOPED')
-    self.assertEqual(r.status_code,401)
-    #TODO: Make the scope, pass the token, see if we get 200 OK
+    r = self.open('GET','/test_webservice/SCOPED')
+    self.assertStatus(r,401)
 
-TESTSUITE = make_test_suite(DiscovererTestCase)
+  def test_LOW_RATE_LIMIT(self):
+    go = lambda: self.open('GET','/test_webservice/LOW_RATE_LIMIT')
+    r = go()
+    self.assertStatus(r,200)
+    r = go()
+    self.assertStatus(r,200)
+    r = go()
+    self.assertStatus(r,429)    
+    time.sleep(1)
+    r = go()
+    self.assertStatus(r,200)    
+
+class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
+  '''
+  . Run a third party service (actual webserver), including a /resources endpoint
+  . create discoverer app, connecting to the service
+  . Test that the app has the bootstrapped routes
+  . Test GET, POST to the bootstrapped routes -> Backend services response
+  . Requires that the remote service be a liveserver with >1 worker (https://github.com/adsabs/adsws/issues/19)
+  '''
+  def create_app(self):
+    self.setupRemoteServer()
+    app = api.create_app(
+      WEBSERVICES = {'http://localhost:5005/': '/test_webservice'},
+      WEBSERVICES_PUBLISH_ENDPOINT='resources',
+      SQLALCHEMY_BINDS=None,
+      SQLALCHEMY_DATABASE_URI='sqlite://',
+      WTF_CSRF_ENABLED = False,
+      TESTING = False,
+      SITE_SECURE_URL='http://localhost',
+      SECURITY_POST_LOGIN_VIEW='/postlogin',
+      )
+    self.tearDownRemoteServer()
+    return app
+
+  def setUp(self):
+    self.setupRemoteServer()
+    super(DiscoverRemoteServerTestCase,self).setUp()
+
+  def tearDown(self):
+    self.tearDownRemoteServer()
+    super(DiscoverRemoteServerTestCase,self).tearDown()
+
+  def test_status_route(self):
+    r = self.open('GET','/status')
+    self.assertStatus(r,200)
+
+  def test_protected_route(self):
+    r = self.open('GET','/protected')
+    self.assertStatus(r,200)
+
+  def test_resources_route(self):
+    r = self.open('GET','/test_webservice/resources')
+    self.assertStatus(r,200)
+    self.assertIn('/resources',r.json)
+
+  def test_GET_resc(self):
+    r = self.open('GET','/test_webservice/GET')
+    self.assertEqual(r.json,Stubdata.GET)
+
+    r = self.open('POST','/test_webservice/GET')
+    self.assertStatus(r,405) #Expect to get 405 METHOD NOT ALLOWED
+
+  def test_POST_resc(self):
+    r = self.open('POST','/test_webservice/POST')
+    self.assertEqual(r.json,Stubdata.POST)
+
+    r = self.open('GET','/test_webservice/POST')
+    self.assertStatus(r,405) #Expect to get 405 METHOD NOT ALLOWED
+
+  def test_GETPOST_resc(self):
+    r = self.open('POST','/test_webservice/GETPOST')
+    self.assertEqual(r.json,Stubdata.GETPOST['POST'])
+
+    r = self.open('GET','/test_webservice/GETPOST')
+    self.assertEqual(r.json,Stubdata.GETPOST['GET'])
+
+  def test_SCOPED(self):
+    r = self.open('GET','/test_webservice/SCOPED')
+    self.assertStatus(r,401)
+
+  def test_LOW_RATE_LIMIT(self):
+    go = lambda: self.open('GET','/test_webservice/LOW_RATE_LIMIT')
+    r = go()
+    self.assertStatus(r,200)
+    r = go()
+    self.assertStatus(r,200)
+    r = go()
+    self.assertStatus(r,429)    
+    time.sleep(1)
+    r = go()
+    self.assertStatus(r,200)
+
+TESTSUITE = make_test_suite(DiscoverRemoteServerTestCase,DiscoverLocalModuleTestCase)
 
 if __name__ == '__main__':
   run_test_suite(TESTSUITE)

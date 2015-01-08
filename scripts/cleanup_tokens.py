@@ -40,7 +40,8 @@ def main():
 
   with app.app_context():
     for token in db.session.query(OAuthToken).filter(OAuthToken.expires <= args.date).all():
-      db.session.delete(token)
+      if token.expires:
+        db.session.delete(token)
     db.session.commit()
 
 

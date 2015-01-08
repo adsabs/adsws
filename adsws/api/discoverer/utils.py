@@ -42,8 +42,8 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
   app.logger.debug('Attempting bootstrap_remote_service [%s]' % service_uri)
   url = urljoin(service_uri,app.config.get('WEBSERVICES_PUBLISH_ENDPOINT',''))
   try:
-    r = requests.get(url)
-  except requests.exceptions.ConnectionError:
+    r = requests.get(url,timeout=5)
+  except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
     app.logger.info('Could not discover %s' % service_uri)
     return
 

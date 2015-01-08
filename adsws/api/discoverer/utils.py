@@ -1,4 +1,4 @@
-import os
+import os, sys
 import requests
 from flask import current_app, request
 from views import ProxyView
@@ -8,8 +8,12 @@ import traceback
 from importlib import import_module
 from flask.ext.ratelimiter import ratelimit
 
-
 def bootstrap_local_module(service_uri,deploy_path,app):
+  '''
+  Incorporates the routes of an existing app into this one
+  '''
+  app.logger.debug('Attempting bootstrap_local_module [%s]' % service_uri)
+
   module = import_module(service_uri)
   local_app=module.create_app()
 
@@ -31,6 +35,7 @@ def bootstrap_local_module(service_uri,deploy_path,app):
     app.add_url_rule(route,route,view)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):
+  app.logger.debug('Attempting bootstrap_remote_service [%s]' % service_uri)
   url = urljoin(service_uri,app.config.get('WEBSERVICES_PUBLISH_ENDPOINT',''))
   try:
     r = requests.get(url)
@@ -97,6 +102,6 @@ def discover(app):
       if service_uri.startswith('http'):
         bootstrap_remote_service(service_uri,deploy_path,app)
       else:
-        bootstrap_local_module(service_uri,deploy_path,app)    
+        bootstrap_local_module(service_uri,deploy_path,app)
     except:
       app.logger.warning("Problem discovering %s, skipping this service entirely: %s" % (service_uri,traceback.format_exc()))

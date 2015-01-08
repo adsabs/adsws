@@ -13,7 +13,6 @@ from adsws import frontend
 from adsws import api
 
 application = DispatcherMiddleware(frontend.create_app(), {
-#    '/v1': discoverer.create_app(),
     '/v1': api.create_app(),
 })
 

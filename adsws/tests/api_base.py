@@ -19,27 +19,8 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'True'
 
 #logging.basicConfig(level=logging.DEBUG)
 
-
 class ApiTestCase(FlaskAppTestCase):
     '''Authenticate users using ADS Classic (if necessary)'''
-
-
-    # def create_app(self):
-        
-    #     app = api.create_app(
-    #             SQLALCHEMY_BINDS=None,
-    #             SQLALCHEMY_DATABASE_URI='sqlite://',
-    #             WTF_CSRF_ENABLED = False,
-    #             TESTING = False,
-    #             SITE_SECURE_URL='http://localhost',
-    #             SECURITY_POST_LOGIN_VIEW='/postlogin',
-    #             WEBSERVICES = {},
-    #             )
-        
-
-
-    #     db.create_all(app=app)
-    #     return app
     
     def parse_redirect(self, location, parse_fragment=False):
         from werkzeug.urls import url_parse, url_decode, url_unparse

@@ -46,6 +46,10 @@ class DiscoverLocalModuleTestCase(ApiTestCase,DiscovererTestCase):
     )
     return app
 
+  def test_app_config(self):
+    self.assertIsNotNone(self.app.config['CACHE'])
+    self.assertEqual(self.app.config['TEST_SPECIFIC_CONFIG'],'foo')
+
   def test_status_route(self):
     r = self.open('GET','/status')
     self.assertStatus(r,200)
@@ -128,6 +132,10 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
   def tearDown(self):
     self.tearDownRemoteServer()
     super(DiscoverRemoteServerTestCase,self).tearDown()
+
+  def test_app_config(self):
+    self.assertIsNotNone(self.app.config['CACHE'])
+    self.assertNotIn('TEST_SPECIFIC_CONFIG',self.app.config)
 
   def test_status_route(self):
     r = self.open('GET','/status')

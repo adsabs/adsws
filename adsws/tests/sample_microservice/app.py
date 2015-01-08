@@ -4,7 +4,7 @@ from flask import Flask, g
 from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT
 from flask.ext.restful import Api
 
-def create_blueprint():
+def _create_blueprint_():
   return Blueprint(
       'sample_application',
       __name__,
@@ -25,7 +25,7 @@ def create_app(blueprint_only=False):
   #between tests, otherwise _registered_once=False 
   #will cause app.register_blueprint to fail
   #reload(views)
-  bp = create_blueprint()
+  bp = _create_blueprint_()
   api = Api(bp)
 
   api.add_resource(Resources, '/resources')

@@ -17,6 +17,10 @@ def bootstrap_local_module(service_uri,deploy_path,app):
   module = import_module(service_uri)
   local_app=module.create_app()
 
+  for k,v in local_app.config.iteritems():
+    if k not in app.config:
+      app.config[k] = v
+
   for rule in local_app.url_map.iter_rules():
     view = local_app.view_functions[rule.endpoint]
     route = os.path.join(deploy_path,rule.rule[1:])

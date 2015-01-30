@@ -12,6 +12,7 @@ import logging
 import logging.handlers
 from collections import namedtuple
 
+from werkzeug.contrib.fixers import ProxyFix
 from flask import Flask, g
 from flask import request
 from flask_sslify import SSLify

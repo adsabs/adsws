@@ -95,6 +95,10 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
     app.before_request(set_translations)
+
+    if app.config.get('PRODUCTION',False):
+        app.wsgi_app = ProxyFix(app.wsgi_app,num_proxies=app.config.get('NUM_PROXIES',2))
+
     if app.config.get('HTTPS_ONLY',False):
         #Contains the x-forwared-proto in the criteria already
         # only works if app.debug=False

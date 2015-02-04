@@ -10,7 +10,7 @@ import json
 import time
 from sample_microservice import Stubdata
 
-LIVESERVER_WAIT_SECONDS = 2
+LIVESERVER_WAIT_SECONDS = 2.5
 
 
 class DiscovererTestCase:

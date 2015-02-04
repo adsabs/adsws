@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import logging
+from unittest import skip
 
 from flask import url_for
 
@@ -555,6 +556,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
         self.assert200(r)
         self.assertEqual(r.json, dict(ping='pong'))
 
+    @skip("Settings not yet implemented")
     def test_settings_index(self):
         # Create a remote account (linked account)
         self.login("tester@adslabs.org", "tester")

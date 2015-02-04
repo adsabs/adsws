@@ -25,7 +25,7 @@ blueprint = Blueprint(
     'oauth2server',
     __name__,
     url_prefix='/oauth',
-    static_folder="../static",
+    static_folder=None,
     template_folder="../templates",
 )
 

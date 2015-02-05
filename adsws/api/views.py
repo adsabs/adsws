@@ -25,6 +25,8 @@ class ProtectedView(Resource):
 class StatusView(Resource):
   '''Returns the status of this app'''
   def get(self):
+    print session
+    print dir(session)
     return {'app':current_app.name,'status': 'online'}, 200
 
 class Bootstrap(Resource):
@@ -36,7 +38,6 @@ class Bootstrap(Resource):
     user_email = current_app.config.get('BOOTSTRAP_USER_EMAIL','anon@ads.org')
     salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
     expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
-
     if not current_user.is_authenticated():
       u = user_manipulator.first(email=user_email)
       if u is None:
@@ -92,7 +93,7 @@ class Bootstrap(Resource):
       except:
         db.session.rollback()
         abort(503)
-
+    print session
     return {
             'access_token': token.access_token,
             'refresh_token': token.refresh_token,
@@ -100,4 +101,5 @@ class Bootstrap(Resource):
             'expire_in': token.expires.isoformat(),
             'token_type': 'Bearer',
             'scopes': token.scopes,
+            'csrf': current_app.jinja_env.globals['csrf_token'](),
             }

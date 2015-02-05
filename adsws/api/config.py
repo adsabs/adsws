@@ -14,9 +14,11 @@ OAUTH2_CLIENT_ID_SALT_LEN = 40
 BOOTSTRAP_TOKEN_EXPIRES = 3600*24 #1 day
 OAUTH2_CACHE_TYPE='simple'
 
+SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',
-              'adsws.ext.security',]
+              'adsws.ext.security',
+              'adsws.ext.session',]
 
 PACKAGES = ['adsws.modules.oauth2server',]
 

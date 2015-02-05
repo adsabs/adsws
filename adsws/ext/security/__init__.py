@@ -11,15 +11,16 @@ def setup_app(app):
     
     app.config.setdefault('SECURITY_PASSWORD_HASH', 'pbkdf2_sha512')
     app.config.setdefault('SECURITY_PASSWORD_SALT', app.config.get('SECRET_KEY'))
-    
+    register_blueprint = app.config.get('SECURITY_REGISTER_BLUEPRINT', True)
+
     # if desired, we'll use ADS Classic as a source for authenticating
     # users
     if app.config.get('FALL_BACK_ADS_CLASSIC_LOGIN', False):
         
         from .ads_classic_login import AdsClassicFallBackLoginForm
-        security.init_app(app, user_datastore, login_form=AdsClassicFallBackLoginForm)
+        security.init_app(app, user_datastore, register_blueprint=register_blueprint, login_form=AdsClassicFallBackLoginForm)
     else:
-        security.init_app(app, user_datastore)
+        security.init_app(app, user_datastore, register_blueprint=register_blueprint)
             
 
     # if there is Flask-Email extension, we'll use that one for sending

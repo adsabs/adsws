@@ -10,6 +10,7 @@ from adsws.core import db, user_manipulator
 from flask.ext.ratelimiter import ratelimit
 from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource
+from flask.ext.wtf.csrf import generate_csrf
 from flask import Blueprint, current_app, session, abort, request
 
 def scope_func():
@@ -25,8 +26,6 @@ class ProtectedView(Resource):
 class StatusView(Resource):
   '''Returns the status of this app'''
   def get(self):
-    print session
-    print dir(session)
     return {'app':current_app.name,'status': 'online'}, 200
 
 class Bootstrap(Resource):
@@ -93,7 +92,6 @@ class Bootstrap(Resource):
       except:
         db.session.rollback()
         abort(503)
-    print session
     return {
             'access_token': token.access_token,
             'refresh_token': token.refresh_token,
@@ -101,5 +99,5 @@ class Bootstrap(Resource):
             'expire_in': token.expires.isoformat(),
             'token_type': 'Bearer',
             'scopes': token.scopes,
-            'csrf': current_app.jinja_env.globals['csrf_token'](),
+            'csrf': generate_csrf(),
             }

@@ -1,12 +1,6 @@
 import os
 import logging
 
-LOG_LEVEL=logging.DEBUG
-LOG_FILE='logs/adsws.log' #Relative to here
-#Set DEBUG=True to log to stderr, which is useful for development only. 
-#Note that this will also print the traceback in the response to the client, which is not desirable in production.
-DEBUG=False
-
 
 BOOTSTRAP_SCOPES = ['ads:default']
 BOOTSTRAP_USER_EMAIL = 'anonymous@adslabs.org'
@@ -49,24 +43,12 @@ WEBSERVICES = {
   'adsws.graphics.app':'/graphics',
 }
 
-
 SOLR_SEARCH_HANDLER = 'http://localhost:8983/solr/select'
 SOLR_QTREE_HANDLER = 'http://localhost:8983/solr/qtree'
 SOLR_UPDATE_HANDLER = 'http://localhost:8983/solr/update'
 SOLR_TVRH_HANDLER = 'http://localhost:8983/solr/tvrh'
 
-SECRET_KEY = 'fake'
-ACCOUNT_VERIFICATION_SECRET = 'fake'
-
-FALL_BACK_ADS_CLASSIC_LOGIN = True
-CLASSIC_LOGIN_URL = 'http://adsabs.harvard.edu/cgi-bin/maint/manage_account/credentials'
-SITE_SECURE_URL = 'http://0.0.0.0:5000'
-
-# Flask-Sqlalchemy: http://packages.python.org/Flask-SQLAlchemy/config.html
-SQLALCHEMY_ECHO = False
-SQLALCHEMY_DATABASE_URI = 'sqlite:////adsws/adsws.sqlite'
-
 # Stuff that should be added for every application
 CORE_PACKAGES = []
 
-HTTPS_ONLY=False
+GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'

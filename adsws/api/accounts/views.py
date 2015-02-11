@@ -11,8 +11,9 @@ from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 from adsws.core import db, user_manipulator
 
 from flask.ext.ratelimiter import ratelimit
-from flask.ext.login import current_user, login_user
-from flask.ext.restful import Resource
+from flask.ext.login import current_user, login_user, logout_user
+from flask.ext.security.utils import verify_and_update_password
+from flask.ext.restful import Resource, abort
 from flask import Blueprint, current_app, session, abort, request
 import requests
 
@@ -32,16 +33,30 @@ def verify_recaptcha(request):
   r.raise_for_status()
   return True if r.json()['success'] == True else False
 
+class LogoutView(Resource):
+  def get(self):
+    logout_user()
+    return {"message":"success"}, 200
+
 class UserAuthView(Resource):
-  decorators = [ratelimit(10,120,scope_func=scope_func)]
+  decorators = [ratelimit(100,120,scope_func=scope_func)]
   def post(self):
     #login pattern, return oauth token
     try:
-      username = request.json['username']
-      password = request.json['password']
+      if request.headers.get('content-type','application/json'):
+        username = request.json['username']
+        password = request.json['password']
+      else:
+        username = request.data['username']
+        password = request.data['password']
     except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
-    return {"msg":"OK"}
+        return {'error':'malformed request'}, 400
+
+    u = user_manipulator.first(email=username)
+    if u is None or not verify_and_update_password(password,u):
+      abort(401)
+    login_user(u)
+    return {"message":"success"}
 
   def get(self):
     #view pattern, return profile/user attributes

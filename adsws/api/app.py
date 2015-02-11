@@ -9,7 +9,7 @@ from flask.ext.wtf.csrf import CsrfProtect
 from flask import jsonify
 
 from views import StatusView,Bootstrap,ProtectedView
-from accounts.views import UserAuthView
+from accounts.views import UserAuthView, LogoutView
 from discoverer import discover
 
 def create_app(**kwargs_config):
@@ -25,6 +25,7 @@ def create_app(**kwargs_config):
   api.add_resource(ProtectedView,'/protected')
   api.add_resource(Bootstrap,'/bootstrap')
   api.add_resource(UserAuthView,'/accounts/user')
+  api.add_resource(LogoutView,'/accounts/logout')
   discover(app)
 
   # Register custom error handlers

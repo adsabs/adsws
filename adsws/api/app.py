@@ -12,12 +12,14 @@ from views import StatusView,Bootstrap,ProtectedView
 from accounts.views import UserAuthView, LogoutView
 from discoverer import discover
 
+
 def create_app(**kwargs_config):
   
   app = factory.create_app(app_name=__name__.replace('.app',''), **kwargs_config)
   api = Api(app)
   ratelimiter = RateLimiter(app=app)
   csrf = CsrfProtect(app)
+  app.extensions['csrf'] = csrf
   cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), allow_headers=app.config.get('CORS_HEADERS'),methods=app.config.get('CORS_METHODS'))
 
   app.json_encoder = JSONEncoder
@@ -34,8 +36,10 @@ def create_app(**kwargs_config):
     app.errorhandler(AdsWSFormError)(on_adsws_form_error)
     app.errorhandler(404)(on_404)
     app.errorhandler(401)(on_401)
+    @csrf.error_handler
+    def csrf_error(reason):
+      return jsonify(dict(error="Invalid CSRF token")), 400
   return app
-
 
 def on_adsws_error(e):
   return jsonify(dict(error=e.msg)), 400

@@ -36,6 +36,7 @@ def bootstrap_local_module(service_uri,deploy_path,app):
         key_func=     defaults['key_func'])(view)
     if hasattr(view.view_class,'scopes'):
       view = oauth2.require_oauth(*view.view_class.scopes)(view)
+    view = app.extensions['csrf'].exempt(view)
     app.add_url_rule(route,route,view)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):
@@ -84,6 +85,7 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
       #Decorate with the service-defined oauth2 scopes
       view = oauth2.require_oauth(*properties['scopes'])(view)
 
+      view = app.extensions['csrf'].exempt(view)
       #Either make a new route with this view, or append the new method to an existing route
       #that has the same name
       try:

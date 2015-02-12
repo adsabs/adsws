@@ -43,6 +43,7 @@ class DiscoverLocalModuleTestCase(ApiTestCase,DiscovererTestCase):
       TESTING = False,
       SITE_SECURE_URL='http://localhost',
       SECURITY_POST_LOGIN_VIEW='/postlogin',
+      SECURITY_REGISTER_BLUEPRINT=True,
     )
     return app
 
@@ -121,6 +122,7 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
       TESTING = False,
       SITE_SECURE_URL='http://localhost',
       SECURITY_POST_LOGIN_VIEW='/postlogin',
+      SECURITY_REGISTER_BLUEPRINT=True,
       )
     self.tearDownRemoteServer()
     return app

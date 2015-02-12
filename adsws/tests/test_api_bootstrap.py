@@ -16,6 +16,7 @@ class TestBootstrap(ApiTestCase):
                 SITE_SECURE_URL='http://localhost',
                 SECURITY_POST_LOGIN_VIEW='/postlogin',
                 WEBSERVICES = {},
+                SECURITY_REGISTER_BLUEPRINT=True,
                 )
         return app
 

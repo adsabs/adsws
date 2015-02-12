@@ -28,7 +28,7 @@ def bootstrap_local_module(service_uri,deploy_path,app):
       params = view.view_class.rate_limit
       defaults = {
           'scope_func':lambda: request.oauth.client.client_id,
-          'key_func': lambda: route,
+          'key_func': lambda: request.endpoint,
       }
       view = ratelimit(params[0],
         per=          params[1],
@@ -75,7 +75,7 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
       if params:
         defaults = {
             'scope_func':lambda: request.oauth.client.client_id,
-            'key_func': lambda: route,
+            'key_func': lambda: request.endpoint,
         }
         view = ratelimit(params[0],
           per=          params[1],

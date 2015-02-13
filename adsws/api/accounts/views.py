@@ -15,54 +15,75 @@ from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.security.utils import verify_and_update_password
 from flask.ext.restful import Resource, abort
 from flask import Blueprint, current_app, session, abort, request
+from utils import scope_func, validate_email, validate_password, verify_recaptcha
+
 import requests
-
-def scope_func():
-  if hasattr(request,'oauth') and request.oauth.client:
-    return request.oauth.client.client_id
-  return request.remote_addr
-
-def verify_recaptcha(request):
-  payload = {
-    'secret': current_app.config['GOOGLE_RECAPTCHA_PRIVATE_KEY'],
-    'remoteip': request.remote_addr,
-    'response': request.json['g-recaptcha-response'],
-  }
-  ep = current_app.config['GOOGLE_RECAPTCHA_ENDPOINT']
-  r = requests.get(ep,params=payload)
-  r.raise_for_status()
-  return True if r.json()['success'] == True else False
 
 class LogoutView(Resource):
   def get(self):
     logout_user()
     return {"message":"success"}, 200
 
+
 class UserAuthView(Resource):
   decorators = [ratelimit(100,120,scope_func=scope_func)]
   def post(self):
-    #login pattern, return oauth token
     try:
-      if request.headers.get('content-type','application/json'):
-        username = request.json['username']
-        password = request.json['password']
+      if request.headers.get('content-type','application/json')=='application/json':
+        data = request.json
       else:
-        username = request.data['username']
-        password = request.data['password']
+        data = request.data
+      username = data['username']
+      password = data['password']
     except (AttributeError, KeyError):
         return {'error':'malformed request'}, 400
 
     u = user_manipulator.first(email=username)
     if u is None or not verify_and_update_password(password,u):
       abort(401)
-    login_user(u)
-    return {"message":"success"}
+    if u.confirmed_at is None:
+      return {"message":"account has not been verified"}, 403
+
+    if current_user.is_authenticated(): #Logout of previous user (may have been bumblebee)
+      logout_user()
+    login_user(u) #Login to real user
+    return {"message":"success"}, 200
 
   def get(self):
     #view pattern, return profile/user attributes
-    raise NotImplementedError
+    if not current_user.is_authenticated():
+      abort(401)
+    return {"user":current_user.email}
+
 
 class UserRegistrationView(Resource):
-  decorators = [ratelimit(5,600,scope_func=scope_func)]
+  decorators = [ratelimit(50,600,scope_func=scope_func)]
   def post(self):
-    raise NotImplementedError
+    try:
+      if request.headers.get('content-type','application/json')=='application/json':
+        data = request.json
+      else:
+        data = request.data
+      email = data['email']
+      password = data['password1']
+      repeated = data['password2']
+    except (AttributeError, KeyError):
+      return {'error':'malformed request'}, 400
+    if not verify_recaptcha(request):
+      return {'error': 'captcha was not verified'}, 403
+    if password!=repeated:
+      return {'error': 'passwords do not match'}, 400
+    try:
+      validate_email(email)
+      validate_password(password)
+    except ValidationError, e:
+      return {'error':e}, 400
+
+    u = user_manipulator.create(
+      email=email, 
+      password=password
+      )
+    return {"message":"success"}, 200
+
+
+

@@ -7,14 +7,13 @@ from flask.ext.cors import CORS
 from flask.ext.login import LoginManager
 from flask.ext.wtf.csrf import CsrfProtect
 from flask import jsonify
+from itsdangerous import URLSafeTimedSerializer
 
 from views import StatusView,Bootstrap,ProtectedView
-from accounts.views import UserAuthView, LogoutView
+from accounts.views import UserAuthView, LogoutView, UserRegistrationView
 from discoverer import discover
 
-
 def create_app(**kwargs_config):
-  
   app = factory.create_app(app_name=__name__.replace('.app',''), **kwargs_config)
   api = Api(app)
   ratelimiter = RateLimiter(app=app)
@@ -27,7 +26,9 @@ def create_app(**kwargs_config):
   api.add_resource(ProtectedView,'/protected')
   api.add_resource(Bootstrap,'/bootstrap')
   api.add_resource(UserAuthView,'/accounts/user')
+  api.add_resource(UserRegistrationView,'/accounts/register')
   api.add_resource(LogoutView,'/accounts/logout')
+  app.ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
   discover(app)
 
   # Register custom error handlers

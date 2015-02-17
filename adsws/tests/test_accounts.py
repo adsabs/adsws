@@ -1,6 +1,6 @@
 from flask.ext.testing import TestCase
 from unittest import TestCase as UnitTestCase
-from flask.ext.login import current_user
+from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.mail import Message
 from flask import current_app, url_for, session
 
@@ -184,12 +184,9 @@ class TestAccounts(TestCase):
       self.assertStatus(r,200)
       self.assertFalse(current_user.is_authenticated())
 
-
   def get_csrf(self):
     r = self.client.get(url_for('bootstrap'))
     return r.json['csrf']
-
-  #def test_
 
   def test_bootstrap_user(self):
     url = url_for('bootstrap')
@@ -206,12 +203,50 @@ class TestAccounts(TestCase):
       self.assertEqual(r.json['username'],self.REAL_USER_EMAIL)
       self.assertEqual(r.json['scopes'],["ads:user:default"])
 
+  def test_change_password(self):
+    url = url_for('changepasswordview')
+    with self.client as c:
+      csrf = self.get_csrf()
+
+      #no csrf token
+      r = c.post(url,headers={'content-type':'application/json'})
+      self.assertStatus(r,400)
+
+      #test unauthenticated request
+      payload = {'old_password':'user','new_password2':'foo','new_password1':'foo'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,401)
+
+      #authenticate
+      user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
+      payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
+      r=c.post(url_for('userauthview'),data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})   
+
+      #test authenticated request, but incorrect old_password
+      payload = {'old_password':'wrong','new_password2':'foo','new_password1':'foo'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,401)
+      self.assertEqual(r.json['error'],'please verify your current password')
+
+      #test authenticated request, but correct old_password
+      payload = {'old_password':'user','new_password2':'foo','new_password1':'foo'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,200)
+      self.assertEqual(r.json['message'],'success')
+
+      #test that the new login works
+      c.get(url_for('logoutview'))
+      payload = {'username':self.REAL_USER_EMAIL,'password':'foo'}
+      r=c.post(url_for('userauthview'),data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})   
+      self.assertStatus(r,200)
+
+
   def test_register_user(self):
     url = url_for('userregistrationview')
     with self.client as c:
       csrf = self.get_csrf()
 
-      self.setup_google_recaptcha_response() #httpretty socket blocks if dont before self.get_csrf() !
+      self.setup_google_recaptcha_response() #httpretty socket blocks if enabled before self.get_csrf() !
       r = c.post(url,headers={'content-type':'application/json'})
       self.assertStatus(r,400) #csrf protected
 

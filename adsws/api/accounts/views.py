@@ -30,13 +30,18 @@ class ChangePasswordView(Resource):
     except (AttributeError, KeyError):
       return {'error':'malformed request'}, 400
 
-    if not current_user.is_authenticated():
+    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
       abort(401)
 
-    if not new_password1 != new_password2:
+    if not current_user.validate_password(old_password):
+      return {'error':'please verify your current password'},401
+
+    if new_password1 != new_password2:
       return {'error':'passwords do not match'}, 400
 
     u = user_manipulator.first(email=current_user.email)
+    user_manipulator.update(u,password=new_password1)
+    return {'message':'success'}
 
 
 class LogoutView(Resource):

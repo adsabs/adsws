@@ -1,6 +1,7 @@
 from flask.ext.testing import TestCase
 from unittest import TestCase as UnitTestCase
 from flask.ext.login import current_user
+from flask.ext.mail import Message
 from flask import current_app, url_for, session
 
 from adsws.core import db, user_manipulator
@@ -15,6 +16,7 @@ import requests
 import datetime
 
 class TestUtils(UnitTestCase):
+  '''Test account validation utilities'''
 
   def test_validate_email(self):
     self.assertRaises(utils.ValidationError,utils.validate_email,"invalid email")
@@ -49,7 +51,8 @@ class TestAccounts(TestCase):
       GOOGLE_RECAPTCHA_ENDPOINT = 'http://google.com/verify_recaptcha',
       GOOGLE_RECAPTCHA_PRIVATE_KEY = 'fake_recaptcha_key',
       SECURITY_REGISTER_BLUEPRINT = False,
-      BOOTSTRAP_USER_EMAIL = self.BOOTSTRAP_USER_EMAIL
+      BOOTSTRAP_USER_EMAIL = self.BOOTSTRAP_USER_EMAIL,
+      MAIL_SUPPRESS_SEND = True,
       )
     db.create_all(app=app)
     return app
@@ -74,6 +77,40 @@ class TestAccounts(TestCase):
         raise Exception("This case is not expected by the tests: %s" % qs)
       return (200,headers,json.dumps(res))
     httpretty.register_uri(httpretty.GET, url, body=callback,content_type='application/json')
+  
+  def test_verification_email(self):
+    '''
+    Test encoding an email, and see if it 
+    can be resolved with the verify endpoint
+    '''
+
+    msg,token = utils.send_verification_email("this_email_wasnt@registered")
+    url = url_for('verifyemailview',token=token)
+
+    #Even though we have a token, no user was registered. This should not
+    #actually happen in normal user.
+    r = self.client.get(url)
+    self.assertStatus(r,404)
+    self.assertEqual(r.json['error'],"no user associated with that verification token")
+
+    #Test for an inproperly encoded email, expect 404
+    r = self.client.get(url+"incorrect")
+    self.assertStatus(r,404)
+    self.assertEqual(r.json['error'],'unknown verification token')
+
+    msg,token = utils.send_verification_email(self.REAL_USER_EMAIL)
+    url = url_for('verifyemailview',token=token)
+
+    #Test a proper verification
+    r = self.client.get(url)
+    self.assertStatus(r,200)
+    self.assertEqual(r.json["email"],self.REAL_USER_EMAIL)
+
+    #Test for an already confirmed email
+    r = self.client.get(url)
+    self.assertStatus(r,400)
+    self.assertEqual(r.json["error"],"this user and email has already been validated")
+
 
   def test_verify_google_recaptcha(self):
     '''Test the function responsible for contacting 
@@ -120,21 +157,25 @@ class TestAccounts(TestCase):
       self.assertEqual(current_user.email,self.BOOTSTRAP_USER_EMAIL) #This will log the user in as the bootstrap user
       csrf = self.get_csrf()
 
+      #Test incorrect login
       payload = {'username':'foo','password':'bar'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
       self.assertStatus(r,401)
       self.assertEqual(current_user.email, self.BOOTSTRAP_USER_EMAIL)
 
+      #Test correct login, but account has not been verified
       payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
       self.assertStatus(r,403)
       self.assertEqual(r.json['message'],'account has not been verified')
 
+      #Test correct login on a verified account
       user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
       self.assertStatus(r,200)      
       self.assertEqual(current_user.email, self.REAL_USER_EMAIL)
 
+      #Test logout
       r = c.get(url_for('logoutview'))
       self.assertStatus(r,200)
       self.assertFalse(current_user.is_authenticated())
@@ -142,6 +183,8 @@ class TestAccounts(TestCase):
   def get_csrf(self):
     r = self.client.get(url_for('bootstrap'))
     return r.json['csrf']
+
+  #def test_
 
   def test_bootstrap_user(self):
     url = url_for('bootstrap')
@@ -163,12 +206,28 @@ class TestAccounts(TestCase):
     with self.client as c:
       csrf = self.get_csrf()
 
+      self.setup_google_recaptcha_response() #httpretty socket blocks if dont before self.get_csrf() !
       r = c.post(url,headers={'content-type':'application/json'})
       self.assertStatus(r,400) #csrf protected
 
-      #payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response'}
-      #r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
-      #need to setup google captcha response, but run into socket errors: TODO
+      #Test giving wrong input
+      payload = {'email':'me@email'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,400)
+      self.assertIn('error',r.json)
+
+      #Test a valid new user registration
+      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,200)
+      self.assertEqual(r.json['message'],'success')
+
+      #Test that re-registering the previously registered user fails
+      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,409)
+      self.assertIn('error',r.json)
+
 
 TESTSUITE = make_test_suite(TestAccounts, TestUtils)
 

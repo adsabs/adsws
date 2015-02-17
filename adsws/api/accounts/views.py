@@ -2,7 +2,7 @@
 # from flask import Blueprint
 
 import datetime
-
+import requests
 from werkzeug.security import gen_salt
 
 from adsws.modules.oauth2server.provider import oauth2
@@ -15,15 +15,13 @@ from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.security.utils import verify_and_update_password
 from flask.ext.restful import Resource, abort
 from flask import Blueprint, current_app, session, abort, request
-from utils import scope_func, validate_email, validate_password, verify_recaptcha
+from utils import scope_func, validate_email, validate_password, verify_recaptcha, send_verification_email
 
-import requests
 
 class LogoutView(Resource):
   def get(self):
     logout_user()
     return {"message":"success"}, 200
-
 
 class UserAuthView(Resource):
   decorators = [ratelimit(100,120,scope_func=scope_func)]
@@ -55,6 +53,24 @@ class UserAuthView(Resource):
       abort(401)
     return {"user":current_user.email}
 
+class VerifyEmailView(Resource):
+  decorators = [ratelimit(50,600,scope_func=scope_func)]
+  def get(self,token):
+    try:
+      email = current_app.ts.loads(token, max_age=86400)
+    except:
+      return {"error":"unknown verification token"}, 404
+
+    u = user_manipulator.first(email=email)
+    if u is None:
+      return {"error":"no user associated with that verification token"}, 404
+    if u.confirmed_at is not None:
+      return {"error": "this user and email has already been validated"}, 400
+
+    user_manipulator.update(u,confirmed_at=datetime.datetime.now())
+    return {"message":"success","email":email}
+
+
 
 class UserRegistrationView(Resource):
   decorators = [ratelimit(50,600,scope_func=scope_func)]
@@ -79,6 +95,10 @@ class UserRegistrationView(Resource):
     except ValidationError, e:
       return {'error':e}, 400
 
+    if user_manipulator.first(email=email) is not None:
+      return {'error':'an account is already registered with that email'}, 409
+
+    send_verification_email(email)
     u = user_manipulator.create(
       email=email, 
       password=password

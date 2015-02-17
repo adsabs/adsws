@@ -1,6 +1,30 @@
 from exceptions import ValidationError
-from flask import request, current_app
+from flask import request, current_app, url_for
+from flask.ext.mail import Message
 import requests
+
+
+def send_verification_email(email, msg=None):
+  token = current_app.ts.dumps(email)
+  if msg is None:
+    msg = Message(
+          subject="[ADS] Please verify your email address",
+          sender="no-reply@adslabs.org",
+          recipients=[email],
+          body=
+            '''
+Hi,
+
+Someone (probably you) has registered this email address with the NASA-ADS (http://adslabs.org).
+
+To confirm this email address with that registered account, please visit
+<a href="{endpoint}">{endpoint}</a> with your browser.
+
+If this is a mistake, then just ignore this email.
+
+-The ADS team'''.format(endpoint=url_for('verifyemailview',token=token)),)
+  current_app.extensions['mail'].send(msg)
+  return msg, token
 
 def scope_func():
   if hasattr(request,'oauth') and request.oauth.client:

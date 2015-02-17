@@ -3,6 +3,12 @@ from flask import request, current_app, url_for
 from flask.ext.mail import Message
 import requests
 
+def get_post_data(request):
+  if request.headers.get('content-type','application/json')=='application/json':
+    data = request.json
+  else:
+    data = request.data
+  return data
 
 def send_verification_email(email, msg=None):
   token = current_app.ts.dumps(email)

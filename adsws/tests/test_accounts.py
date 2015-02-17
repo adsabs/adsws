@@ -157,6 +157,10 @@ class TestAccounts(TestCase):
       self.assertEqual(current_user.email,self.BOOTSTRAP_USER_EMAIL) #This will log the user in as the bootstrap user
       csrf = self.get_csrf()
 
+      #Test disallowed GET when authenticated as BOOTSTRAP_USER
+      r = c.get(url)
+      self.assertStatus(r,401)
+
       #Test incorrect login
       payload = {'username':'foo','password':'bar'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
@@ -179,6 +183,7 @@ class TestAccounts(TestCase):
       r = c.get(url_for('logoutview'))
       self.assertStatus(r,200)
       self.assertFalse(current_user.is_authenticated())
+
 
   def get_csrf(self):
     r = self.client.get(url_for('bootstrap'))

@@ -111,7 +111,7 @@ def bootstrap_user():
       user_id=current_user.get_id(),
       access_token=gen_salt(salt_length),
       refresh_token=gen_salt(salt_length),
-      expires=None,
+      expires= datetime.datetime(2500,1,1),
       _scopes=scopes,
       is_personal=False,
       is_internal=True,

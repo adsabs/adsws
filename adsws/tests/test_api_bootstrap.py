@@ -36,8 +36,8 @@ class TestBootstrap(ApiTestCase):
         self.assertTrue(r.status_code, 200)
         data = json.loads(r.data)
         for k in ['access_token','expire_in','scopes','token_type','username','refresh_token']:
-            self.assertIn(k,data)
-            self.assertIsNotNone(data[k])
+            self.assertIn(k,data,msg="{k} not in {data}".format(k=k,data=data))
+            self.assertIsNotNone(data[k],msg="data[\"{k}\"] is None".format(k=k))
         self.assertEqual(username,data['username'])
 
         r = self.client.get(url_for('protectedview'),headers={"Authorization": "Bearer %s" % data['access_token']})

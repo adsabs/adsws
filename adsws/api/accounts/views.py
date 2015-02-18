@@ -5,7 +5,6 @@ import datetime
 import requests
 from werkzeug.security import gen_salt
 
-from adsws.modules.oauth2server.provider import oauth2
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 
 from adsws.core import db, user_manipulator
@@ -18,7 +17,6 @@ from flask import Blueprint, current_app, session, abort, request
 from utils import (
   scope_func, validate_email, validate_password, 
   verify_recaptcha, send_verification_email, get_post_data)
-
 
 class ChangePasswordView(Resource):
   def post(self):
@@ -42,7 +40,6 @@ class ChangePasswordView(Resource):
     u = user_manipulator.first(email=current_user.email)
     user_manipulator.update(u,password=new_password1)
     return {'message':'success'}
-
 
 class LogoutView(Resource):
   def get(self):
@@ -91,9 +88,8 @@ class VerifyEmailView(Resource):
       return {"error": "this user and email has already been validated"}, 400
 
     user_manipulator.update(u,confirmed_at=datetime.datetime.now())
+
     return {"message":"success","email":email}
-
-
 
 class UserRegistrationView(Resource):
   decorators = [ratelimit(50,600,scope_func=scope_func)]
@@ -125,6 +121,3 @@ class UserRegistrationView(Resource):
       password=password
     )
     return {"message":"success"}, 200
-
-
-

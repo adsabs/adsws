@@ -4,9 +4,12 @@ import logging
 
 BOOTSTRAP_SCOPES = ['ads:default']
 BOOTSTRAP_USER_EMAIL = 'anonymous@adslabs.org'
-OAUTH2_CLIENT_ID_SALT_LEN = 40
 BOOTSTRAP_TOKEN_EXPIRES = 3600*24 #1 day
+USER_DEFAULT_SCOPES = ['ads:user:default']
+OAUTH2_CLIENT_ID_SALT_LEN = 40
 OAUTH2_CACHE_TYPE='simple'
+
+
 
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',

@@ -18,6 +18,27 @@ import datetime
 class TestUtils(UnitTestCase):
   '''Test account validation utilities'''
 
+  def test_get_post_data(self):
+    class FakeRequest: pass
+    request = FakeRequest()
+    request.json = {'format':'json'}
+    request.data = {'format':'form'}
+    
+    #empty content-type -> default to json
+    request.headers = {}
+    data = utils.get_post_data(request)
+    self.assertEqual(data,request.json)
+
+    #content-type: application/json -> request.json
+    request.headers = {'content-type':'application/json'}
+    data = utils.get_post_data(request)
+    self.assertEqual(data,request.json)
+
+    #any other content-type -> request.data
+    request.headers = {'content-type':'anything else'}
+    data = utils.get_post_data(request)
+    self.assertEqual(data,request.data)
+
   def test_validate_email(self):
     self.assertRaises(utils.ValidationError,utils.validate_email,"invalid email")
     #Minimum validation is that "@" is in the string
@@ -201,7 +222,7 @@ class TestAccounts(TestCase):
       #re-visit bootstrap, make sure you get the user's info
       r = c.get(url)
       self.assertEqual(r.json['username'],self.REAL_USER_EMAIL)
-      self.assertEqual(r.json['scopes'],["ads:user:default"])
+      self.assertEqual(r.json['scopes'],current_app.config['USER_DEFAULT_SCOPES'])
 
   def test_change_password(self):
     url = url_for('changepasswordview')

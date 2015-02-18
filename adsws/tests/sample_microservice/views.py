@@ -64,6 +64,6 @@ class SCOPED(Resource):
 class LOW_RATE_LIMIT(Resource):
   '''desc for LOW_RATE_LIMIT'''
   scopes = []
-  rate_limit = [3,1]
+  rate_limit = [3,2]
   def get(self):
     return {'status':'OK'}

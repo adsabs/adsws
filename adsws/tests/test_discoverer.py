@@ -99,7 +99,7 @@ class DiscoverLocalModuleTestCase(ApiTestCase,DiscovererTestCase):
     self.assertStatus(r,200)
     r = go()
     self.assertStatus(r,429)    
-    time.sleep(1)
+    time.sleep(2)
     r = go()
     self.assertStatus(r,200)    
 
@@ -185,7 +185,7 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
     self.assertStatus(r,200)
     r = go()
     self.assertStatus(r,429)    
-    time.sleep(1)
+    time.sleep(2)
     r = go()
     self.assertStatus(r,200)
 

@@ -13,7 +13,8 @@ from itsdangerous import URLSafeTimedSerializer
 from views import StatusView,Bootstrap,ProtectedView
 from accounts.views import (
   UserAuthView, LogoutView, UserRegistrationView,
-  VerifyEmailView,ChangePasswordView
+  VerifyEmailView,ChangePasswordView,
+  PersonalTokenView
   )
 from discoverer import discover
 
@@ -42,6 +43,7 @@ def create_app(**kwargs_config):
   api.add_resource(UserAuthView,'/accounts/user')
   api.add_resource(UserRegistrationView,'/accounts/register')
   api.add_resource(LogoutView,'/accounts/logout')
+  api.add_resource(PersonalTokenView,'/accounts/token')
   api.add_resource(ChangePasswordView,'/accounts/change_password')
   api.add_resource(VerifyEmailView,'/accounts/verify/<string:token>')
   app.ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])

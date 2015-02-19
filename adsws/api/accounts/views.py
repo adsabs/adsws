@@ -41,6 +41,106 @@ class ChangePasswordView(Resource):
     user_manipulator.update(u,password=new_password1)
     return {'message':'success'}
 
+class PersonalTokenView(Resource):
+  decorators = [ratelimit(50,86400,scope_func=scope_func)]
+  def get(self):
+    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(401)
+    client = OAuthClient.query.filter_by(
+      user_id=current_user.get_id(),
+      name=u'ADS API client',
+    ).first()
+    if not client:
+      return {'message':'no ADS API client found'}, 200
+
+    token = OAuthToken.query.filter_by(
+      client_id=client.client_id, 
+      user_id=current_user.get_id(),
+    ).first()
+
+    if not token:
+      current_app.logger.error('no ADS API client token found for {email}. This should not happen!'.format(email=current_user.email))
+      return {'message':'no ADS API client token found. This should not happen!'}, 500
+
+    return {
+          'access_token': token.access_token,
+          'refresh_token': token.refresh_token,
+          'username': current_user.email,
+          'expire_in': token.expires.isoformat() if isinstance(token.expires,datetime.datetime) else token.expires,
+          'token_type': 'Bearer',
+          'scopes': token.scopes,
+         }
+
+  def post(self):
+    '''POSTING to this endpoint generates a new API key'''
+    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(401)
+
+    client = OAuthClient.query.filter_by(
+      user_id=current_user.get_id(),
+      name=u'ADS API client',
+    ).first()
+
+    if client is None:
+      client = OAuthClient(
+      user_id=current_user.get_id(),
+      name=u'ADS API client',
+      description=u'ADS API client',
+      is_confidential=False,
+      is_internal=True,
+      _default_scopes=' '.join(current_app.config['USER_DEFAULT_SCOPES']),
+    )
+    client.gen_salt()
+    
+    db.session.add(client)
+    try:
+      db.session.commit()
+    except:
+      abort(503)
+    current_app.logger.info("Created ADS API client for {email}".format(email=current_user.email))
+    token = OAuthToken.query.filter_by(
+      client_id=client.client_id, 
+      user_id=current_user.get_id(),
+    ).first()
+
+    if token is None:
+      token = OAuthToken(
+        client_id=client.client_id,
+        user_id=current_user.get_id(),
+        access_token=gen_salt(40),
+        refresh_token=gen_salt(40),
+        expires=datetime.datetime(2500,1,1),
+        _scopes=' '.join(current_app.config['USER_DEFAULT_SCOPES']),
+        is_personal=False,
+      )
+      db.session.add(token)
+      try:
+        db.session.commit()
+      except:
+        db.session.rollback()
+        abort(503)
+    else:
+      token.access_token = gen_salt(40)
+
+    db.session.add(token)
+    try:
+      db.session.commit()
+    except:
+      db.session.rollback()
+      abort(503)  
+    current_app.logger.info("Updated ADS API token for {email}".format(email=current_user.email))
+    return {
+            'access_token': token.access_token,
+            'refresh_token': token.refresh_token,
+            'username': current_user.email,
+            'expire_in': token.expires.isoformat() if isinstance(token.expires,datetime.datetime) else token.expires,
+            'token_type': 'Bearer',
+            'scopes': token.scopes,
+           }
+
+
+
+
 class LogoutView(Resource):
   def get(self):
     logout_user()

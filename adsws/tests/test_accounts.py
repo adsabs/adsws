@@ -99,6 +99,49 @@ class TestAccounts(TestCase):
       return (200,headers,json.dumps(res))
     httpretty.register_uri(httpretty.GET, url, body=callback,content_type='application/json')
   
+  def test_adsapi_token_workflow(self):
+    url = url_for('personaltokenview')
+    with self.client as c:
+      csrf = self.get_csrf()
+
+      #User must be authenticated
+      r = c.get(url)
+      self.assertStatus(r,401)
+
+      #login
+      user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
+      payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
+      c.post(url_for('userauthview'),data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+      
+      #no api client has yet been registered.
+      r = c.get(url)
+      self.assertEqual(r.json['message'],'no ADS API client found')
+
+      #POST to make the API client, but no CSRF token passed
+      r = c.post(url)
+      self.assertStatus(r,400)
+
+      #POST to make the API client
+      r = c.post(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertStatus(r,200)
+      self.assertIn('access_token',r.json)
+      tok = r.json['access_token']
+
+      #GET should return the same access token
+      r = c.get(url)
+      self.assertEqual(tok,r.json['access_token'])
+
+      #POST should generate a new access_token
+      r = c.post(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
+      self.assertNotEqual(tok,r.json['access_token'])
+      tok2 = r.json['access_token']
+      self.assertNotEqual(tok,tok2)
+
+      #GET should return the updated token
+      r = c.get(url)
+      self.assertEqual(tok2,r.json['access_token'])
+
+
   def test_verification_email(self):
     '''
     Test encoding an email, and see if it 

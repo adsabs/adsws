@@ -178,6 +178,12 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
     self.assertStatus(r,401)
 
   def test_LOW_RATE_LIMIT(self):
+    #Note that this test may fail sometimes (but not often)
+    #This happens when there is non-insignificant latency
+    #between the remote server and this api
+    #This shouldn't be a problem in production, as we don't really care
+    #If an abuser manages to squeeze in 1-2 extra requests before ratelimit
+    #really kicks in.
     go = lambda: self.open('GET','/test_webservice/LOW_RATE_LIMIT')
     r = go()
     self.assertStatus(r,200)

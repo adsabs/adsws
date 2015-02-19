@@ -1,15 +1,6 @@
 import os
 import logging
 
-
-BOOTSTRAP_SCOPES = ['bb:default']
-BOOTSTRAP_USER_EMAIL = 'anonymous@adslabs.org'
-BOOTSTRAP_TOKEN_EXPIRES = 3600*24 #1 day
-USER_DEFAULT_SCOPES = ['bb:user:default']
-USER_API_DEFAULT_SCOPES = ['api:user:default']
-OAUTH2_CLIENT_ID_SALT_LEN = 40
-OAUTH2_CACHE_TYPE='simple'
-
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',
@@ -52,5 +43,3 @@ SOLR_TVRH_HANDLER = 'http://localhost:8983/solr/tvrh'
 
 # Stuff that should be added for every application
 CORE_PACKAGES = []
-
-GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'

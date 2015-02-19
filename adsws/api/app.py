@@ -4,18 +4,10 @@ from .. import factory
 from flask.ext.ratelimiter import RateLimiter
 from flask.ext.restful import Api
 from flask.ext.cors import CORS
-from flask.ext.login import LoginManager
-from flask.ext.wtf.csrf import CsrfProtect
-from flask.ext.mail import Mail
 from flask import jsonify
 from itsdangerous import URLSafeTimedSerializer
 
-from views import StatusView,Bootstrap,ProtectedView
-from accounts.views import (
-  UserAuthView, LogoutView, UserRegistrationView,
-  VerifyEmailView,ChangePasswordView,
-  PersonalTokenView
-  )
+from views import StatusView, ProtectedView
 from discoverer import discover
 
 def create_app(**kwargs_config):
@@ -27,26 +19,12 @@ def create_app(**kwargs_config):
   ratelimiter = RateLimiter(app=app)
   app.extensions['ratelimiter'] = ratelimiter
 
-  csrf = CsrfProtect(app)  
-  app.extensions['csrf'] = csrf
-
-  mail = Mail(app)
-  app.extensions['mail'] = mail
-  
   cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), allow_headers=app.config.get('CORS_HEADERS'),methods=app.config.get('CORS_METHODS'))
   app.extensions['cors'] = cors
 
   app.json_encoder = JSONEncoder
   api.add_resource(StatusView,'/status')
   api.add_resource(ProtectedView,'/protected')
-  api.add_resource(Bootstrap,'/bootstrap')
-  api.add_resource(UserAuthView,'/accounts/user')
-  api.add_resource(UserRegistrationView,'/accounts/register')
-  api.add_resource(LogoutView,'/accounts/logout')
-  api.add_resource(PersonalTokenView,'/accounts/token')
-  api.add_resource(ChangePasswordView,'/accounts/change_password')
-  api.add_resource(VerifyEmailView,'/accounts/verify/<string:token>')
-  app.ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
   discover(app)
 
   # Register custom error handlers

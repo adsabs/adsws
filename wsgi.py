@@ -9,10 +9,10 @@
 from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 
-from adsws import frontend
+from adsws import accounts
 from adsws import api
 
-application = DispatcherMiddleware(frontend.create_app(), {
+application = DispatcherMiddleware(accounts.create_app(), {
     '/v1': api.create_app(),
 })
 

@@ -8,8 +8,8 @@ from adsws.core import db, user_manipulator
 from adsws.testsuite import make_test_suite, run_test_suite
 import json
 
-from adsws import api
-from adsws.api.accounts import utils
+from adsws import accounts
+from adsws.accounts import utils
 
 import httpretty
 import requests
@@ -63,7 +63,7 @@ class TestAccounts(TestCase):
   def create_app(self):
     self.BOOTSTRAP_USER_EMAIL = 'bootstrap@unittests'
     self.REAL_USER_EMAIL = 'user@unittests'
-    app = api.create_app(
+    app = accounts.create_app(
       SQLALCHEMY_BINDS=None,
       SQLALCHEMY_DATABASE_URI='sqlite://',
       TESTING = False,
@@ -180,7 +180,6 @@ class TestAccounts(TestCase):
     '''Test the function responsible for contacting 
     the google recaptcha API and verifying the captcha response'''
 
-    from adsws.api.accounts.utils import verify_recaptcha
     self.setup_google_recaptcha_response()
 
     #Set up a fake request object that will be passed directly to the function
@@ -191,21 +190,21 @@ class TestAccounts(TestCase):
     
     #Test a "success" response
     fakerequest.json = {'g-recaptcha-response':'correct_response'}
-    res = verify_recaptcha(fakerequest)
+    res = utils.verify_recaptcha(fakerequest)
     self.assertTrue(res)
 
     #Test a "fail" response
     fakerequest.json = {'g-recaptcha-response':'incorrect_response'}
-    res = verify_recaptcha(fakerequest)
+    res = utils.verify_recaptcha(fakerequest)
     self.assertFalse(res)
 
     #Test a 503 response
     fakerequest.json = {'g-recaptcha-response':'dont_return_200'}
-    self.assertRaises(requests.HTTPError,verify_recaptcha,fakerequest)
+    self.assertRaises(requests.HTTPError,utils.verify_recaptcha,fakerequest)
 
     #Test a malformed request
     fakerequest = FakeRequest()
-    self.assertRaises((KeyError,AttributeError),verify_recaptcha,fakerequest)
+    self.assertRaises((KeyError,AttributeError),utils.verify_recaptcha,fakerequest)
 
 
   def test_login_and_logout(self):

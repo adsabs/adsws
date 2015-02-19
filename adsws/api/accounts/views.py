@@ -88,7 +88,7 @@ class PersonalTokenView(Resource):
       description=u'ADS API client',
       is_confidential=False,
       is_internal=True,
-      _default_scopes=' '.join(current_app.config['USER_DEFAULT_SCOPES']),
+      _default_scopes=' '.join(current_app.config['USER_API_DEFAULT_SCOPES']),
     )
     client.gen_salt()
     
@@ -110,7 +110,7 @@ class PersonalTokenView(Resource):
         access_token=gen_salt(40),
         refresh_token=gen_salt(40),
         expires=datetime.datetime(2500,1,1),
-        _scopes=' '.join(current_app.config['USER_DEFAULT_SCOPES']),
+        _scopes=' '.join(current_app.config['USER_API_DEFAULT_SCOPES']),
         is_personal=False,
       )
       db.session.add(token)

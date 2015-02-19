@@ -181,6 +181,7 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
     go = lambda: self.open('GET','/test_webservice/LOW_RATE_LIMIT')
     r = go()
     self.assertStatus(r,200)
+    self.assertIn('X-RateLimit-Remaining',r.headers)
     r = go()
     self.assertStatus(r,200)
     r = go()

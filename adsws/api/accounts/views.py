@@ -44,6 +44,8 @@ class ChangePasswordView(Resource):
 class PersonalTokenView(Resource):
   decorators = [ratelimit(50,86400,scope_func=scope_func)]
   def get(self):
+    '''GET to this endpoint returns the ADS API client token, which
+    is effectively a personal access token'''
     if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
       abort(401)
     client = OAuthClient.query.filter_by(
@@ -72,7 +74,7 @@ class PersonalTokenView(Resource):
          }
 
   def post(self):
-    '''POSTING to this endpoint generates a new API key'''
+    '''POST to this endpoint generates a new API key'''
     if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
       abort(401)
 

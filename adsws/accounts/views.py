@@ -30,6 +30,9 @@ class ProtectedView(Resource):
   def get(self):
     return {'app':current_app.name,'oauth':request.oauth.user.email}
 
+class ForgotPasswordView(Resource):
+  def post(self):
+
 class ChangePasswordView(Resource):
   def post(self):
     try:

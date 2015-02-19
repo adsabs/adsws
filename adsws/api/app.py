@@ -33,9 +33,6 @@ def create_app(**kwargs_config):
     app.errorhandler(AdsWSFormError)(on_adsws_form_error)
     app.errorhandler(404)(on_404)
     app.errorhandler(401)(on_401)
-    @csrf.error_handler
-    def csrf_error(reason):
-      return jsonify(dict(error="Invalid CSRF token")), 400
   return app
 
 def on_adsws_error(e):

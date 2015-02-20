@@ -12,7 +12,8 @@ from itsdangerous import URLSafeTimedSerializer
 from views import (
   UserAuthView, LogoutView, UserRegistrationView,
   VerifyEmailView,ChangePasswordView,
-  PersonalTokenView, Bootstrap, StatusView, ProtectedView
+  PersonalTokenView, Bootstrap, StatusView, ProtectedView,
+  ForgotPasswordView,
   )
 
 def create_app(**kwargs_config):
@@ -43,6 +44,7 @@ def create_app(**kwargs_config):
   api.add_resource(PersonalTokenView,'/accounts/token')
   api.add_resource(ChangePasswordView,'/accounts/change_password')
   api.add_resource(VerifyEmailView,'/accounts/verify/<string:token>')
+  api.add_resource(ForgotPasswordView,'/accounts/reset-password/<string:token>')
   app.ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
   # Register custom error handlers

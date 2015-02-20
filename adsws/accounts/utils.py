@@ -5,13 +5,37 @@ import requests
 
 def get_post_data(request):
   if request.headers.get('content-type','application/json')=='application/json':
-    data = request.json
+    data = request.get_json()
   else:
-    data = request.data
+    data = request.form
   return data
 
+def send_password_reset_email(email,msg=None):
+  token = current_app.ts.dumps(email,salt='reset-email')
+  if msg is None:
+    msg = Message(
+          subject="[ADS] Password reset",
+          sender="no-reply@adslabs.org",
+          recipients=[email],
+          body=
+            '''
+Hi,
+
+Someone (probably you) has requested a password reset on the account associated with this email address.
+
+To reset your password, please visit
+<a href="{endpoint}">{endpoint}</a> with your browser.
+
+This link will be valid for the next 10 minutes.
+
+If this is a mistake, then just ignore this email.
+
+-The ADS team'''.format(endpoint=url_for('forgotpasswordview',token=token)),)
+  current_app.extensions['mail'].send(msg)
+  return msg, token
+
 def send_verification_email(email, msg=None):
-  token = current_app.ts.dumps(email)
+  token = current_app.ts.dumps(email,salt='verification-email')
   if msg is None:
     msg = Message(
           subject="[ADS] Please verify your email address",
@@ -23,7 +47,7 @@ Hi,
 
 Someone (probably you) has registered this email address with the NASA-ADS (http://adslabs.org).
 
-To confirm this email address with that registered account, please visit
+To confirm this action, please visit
 <a href="{endpoint}">{endpoint}</a> with your browser.
 
 If this is a mistake, then just ignore this email.
@@ -44,7 +68,7 @@ def verify_recaptcha(request,ep=None):
   payload = {
     'secret': current_app.config['GOOGLE_RECAPTCHA_PRIVATE_KEY'],
     'remoteip': request.remote_addr,
-    'response': request.json['g-recaptcha-response'] if request.headers.get('content-type','application/json')=='application/json' else request.data['g-recaptcha-response'],
+    'response': request.json['g-recaptcha-response'] if request.headers.get('content-type','application/json')=='application/json' else request.form['g-recaptcha-response'],
   }
   r = requests.get(ep,params=payload)
   r.raise_for_status()
@@ -74,3 +98,4 @@ def validate_password(password):
   if not is_valid:
     raise ValidationError('Password must have at least 6 characters with one lowercase letter, one uppercase letter and one number')
   return True
+

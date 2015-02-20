@@ -22,7 +22,8 @@ class TestUtils(UnitTestCase):
     class FakeRequest: pass
     request = FakeRequest()
     request.json = {'format':'json'}
-    request.data = {'format':'form'}
+    request.form = {'format':'form'}
+    request.get_json = lambda: {'format':'json'}
     
     #empty content-type -> default to json
     request.headers = {}
@@ -37,7 +38,7 @@ class TestUtils(UnitTestCase):
     #any other content-type -> request.data
     request.headers = {'content-type':'anything else'}
     data = utils.get_post_data(request)
-    self.assertEqual(data,request.data)
+    self.assertEqual(data,request.form)
 
   def test_validate_email(self):
     self.assertRaises(utils.ValidationError,utils.validate_email,"invalid email")
@@ -74,6 +75,7 @@ class TestAccounts(TestCase):
       SECURITY_REGISTER_BLUEPRINT = False,
       BOOTSTRAP_USER_EMAIL = self.BOOTSTRAP_USER_EMAIL,
       MAIL_SUPPRESS_SEND = True,
+      SECRET_KEY="unittests-secret-key",
       )
     db.create_all(app=app)
     return app
@@ -142,6 +144,55 @@ class TestAccounts(TestCase):
       self.assertEqual(tok2,r.json['access_token'])
 
 
+  def test_reset_password(self):
+    '''
+    Test reset password workflow
+    '''
+    with self.client as c:
+      csrf = self.get_csrf()
+      self.setup_google_recaptcha_response()
+      user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
+
+      url = url_for('forgotpasswordview',token="this_email_wasnt@registered")
+      payload = {'g-recaptcha-response':'correct_response'}
+      
+      #Attempt to reset the password for an unregistered email address
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,404)
+      self.assertEqual(r.json['error'],'no such user exists')
+
+      #Resetting password for the default user is not permitted
+      url = url_for('forgotpasswordview',token=self.BOOTSTRAP_USER_EMAIL)
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,403)
+
+      #This is the proper request
+      url = url_for('forgotpasswordview',token=self.REAL_USER_EMAIL)
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,200)
+      self.assertEqual(r.json['message'],'success')
+
+      #Now let's test GET and PUT requests with the encoded token
+      msg,token = utils.send_password_reset_email(self.REAL_USER_EMAIL)
+      url = url_for('forgotpasswordview',token=token)
+
+      #Test de-coding and verifying of the token
+      r = c.get(url)
+      self.assertStatus(r,200)
+      self.assertEqual(r.json['email'],self.REAL_USER_EMAIL)
+
+      payload = {'password1':'123Abc','password2':'123Abc'}
+      r = c.put(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,200)
+      self.assertEqual(r.json['message'],'success')
+
+      url = url_for('userauthview')
+      payload = {'username':self.REAL_USER_EMAIL,'password':'123Abc'}
+      r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
+      self.assertStatus(r,200)      
+      self.assertEqual(current_user.email, self.REAL_USER_EMAIL)
+
+
   def test_verification_email(self):
     '''
     Test encoding an email, and see if it 
@@ -152,7 +203,7 @@ class TestAccounts(TestCase):
     url = url_for('verifyemailview',token=token)
 
     #Even though we have a token, no user was registered. This should not
-    #actually happen in normal user.
+    #actually happen in normal use.
     r = self.client.get(url)
     self.assertStatus(r,404)
     self.assertEqual(r.json['error'],"no user associated with that verification token")
@@ -292,14 +343,14 @@ class TestAccounts(TestCase):
       self.assertEqual(r.json['error'],'please verify your current password')
 
       #test authenticated request, but correct old_password
-      payload = {'old_password':'user','new_password2':'foo','new_password1':'foo'}
+      payload = {'old_password':'user','new_password2':'123Abc','new_password1':'123Abc'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
       self.assertStatus(r,200)
       self.assertEqual(r.json['message'],'success')
 
       #test that the new login works
       c.get(url_for('logoutview'))
-      payload = {'username':self.REAL_USER_EMAIL,'password':'foo'}
+      payload = {'username':self.REAL_USER_EMAIL,'password':'123Abc'}
       r=c.post(url_for('userauthview'),data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})   
       self.assertStatus(r,200)
 

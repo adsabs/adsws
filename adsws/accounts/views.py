@@ -18,7 +18,9 @@ from flask.ext.wtf.csrf import generate_csrf
 from flask import Blueprint, current_app, session, abort, request
 from utils import (
   scope_func, validate_email, validate_password, 
-  verify_recaptcha, send_verification_email, get_post_data)
+  verify_recaptcha, send_verification_email, get_post_data,
+  send_password_reset_email)
+from exceptions import ValidationError
 
 class StatusView(Resource):
   def get(self):
@@ -32,12 +34,80 @@ class ProtectedView(Resource):
 
 class ForgotPasswordView(Resource):
   def get(self,token):
-    raise NotImplementedError
-  def post(self):
-    raise NotImplementedError
+    '''
+    Decode a token into an email, if the signature is validated.
+    Log the user in without a password so that the PUT method works
+    '''
+    try:
+      email = current_app.ts.loads(token, max_age=600, salt='reset-email')
+    except:
+      return {"error":"unknown verification token"}, 404
+
+    u = user_manipulator.first(email=email)
+    if u is None:
+      current_app.logger.warning("[GET] Reset password validated link, but no user exists for {email}".format(email=email))
+      abort(500)
+    return {"email":email}, 200
+  
+  def post(self,token):
+    '''
+    Send the password reset email to the specified email address (recaptcha protected)
+    '''
+    if token==current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(403)
+
+    data = get_post_data(request)
+    if not verify_recaptcha(request):
+      return {'error': 'captcha was not verified'}, 403
+    
+    u = user_manipulator.first(email=token)
+    if u is None:
+      return {'error':'no such user exists'}, 404
+
+    if not u.confirmed_at:
+      return {'error':'this user was never verified. It should be deleted within a day'}, 403
+    send_password_reset_email(token)
+    return {"message":"success"}
+  
+  def put(self,token):
+    '''
+    Check if the current user has the right email, and, if so, change the password
+    '''
+    try:
+      email = current_app.ts.loads(token, max_age=600, salt='reset-email')
+    except:
+      current_app.logger.warning("PUT on reset-password with invalid token. This indicates a brute-force attack!")
+      return {"error":"unknown verification token"}, 404
+
+    try:
+      data = get_post_data(request)
+      new_password1 = data['password1']
+      new_password2 = data['password2']
+    except (AttributeError, KeyError):
+      return {'error':'malformed request'}, 400
+
+    if new_password1 != new_password2:
+      return {'error':'passwords do not match'}, 400
+    try:
+      validate_password(new_password1)
+    except ValidationError, e:
+      return {'error':'validation error'}, 400
+
+    u = user_manipulator.first(email=email)
+    if u is None:
+      current_app.logger.warning("[PUT] Reset password validated link, but no user exists for {email}".format(email=email))
+      abort(500)
+    user_manipulator.update(u,password=new_password1)
+    logout_user()
+    login_user(u)
+    return {"message":"success"}, 200
+
 
 class ChangePasswordView(Resource):
   def post(self):
+    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(401)
+
     try:
       data = get_post_data(request)
       old_password = data['old_password']
@@ -46,21 +116,22 @@ class ChangePasswordView(Resource):
     except (AttributeError, KeyError):
       return {'error':'malformed request'}, 400
 
-    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
-
     if not current_user.validate_password(old_password):
       return {'error':'please verify your current password'},401
 
     if new_password1 != new_password2:
       return {'error':'passwords do not match'}, 400
+    try:
+      validate_password(new_password1)
+    except ValidationError, e:
+      return {'error':'validation error'}, 400
 
     u = user_manipulator.first(email=current_user.email)
     user_manipulator.update(u,password=new_password1)
     return {'message':'success'}
 
 class PersonalTokenView(Resource):
-  decorators = [ratelimit(10,600,scope_func=scope_func)]
+  decorators = [ratelimit(20,600,scope_func=scope_func)]
   def get(self):
     '''GET to this endpoint returns the ADS API client token, which
     is effectively a personal access token'''
@@ -194,10 +265,10 @@ class UserAuthView(Resource):
     return {"user":current_user.email}
 
 class VerifyEmailView(Resource):
-  decorators = [ratelimit(50,600,scope_func=scope_func)]
+  decorators = [ratelimit(20,600,scope_func=scope_func)]
   def get(self,token):
     try:
-      email = current_app.ts.loads(token, max_age=86400)
+      email = current_app.ts.loads(token, max_age=86400,salt='verification-email')
     except:
       return {"error":"unknown verification token"}, 404
 
@@ -230,7 +301,7 @@ class UserRegistrationView(Resource):
       validate_email(email)
       validate_password(password)
     except ValidationError, e:
-      return {'error':e}, 400
+      return {'error':'validation error'}, 400
 
     if user_manipulator.first(email=email) is not None:
       return {'error':'an account is already registered with that email'}, 409
@@ -380,6 +451,3 @@ def bootstrap_user():
   session['_oauth_client'] = client.client_id
   return token
 
-def scope_func():
-  #We could do something more complex in the future
-  return request.remote_addr

@@ -8,6 +8,9 @@ import traceback
 from importlib import import_module
 from flask.ext.ratelimiter import ratelimit
 
+def scope_func(request):
+  request.oauth.client.client_id
+
 def bootstrap_local_module(service_uri,deploy_path,app):
   '''
   Incorporates the routes of an existing app into this one
@@ -27,7 +30,7 @@ def bootstrap_local_module(service_uri,deploy_path,app):
     if view.view_class.rate_limit:
       params = view.view_class.rate_limit
       defaults = {
-          'scope_func':lambda: request.oauth.client.client_id,
+          'scope_func': lambda: scope_func(request),
           'key_func': lambda: request.endpoint,
       }
       view = ratelimit(params[0],
@@ -73,7 +76,7 @@ def bootstrap_remote_service(service_uri,deploy_path,app):
       params = properties['rate_limit']
       if params:
         defaults = {
-            'scope_func':lambda: request.oauth.client.client_id,
+            'scope_func':lambda: scope_func(request),
             'key_func': lambda: request.endpoint,
         }
         view = ratelimit(params[0],

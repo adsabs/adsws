@@ -1,5 +1,6 @@
 import os, sys
 import requests
+from werkzeug.security import gen_salt
 from flask import current_app, request
 from views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
@@ -8,8 +9,15 @@ import traceback
 from importlib import import_module
 from flask.ext.ratelimiter import ratelimit
 
+_KNOWN_CLIENTS = {
+  'vp9a0zwOcx7XJETZyHhC1DwpqGXhKl75iKNCvqSx': "vis-services"
+}
 def scope_func(request):
-  request.oauth.client.client_id
+  if 'X-Forwarded-Authorization' in request.headers:
+    if request.oauth.client.client_id in _KNOWN_CLIENTS:
+      #Ugly hack to not track vis-services while also not double-counting real users
+      return "{client}.{random}".format(client=request.oauth.client.client_id,random=gen_salt(10))
+  return request.oauth.client.client_id
 
 def bootstrap_local_module(service_uri,deploy_path,app):
   '''

@@ -35,8 +35,12 @@ def bootstrap_local_module(service_uri,deploy_path,app):
   for rule in local_app.url_map.iter_rules():
     view = local_app.view_functions[rule.endpoint]
     route = os.path.join(deploy_path,rule.rule[1:])
-    if view.view_class.rate_limit:
-      params = view.view_class.rate_limit
+    if hasattr(view,'view_class'):
+      attr_base = view.view_class
+    else:
+      attr_base = view
+    if hasattr(attr_base,'rate_limit'):
+      params = attr_base.rate_limit
       defaults = {
           'scope_func': lambda: scope_func(request),
           'key_func': lambda: request.endpoint,
@@ -45,8 +49,8 @@ def bootstrap_local_module(service_uri,deploy_path,app):
         per=          params[1],
         scope_func=   defaults['scope_func'],
         key_func=     defaults['key_func'])(view)
-    if hasattr(view.view_class,'scopes'):
-      view = oauth2.require_oauth(*view.view_class.scopes)(view)
+    if hasattr(attr_base,'scopes'):
+      view = oauth2.require_oauth(*attr_base.scopes)(view)
     app.add_url_rule(route,route,view)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):

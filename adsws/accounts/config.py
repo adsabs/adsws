@@ -1,12 +1,11 @@
 import os
 import logging
 
-
-BOOTSTRAP_SCOPES = ['bb:default']
 BOOTSTRAP_USER_EMAIL = 'anonymous@adslabs.org'
 BOOTSTRAP_TOKEN_EXPIRES = 3600*24 #1 day
-USER_DEFAULT_SCOPES = ['bb:user:default']
-USER_API_DEFAULT_SCOPES = ['api:user:default']
+BOOTSTRAP_SCOPES = []
+USER_DEFAULT_SCOPES = ['user']
+USER_API_DEFAULT_SCOPES = ['api']
 OAUTH2_CLIENT_ID_SALT_LEN = 40
 OAUTH2_CACHE_TYPE='simple'
 
@@ -22,7 +21,7 @@ CORS_HEADERS = ['Content-Type','X-BB-Api-Client-Version','Authorization','Accept
 CORS_DOMAINS = ['http://localhost:8000',
                 'http://localhost:5000',
                 'http://adslabs.org',]
-CORS_METHODS = ['GET', 'OPTIONS', 'POST']
+CORS_METHODS = ['GET', 'OPTIONS', 'POST', 'PUT']
 
 CACHE = {
   'CACHE_TYPE': 'redis',

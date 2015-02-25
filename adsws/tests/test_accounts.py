@@ -1,6 +1,6 @@
 from flask.ext.testing import TestCase
 from unittest import TestCase as UnitTestCase
-from flask.ext.login import current_user, login_user, logout_user
+from flask.ext.login import current_user
 from flask.ext.mail import Message
 from flask import current_app, url_for, session
 
@@ -143,6 +143,38 @@ class TestAccounts(TestCase):
       r = c.get(url)
       self.assertEqual(tok2,r.json['access_token'])
 
+  def test_change_email(self):
+    '''
+    Test the change email workflow
+    '''
+    url = url_for('changeemailview')
+    with self.client as c:
+      csrf = self.get_csrf()
+      self.setup_google_recaptcha_response()
+      u = user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
+      payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
+      r = c.post(url_for('userauthview'),data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,200)
+
+      #incorrect password, even though we're logged in
+      payload = {'email':self.REAL_USER_EMAIL,'password':'not_correct'}
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,401)
+
+      #correct password, but user already exists
+      payload = {'email':self.REAL_USER_EMAIL,'password':'user'}
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,403)
+
+      #correct
+      payload = {'email':'changed@email','password':'user'}
+      r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
+      self.assertStatus(r,200)
+
+      u = user_manipulator.first(email='changed@email')
+      self.assertIsNotNone(u)
+      self.assertIsNone(u.confirmed_at)
+      self.assertIsNone(user_manipulator.first(email=self.REAL_USER_EMAIL))
 
   def test_reset_password(self):
     '''

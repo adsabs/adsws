@@ -13,7 +13,7 @@ from views import (
   UserAuthView, LogoutView, UserRegistrationView,
   VerifyEmailView,ChangePasswordView,
   PersonalTokenView, Bootstrap, StatusView, ProtectedView,
-  ForgotPasswordView,
+  ForgotPasswordView, ChangeEmailView
   )
 
 def create_app(**kwargs_config):
@@ -42,7 +42,8 @@ def create_app(**kwargs_config):
   api.add_resource(UserRegistrationView,'/accounts/register')
   api.add_resource(LogoutView,'/accounts/logout')
   api.add_resource(PersonalTokenView,'/accounts/token')
-  api.add_resource(ChangePasswordView,'/accounts/change_password')
+  api.add_resource(ChangePasswordView,'/accounts/change-password')
+  api.add_resource(ChangeEmailView,'/accounts/change-email')
   api.add_resource(VerifyEmailView,'/accounts/verify/<string:token>')
   api.add_resource(ForgotPasswordView,'/accounts/reset-password/<string:token>')
   app.ts = URLSafeTimedSerializer(app.config["SECRET_KEY"])

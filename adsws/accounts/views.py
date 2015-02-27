@@ -229,13 +229,43 @@ class PersonalTokenView(Resource):
             'scopes': token.scopes,
            }
 
-
-
-
 class LogoutView(Resource):
   def get(self):
     logout_user()
     return {"message":"success"}, 200
+
+class ChangeEmailView(Resource):
+  decorators = [ratelimit(1000,600,scope_func=scope_func)]  
+  def post(self):
+    '''
+    POST desired email and password to change email, if that email isn't already registerd
+
+    This will DEACTIVATE the current user, meaning that the user will have to visit a new
+    confirm email link to reactive their account
+    '''
+
+    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(401)
+    try:
+      data = get_post_data(request)
+      desired_new_email = data['email']
+      password = data['password']
+    except (AttributeError, KeyError):
+      return {'error':'malformed request'}, 400
+
+    u = user_manipulator.first(email=current_user.email)
+    if not verify_and_update_password(password,u):
+      abort(401)
+        
+    if user_manipulator.first(email=desired_new_email) is not None:
+      return {"error":"{email} has already been registered".format(email=desired_new_email)}, 403
+
+    send_verification_email(desired_new_email)
+    user_manipulator.update(u, email=desired_new_email, confirmed_at=None)
+    logout_user()
+    return {"message":"success"},200
+
+
 
 class UserAuthView(Resource):
   decorators = [ratelimit(50,120,scope_func=scope_func)]

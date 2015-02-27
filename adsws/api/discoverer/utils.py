@@ -51,6 +51,8 @@ def bootstrap_local_module(service_uri,deploy_path,app):
         key_func=     defaults['key_func'])(view)
     if hasattr(attr_base,'scopes'):
       view = oauth2.require_oauth(*attr_base.scopes)(view)
+    if 'OPTIONS' in rule.methods: #Let flask handle OPTIONS, which it will not do if we explitctly add it to the url_map
+      rule.methods.remove('OPTIONS')
     app.add_url_rule(route,route,view,methods=rule.methods)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):

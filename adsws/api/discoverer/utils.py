@@ -51,7 +51,7 @@ def bootstrap_local_module(service_uri,deploy_path,app):
         key_func=     defaults['key_func'])(view)
     if hasattr(attr_base,'scopes'):
       view = oauth2.require_oauth(*attr_base.scopes)(view)
-    app.add_url_rule(route,route,view)
+    app.add_url_rule(route,route,view,methods=rule.methods)
 
 def bootstrap_remote_service(service_uri,deploy_path,app):
   app.logger.debug('Attempting bootstrap_remote_service [%s]' % service_uri)

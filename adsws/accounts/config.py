@@ -33,3 +33,4 @@ CACHE = {
 RATELIMITER_BACKEND = 'flaskcacheredis'
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'
+MAIL_DEFAULT_SENDER='no-reply@adslabs.org'

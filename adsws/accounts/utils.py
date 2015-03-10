@@ -15,7 +15,6 @@ def send_password_reset_email(email,msg=None):
   if msg is None:
     msg = Message(
           subject="[ADS] Password reset",
-          sender="no-reply@adslabs.org",
           recipients=[email],
           body=
             '''
@@ -39,7 +38,6 @@ def send_verification_email(email, msg=None):
   if msg is None:
     msg = Message(
           subject="[ADS] Please verify your email address",
-          sender="no-reply@adslabs.org",
           recipients=[email],
           body=
             '''

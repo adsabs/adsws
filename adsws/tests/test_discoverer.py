@@ -98,8 +98,9 @@ class DiscoverLocalModuleTestCase(ApiTestCase,DiscovererTestCase):
     r = go()
     self.assertStatus(r,200)
     r = go()
+    time.sleep(1) #Make sure cache is caught up
     self.assertStatus(r,429)    
-    time.sleep(2)
+    time.sleep(10)
     r = go()
     self.assertStatus(r,200)    
 
@@ -191,8 +192,9 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
     r = go()
     self.assertStatus(r,200)
     r = go()
+    time.sleep(1) #Make sure cache is caught up
     self.assertStatus(r,429)    
-    time.sleep(2)
+    time.sleep(10)
     r = go()
     self.assertStatus(r,200)
 

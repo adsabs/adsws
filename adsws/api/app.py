@@ -14,13 +14,10 @@ def create_app(**kwargs_config):
   app = factory.create_app(app_name=__name__.replace('.app',''), **kwargs_config)
 
   api = Api(app)
-  app.extensions['api'] = api
 
   ratelimiter = RateLimiter(app=app)
-  app.extensions['ratelimiter'] = ratelimiter
 
   cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), allow_headers=app.config.get('CORS_HEADERS'),methods=app.config.get('CORS_METHODS'))
-  app.extensions['cors'] = cors
 
   app.json_encoder = JSONEncoder
   api.add_resource(StatusView,'/status')

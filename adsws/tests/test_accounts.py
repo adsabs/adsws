@@ -89,17 +89,18 @@ class TestAccounts(TestCase):
     httpretty.enable()
     url = current_app.config['GOOGLE_RECAPTCHA_ENDPOINT']
     def callback(request, uri, headers):
-      qs = request.querystring
-      if qs['response'][0] == 'correct_response':
+      print dir(request)
+      data = request.parsed_body
+      if data['response'][0] == 'correct_response':
         res = {'success':True}
-      elif qs['response'][0] == 'incorrect_response':
+      elif data['response'][0] == 'incorrect_response':
         res = {'success':False}
-      elif qs['response'][0] == 'dont_return_200':
+      elif data['response'][0] == 'dont_return_200':
         return (503,headers,"Service Unavailable")
       else:
         raise Exception("This case is not expected by the tests: %s" % qs)
       return (200,headers,json.dumps(res))
-    httpretty.register_uri(httpretty.GET, url, body=callback,content_type='application/json')
+    httpretty.register_uri(httpretty.POST, url, body=callback,content_type='application/json')
   
   def test_adsapi_token_workflow(self):
     url = url_for('personaltokenview')

@@ -68,7 +68,7 @@ def verify_recaptcha(request,ep=None):
     'remoteip': request.remote_addr,
     'response': request.json['g-recaptcha-response'] if request.headers.get('content-type','application/json')=='application/json' else request.form['g-recaptcha-response'],
   }
-  r = requests.get(ep,params=payload)
+  r = requests.post(ep,data=payload)
   r.raise_for_status()
   return True if r.json()['success'] == True else False
 

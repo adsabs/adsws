@@ -20,6 +20,7 @@ def create_app(**kwargs_config):
   app = factory.create_app(app_name=__name__.replace('.app',''), **kwargs_config)
 
   api = Api(app)
+  api.unauthorized = lambda noop: noop #Overwrite WWW-Authenticate challenge on 401
 
   ratelimiter = RateLimiter(app=app)
 

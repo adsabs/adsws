@@ -101,6 +101,16 @@ class TestAccounts(TestCase):
         raise Exception("This case is not expected by the tests: %s" % qs)
       return (200,headers,json.dumps(res))
     httpretty.register_uri(httpretty.POST, url, body=callback,content_type='application/json')
+
+  def test_401_no_challenge(self):
+    '''
+    Test that a 401 response does not include a WWW-Authenticate header, which the browser
+    will respond to by opening a login prompt
+    '''
+    urls = [url_for(i) for i in ['protectedview','userauthview']]
+    for url in urls:
+      r = self.client.get(url)
+      self.assertNotIn('WWW-Authenticate',r.headers,msg='challenge issued on %s' % url)
   
   def test_adsapi_token_workflow(self):
     url = url_for('personaltokenview')

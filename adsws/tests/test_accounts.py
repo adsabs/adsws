@@ -89,7 +89,6 @@ class TestAccounts(TestCase):
     httpretty.enable()
     url = current_app.config['GOOGLE_RECAPTCHA_ENDPOINT']
     def callback(request, uri, headers):
-      print dir(request)
       data = request.parsed_body
       if data['response'][0] == 'correct_response':
         res = {'success':True}
@@ -112,6 +111,30 @@ class TestAccounts(TestCase):
       r = self.client.get(url)
       self.assertNotIn('WWW-Authenticate',r.headers,msg='challenge issued on %s' % url)
   
+  def test_delete_account(self):
+    url = url_for('deleteaccountview')
+    with self.client as c:
+      csrf = self.get_csrf()
+
+      #CSRF not specified
+      r = c.post(url)
+      self.assertStatus(r,400)
+
+      #/delete when not authenticated
+      r = c.post(url,headers={'X-CSRFToken':csrf})
+      self.assertStatus(r,401)
+
+      #login
+      user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
+      payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
+      c.post(url_for('userauthview'),data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
+
+      r = c.post(url,headers={'X-CSRFToken':csrf})
+      self.assertStatus(r,200)
+
+      u = user_manipulator.first(email=self.REAL_USER_EMAIL)
+      self.assertIsNone(u)
+
   def test_adsapi_token_workflow(self):
     url = url_for('personaltokenview')
     with self.client as c:

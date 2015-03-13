@@ -13,7 +13,7 @@ from views import (
   UserAuthView, LogoutView, UserRegistrationView,
   VerifyEmailView,ChangePasswordView,
   PersonalTokenView, Bootstrap, StatusView, ProtectedView,
-  ForgotPasswordView, ChangeEmailView
+  ForgotPasswordView, ChangeEmailView, DeleteAccountView
   )
 
 def create_app(**kwargs_config):
@@ -35,6 +35,7 @@ def create_app(**kwargs_config):
   api.add_resource(StatusView,'/status')
   api.add_resource(ProtectedView,'/protected')
   api.add_resource(UserAuthView,'/user')
+  api.add_resource(DeleteAccountView,'/user/delete')
   api.add_resource(UserRegistrationView,'/register')
   api.add_resource(LogoutView,'/logout')
   api.add_resource(PersonalTokenView,'/token')

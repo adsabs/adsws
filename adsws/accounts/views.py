@@ -32,6 +32,20 @@ class ProtectedView(Resource):
   def get(self):
     return {'app':current_app.name,'oauth':request.oauth.user.email}
 
+class DeleteAccountView(Resource):
+  def post(self):
+    '''
+    Delete the current user's account
+    use POST instead of GET to be validated by csrf protection
+    '''
+    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+      abort(401)
+
+    u = user_manipulator.first(email=current_user.email)
+    logout_user()
+    user_manipulator.delete(u)
+    return {"message":"success"}, 200
+
 class ForgotPasswordView(Resource):
   def get(self,token):
     '''

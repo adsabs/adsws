@@ -113,7 +113,7 @@ class ForgotPasswordView(Resource):
       abort(500)
     user_manipulator.update(u,password=new_password1)
     logout_user()
-    login_user(u)
+    login_user(u,force=True)
     return {"message":"success"}, 200
 
 
@@ -299,7 +299,7 @@ class UserAuthView(Resource):
 
     if current_user.is_authenticated(): #Logout of previous user (may have been bumblebee)
       logout_user()
-    login_user(u) #Login to real user
+    login_user(u,force=True) #Login to real user
     return {"message":"success"}, 200
 
   def get(self):

@@ -69,8 +69,11 @@ class ForgotPasswordView(Resource):
     '''
     if token==current_app.config['BOOTSTRAP_USER_EMAIL']:
       abort(403)
-
-    data = get_post_data(request)
+    try:
+      data = get_post_data(request)
+      reset_url = data['reset_url']
+    except (AttributeError, KeyError):
+      return {'error':'malformed request'}, 400
     if not verify_recaptcha(request):
       return {'error': 'captcha was not verified'}, 403
     
@@ -80,7 +83,7 @@ class ForgotPasswordView(Resource):
 
     if not u.confirmed_at:
       return {'error':'this user was never verified. It should be deleted within a day'}, 403
-    send_password_reset_email(token)
+    send_password_reset_email(token,url=reset_url)
     return {"message":"success"}
   
   def put(self,token):
@@ -264,6 +267,7 @@ class ChangeEmailView(Resource):
       data = get_post_data(request)
       desired_new_email = data['email']
       password = data['password']
+      verify_url = data['verify_url']
     except (AttributeError, KeyError):
       return {'error':'malformed request'}, 400
 
@@ -274,12 +278,10 @@ class ChangeEmailView(Resource):
     if user_manipulator.first(email=desired_new_email) is not None:
       return {"error":"{email} has already been registered".format(email=desired_new_email)}, 403
 
-    send_verification_email(desired_new_email)
+    send_verification_email(desired_new_email,url=verify_url)
     user_manipulator.update(u, email=desired_new_email, confirmed_at=None)
     logout_user()
     return {"message":"success"},200
-
-
 
 class UserAuthView(Resource):
   decorators = [ratelimit(50,120,scope_func=scope_func)]
@@ -334,6 +336,7 @@ class UserRegistrationView(Resource):
       email = data['email']
       password = data['password1']
       repeated = data['password2']
+      verify_url = data['verify_url']
     except (AttributeError, KeyError):
       return {'error':'malformed request'}, 400
     
@@ -350,13 +353,12 @@ class UserRegistrationView(Resource):
     if user_manipulator.first(email=email) is not None:
       return {'error':'an account is already registered with that email'}, 409
 
-    send_verification_email(email)
+    send_verification_email(email,url=verify_url)
     u = user_manipulator.create(
       email=email, 
       password=password
     )
     return {"message":"success"}, 200
-
 
 class Bootstrap(Resource):
   decorators = [ratelimit(400,86400,scope_func=scope_func)]

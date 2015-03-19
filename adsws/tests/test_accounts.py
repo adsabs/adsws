@@ -191,17 +191,17 @@ class TestAccounts(TestCase):
       self.assertStatus(r,200)
 
       #incorrect password, even though we're logged in
-      payload = {'email':self.REAL_USER_EMAIL,'password':'not_correct'}
+      payload = {'email':self.REAL_USER_EMAIL,'password':'not_correct','verify_url':'http://not_relevant.com'}
       r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
       self.assertStatus(r,401)
 
       #correct password, but user already exists
-      payload = {'email':self.REAL_USER_EMAIL,'password':'user'}
+      payload = {'email':self.REAL_USER_EMAIL,'password':'user','verify_url':'http://not_relevant.com'}
       r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
       self.assertStatus(r,403)
 
       #correct
-      payload = {'email':'changed@email','password':'user'}
+      payload = {'email':'changed@email','password':'user','verify_url':'http://not_relevant.com'}
       r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
       self.assertStatus(r,200)
 
@@ -220,7 +220,7 @@ class TestAccounts(TestCase):
       user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())
 
       url = url_for('forgotpasswordview',token="this_email_wasnt@registered")
-      payload = {'g-recaptcha-response':'correct_response'}
+      payload = {'g-recaptcha-response':'correct_response','reset_url':'http://not_relevant.com'}
       
       #Attempt to reset the password for an unregistered email address
       r = c.post(url,data=json.dumps(payload),headers={'X-CSRFToken':csrf,'content-type':'application/json'})
@@ -265,7 +265,9 @@ class TestAccounts(TestCase):
     can be resolved with the verify endpoint
     '''
 
-    msg,token = utils.send_verification_email("this_email_wasnt@registered")
+    msg,token = utils.send_verification_email("this_email_wasnt@registered",url="http://foo.com/api")
+    self.assertIn("http://foo.com/api",msg.html)
+
     url = url_for('verifyemailview',token=token)
 
     #Even though we have a token, no user was registered. This should not
@@ -437,13 +439,13 @@ class TestAccounts(TestCase):
       self.assertIn('error',r.json)
 
       #Test a valid new user registration
-      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response'}
+      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response','verify_url':'http://not_relevant.com'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
       self.assertStatus(r,200)
       self.assertEqual(r.json['message'],'success')
 
       #Test that re-registering the previously registered user fails
-      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response'}
+      payload = {'email':'me@email','password1':'Password1','password2':'Password1','g-recaptcha-response':'correct_response','verify_url':'http://not_relevant.com'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf})
       self.assertStatus(r,409)
       self.assertIn('error',r.json)

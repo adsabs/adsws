@@ -10,14 +10,14 @@ def get_post_data(request):
     data = request.form
   return data
 
-def send_password_reset_email(email,msg=None):
+def send_password_reset_email(email,url=None,msg=None):
   token = current_app.ts.dumps(email,salt='reset-email')
   if msg is None:
+    endpoint = '{url}/{token}'.format(url=url,token=token)
     msg = Message(
           subject="[ADS] Password reset",
           recipients=[email],
-          body=
-            '''
+          html='''
 Hi,
 
 Someone (probably you) has requested a password reset on the account associated with this email address.
@@ -29,18 +29,18 @@ This link will be valid for the next 10 minutes.
 
 If this is a mistake, then just ignore this email.
 
--The ADS team'''.format(endpoint=url_for('forgotpasswordview',token=token)),)
+-The ADS team'''.format(endpoint=endpoint))
   current_app.extensions['mail'].send(msg)
   return msg, token
 
-def send_verification_email(email, msg=None):
+def send_verification_email(email, url=None, msg=None):
   token = current_app.ts.dumps(email,salt='verification-email')
   if msg is None:
+    endpoint = '{url}/{token}'.format(url=url,token=token)
     msg = Message(
           subject="[ADS] Please verify your email address",
           recipients=[email],
-          body=
-            '''
+          html='''
 Hi,
 
 Someone (probably you) has registered this email address with the NASA-ADS (http://adslabs.org).
@@ -50,7 +50,7 @@ To confirm this action, please visit
 
 If this is a mistake, then just ignore this email.
 
--The ADS team'''.format(endpoint=url_for('verifyemailview',token=token)),)
+-The ADS team'''.format(endpoint=endpoint))
   current_app.extensions['mail'].send(msg)
   return msg, token
 

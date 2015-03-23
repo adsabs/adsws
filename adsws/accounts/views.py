@@ -119,7 +119,6 @@ class ForgotPasswordView(Resource):
     login_user(u,force=True)
     return {"message":"success"}, 200
 
-
 class ChangePasswordView(Resource):
   def post(self):
     if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
@@ -325,7 +324,7 @@ class VerifyEmailView(Resource):
       return {"error": "this user and email has already been validated"}, 400
 
     user_manipulator.update(u,confirmed_at=datetime.datetime.now())
-
+    login_user(u, remember=False, force=True)
     return {"message":"success","email":email}
 
 class UserRegistrationView(Resource):
@@ -381,7 +380,6 @@ class Bootstrap(Resource):
             'scopes': token.scopes,
             'csrf': generate_csrf(),
            }
-
 
 def bootstrap_bumblebee():
   salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)

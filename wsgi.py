@@ -12,10 +12,28 @@ from werkzeug.wsgi import DispatcherMiddleware
 
 from adsws import accounts
 from adsws import api
+from adsws import frontend
 
-application = DispatcherMiddleware(Flask('placeholder'), {
-    '/v1': api.create_app(),
-    '/v1/accounts':accounts.create_app(),
+def get_resources(*apps):
+  r = {}
+  for _container in apps:
+    app = _container['app']
+    mnt = _container['mount']
+    r[app.name] = {}
+    r[app.name]['endpoints'] = []
+    r[app.name]['base'] = mnt
+    for rule in app.url_map.iter_rules():
+      r[app.name]['endpoints'].append(rule.rule)
+  return r
+
+API = dict(mount='/v1',app=api.create_app())
+ACCOUNTS = dict(mount='/v1/accounts',app=accounts.create_app())
+
+resources = get_resources(API,ACCOUNTS)
+
+application = DispatcherMiddleware(frontend.create_app(resources=resources), {
+    API['mount']: API['app'],
+    API['mount']: ACCOUNTS['app'],
 })
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ class TestFrontend(TestCase):
   '''Test the accounts API'''
 
   def create_app(self):
-    app = frontend.create_app()
+    app = frontend.create_app(resources={'foo':'bar'})
     return app
 
   def test_statusView(self):
@@ -18,6 +18,12 @@ class TestFrontend(TestCase):
     r = self.client.get(url)
     self.assertStatus(r,200)
     self.assertEqual(r.json['status'],'online')
+
+  def test_globalresources(self):
+    url = url_for('globalresourcesview')
+    r = self.client.get(url)
+    self.assertStatus(r,200)
+    self.assertEqual(r.json['foo'],'bar')
 
 TESTSUITE = make_test_suite(TestFrontend)
 

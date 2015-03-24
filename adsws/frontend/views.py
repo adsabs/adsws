@@ -12,4 +12,4 @@ class StatusView(Resource):
 class GlobalResourcesView(Resource):
   decorators = [ratelimit(1000,24*60*60,scope_func=scope_func)]
   def get(self):
-    return {'error','not implemented'}, 404
+    return current_app.config['resources']

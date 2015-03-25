@@ -33,7 +33,7 @@ resources = get_resources(API,ACCOUNTS)
 
 application = DispatcherMiddleware(frontend.create_app(resources=resources), {
     API['mount']: API['app'],
-    API['mount']: ACCOUNTS['app'],
+    ACCOUNTS['mount']: ACCOUNTS['app'],
 })
 
 if __name__ == "__main__":

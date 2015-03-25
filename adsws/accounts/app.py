@@ -28,7 +28,9 @@ def create_app(**kwargs_config):
 
   mail = Mail(app)
   
-  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), allow_headers=app.config.get('CORS_HEADERS'),methods=app.config.get('CORS_METHODS'))
+  cors = CORS(app,origins=app.config.get('CORS_DOMAINS'), 
+              allow_headers=app.config.get('CORS_HEADERS'),
+              methods=app.config.get('CORS_METHODS'),supports_credentials=True)
 
   app.json_encoder = JSONEncoder
   api.add_resource(Bootstrap,'/bootstrap')

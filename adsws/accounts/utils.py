@@ -5,7 +5,7 @@ import requests
 
 def get_post_data(request):
   try:
-    return request.get_json()
+    return request.get_json(force=True)
   except:
     return request.values
 
@@ -61,11 +61,11 @@ def scope_func():
 def verify_recaptcha(request,ep=None):
   if ep is None:
     ep = current_app.config['GOOGLE_RECAPTCHA_ENDPOINT']
-
+  data = get_post_data(request)
   payload = {
     'secret': current_app.config['GOOGLE_RECAPTCHA_PRIVATE_KEY'],
     'remoteip': request.remote_addr,
-    'response': request.json['g-recaptcha-response'] if request.headers.get('content-type','application/json')=='application/json' else request.form['g-recaptcha-response'],
+    'response': data['g-recaptcha-response']
   }
   r = requests.post(ep,data=payload)
   r.raise_for_status()

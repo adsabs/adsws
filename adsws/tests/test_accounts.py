@@ -19,28 +19,19 @@ import datetime
 class TestUtils(UnitTestCase):
   '''Test account validation utilities'''
 
-  @skip("we should use a proper Flask.request object here")
   def test_get_post_data(self):
     class FakeRequest: pass
     request = FakeRequest()
-    request.json = {'format':'json'}
-    request.form = "format=form"
-    request.get_json = lambda: {'format':'json'}
+    request.values = "format=form"
+    request.get_json = lambda **x: {'format':'json'}
     
     #empty content-type -> default to json
-    request.headers = {}
     data = utils.get_post_data(request)
-    self.assertEqual(data,request.json)
+    self.assertEqual(data,request.get_json())
 
-    #content-type: application/json -> request.json
-    request.headers = {'content-type':'application/json'}
+    request.get_json = lambda **x: {}.method() #raise some exception when it tries to run get_json(force=true)
     data = utils.get_post_data(request)
-    self.assertEqual(data,request.json)
-
-    #content-type: form encoded -> request.data
-    request.headers = {'content-type':'multipart/form-data'}
-    data = utils.get_post_data(request)
-    self.assertEqual(data,request.form)
+    self.assertEqual(data,request.values)
 
   def test_validate_email(self):
     self.assertRaises(utils.ValidationError,utils.validate_email,"invalid email")
@@ -307,20 +298,19 @@ class TestAccounts(TestCase):
     class FakeRequest:  pass
     fakerequest = FakeRequest()
     fakerequest.remote_addr = 'placeholder'
-    fakerequest.headers = {}
     
     #Test a "success" response
-    fakerequest.json = {'g-recaptcha-response':'correct_response'}
+    fakerequest.get_json = lambda **x: {'g-recaptcha-response':'correct_response'}
     res = utils.verify_recaptcha(fakerequest)
     self.assertTrue(res)
 
     #Test a "fail" response
-    fakerequest.json = {'g-recaptcha-response':'incorrect_response'}
+    fakerequest.get_json = lambda **x: {'g-recaptcha-response':'incorrect_response'}
     res = utils.verify_recaptcha(fakerequest)
     self.assertFalse(res)
 
     #Test a 503 response
-    fakerequest.json = {'g-recaptcha-response':'dont_return_200'}
+    fakerequest.get_json = lambda **x: {'g-recaptcha-response':'dont_return_200'}
     self.assertRaises(requests.HTTPError,utils.verify_recaptcha,fakerequest)
 
     #Test a malformed request

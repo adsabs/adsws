@@ -4,11 +4,10 @@ from flask.ext.mail import Message
 import requests
 
 def get_post_data(request):
-  if request.headers.get('content-type','application/json')=='application/json':
-    data = request.get_json()
-  else:
-    data = request.form
-  return data
+  try:
+    return request.get_json()
+  except:
+    return request.values
 
 def send_password_reset_email(email,url=None,msg=None):
   token = current_app.ts.dumps(email,salt='reset-email')

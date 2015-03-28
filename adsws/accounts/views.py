@@ -12,7 +12,6 @@ from adsws.core import db, user_manipulator
 
 from flask.ext.ratelimiter import ratelimit
 from flask.ext.login import current_user, login_user, logout_user
-from flask.ext.security.utils import verify_and_update_password
 from flask.ext.restful import Resource, abort
 from flask.ext.wtf.csrf import generate_csrf
 from flask import Blueprint, current_app, session, abort, request
@@ -271,7 +270,7 @@ class ChangeEmailView(Resource):
       return {'error':'malformed request'}, 400
 
     u = user_manipulator.first(email=current_user.email)
-    if not verify_and_update_password(password,u):
+    if not u.validate_password(password):
       abort(401)
         
     if user_manipulator.first(email=desired_new_email) is not None:
@@ -293,7 +292,7 @@ class UserAuthView(Resource):
       return {'error':'malformed request'}, 400
 
     u = user_manipulator.first(email=username)
-    if u is None or not verify_and_update_password(password,u):
+    if u is None or not u.validate_password(password):
       abort(401)
     if u.confirmed_at is None:
       return {"message":"account has not been verified"}, 403

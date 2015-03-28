@@ -4,8 +4,7 @@ import logging
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',
-              'adsws.ext.security',
-              'adsws.ext.session',]
+              'adsws.ext.security',]
 
 PACKAGES = ['adsws.modules.oauth2server',]
 

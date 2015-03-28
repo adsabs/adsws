@@ -7,6 +7,8 @@ gunicorn
 Flask-SQLAlchemy
 Flask-Security
 Flask-Menu
+Flask-Script
+Flask-Breadcrumbs
 #Flask-OAuthlib
 -e git+https://github.com/lepture/flask-oauthlib.git@e092a5f46ff6c78d313a6eb2f89ee746fb190dfb#egg=Flask-OAuthlib
 Flask-WTF

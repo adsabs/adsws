@@ -13,9 +13,8 @@ import logging.handlers
 from collections import namedtuple
 
 from werkzeug.contrib.fixers import ProxyFix
-from flask import Flask, g
-from flask import request
-from flask_sslify import SSLify
+from flask import Flask, g, request, jsonify
+from flask.ext.sslify import SSLify
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -104,9 +103,27 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
         #Contains the x-forwared-proto in the criteria already
         # only works if app.debug=False
         SSLify(app,permanent=True) #permanent=True responds with 302 instead of 301
-    
+          # Register custom error handlers
+    if not app.config.get('DEBUG'):
+        app.errorhandler(404)(on_404)
+        app.errorhandler(401)(on_401)
+        app.errorhandler(429)(on_429)
+        app.errorhandler(405)(on_405)
     return app
 
+def on_404(e):
+  return jsonify(dict(error='Not found')), 404
+
+def on_401(e):
+  return jsonify(dict(error='Unauthorized')), 401
+
+def on_429(e):
+  return jsonify(dict(error='Too many requests')), 429
+
+def on_405(e):
+  return jsonify(dict(error='Method not allowed')), 405
+
+  
 def set_translations():
     """Add under ``g._`` an already configured internationalization function.
 

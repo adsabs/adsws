@@ -6,5 +6,4 @@ cloud
 coverage
 mock
 httpretty
-splinter
 redis

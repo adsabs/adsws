@@ -15,6 +15,7 @@ Flask-Registry
 Flask-Email
 Flask-Mail
 SQLAlchemy
+sqlalchemy-utils
 Werkzeug
 requests
 alembic

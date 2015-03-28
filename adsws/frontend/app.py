@@ -14,7 +14,8 @@ def create_app(resources={},**kwargs_config):
   api.unauthorized = lambda noop: noop #Overwrite WWW-Authenticate challenge on 401
 
   ratelimiter = RateLimiter(app=app)
-  
+
+  api.add_resource(StatusView,'/',endpoint="root_statusview")  
   api.add_resource(StatusView,'/status')
   api.add_resource(GlobalResourcesView,'/resources')
 

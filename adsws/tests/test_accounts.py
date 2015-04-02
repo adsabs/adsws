@@ -345,7 +345,7 @@ class TestAccounts(TestCase):
       payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
       self.assertStatus(r,403)
-      self.assertEqual(r.json['message'],'account has not been verified')
+      self.assertEqual(r.json['error'],'account has not been verified')
 
       #Test correct login on a verified account
       user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())

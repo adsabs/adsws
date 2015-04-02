@@ -144,7 +144,7 @@ class TestAccounts(TestCase):
       
       #no api client has yet been registered.
       r = c.get(url)
-      self.assertEqual(r.json['message'],'no ADS API client found')
+      self.assertEqual(r.json['error'],'no ADS API client found')
 
       #POST to make the API client, but no CSRF token passed
       r = c.post(url)
@@ -345,7 +345,7 @@ class TestAccounts(TestCase):
       payload = {'username':self.REAL_USER_EMAIL,'password':'user'}
       r = c.post(url,data=json.dumps(payload),headers={'content-type':'application/json','X-CSRFToken':csrf}) 
       self.assertStatus(r,403)
-      self.assertEqual(r.json['message'],'account has not been verified')
+      self.assertEqual(r.json['error'],'account has not been verified')
 
       #Test correct login on a verified account
       user_manipulator.update(self.real_user,confirmed_at=datetime.datetime.now())

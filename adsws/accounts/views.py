@@ -166,7 +166,7 @@ class PersonalTokenView(Resource):
 
     if not token:
       current_app.logger.error('no ADS API client token found for {email}. This should not happen!'.format(email=current_user.email))
-      return {'message':'no ADS API client token found. This should not happen!'}, 500
+      return {'error':'no ADS API client token found. This should not happen!'}, 500
 
     return {
           'access_token': token.access_token,
@@ -295,7 +295,7 @@ class UserAuthView(Resource):
     if u is None or not u.validate_password(password):
       abort(401)
     if u.confirmed_at is None:
-      return {"message":"account has not been verified"}, 403
+      return {"error":"account has not been verified"}, 403
 
     if current_user.is_authenticated(): #Logout of previous user (may have been bumblebee)
       logout_user()

@@ -362,6 +362,22 @@ class TestAccounts(TestCase):
     r = self.client.get(url_for('bootstrap'))
     return r.json['csrf']
 
+  def test_bootstrap_bumblebee(self):
+    url = url_for('bootstrap')
+    with self.client as c:
+      r = c.get(url)
+      self.assertEqual(r.json['username'],self.BOOTSTRAP_USER_EMAIL)
+      
+      #Now manually expire the token
+      from adsws.modules.oauth2server.models import OAuthToken
+      tok = db.session.query(OAuthToken).filter_by(access_token=r.json['access_token']).one()
+      tok.expires = datetime.datetime.now()
+      db.session.commit()
+
+      # re-visit the bootstrap URL, test to see if we get a fresh token
+      r = c.get(url)
+      self.assertNotEqual(r.json['access_token'],tok.access_token)
+
   def test_bootstrap_user(self):
     url = url_for('bootstrap')
     with self.client as c:

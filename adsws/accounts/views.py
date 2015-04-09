@@ -420,7 +420,7 @@ def bootstrap_bumblebee():
     user_id=current_user.get_id(),
     is_personal=False,
     is_internal=True,
-  ).first()
+  ).filter(OAuthToken.expires > datetime.datetime.now()).first()
 
   if token is None:
     if isinstance(expires,int):

@@ -15,11 +15,12 @@ from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.restful import Resource, abort
 from flask.ext.wtf.csrf import generate_csrf
 from flask import Blueprint, current_app, session, abort, request
-from utils import (
+from .utils import (
   scope_func, validate_email, validate_password, 
-  verify_recaptcha, send_verification_email, get_post_data,
-  send_password_reset_email)
-from exceptions import ValidationError
+  verify_recaptcha, get_post_data, send_email)
+from .exceptions import ValidationError
+from .emails import (PASSWORD_RESET_EMAIL, 
+                    VERIFICATION_EMAIL,)
 
 class StatusView(Resource):
   def get(self):
@@ -52,7 +53,7 @@ class ForgotPasswordView(Resource):
     Log the user in without a password so that the PUT method works
     '''
     try:
-      email = current_app.ts.loads(token, max_age=600, salt='reset-email')
+      email = current_app.ts.loads(token, max_age=600, salt=PASSWORD_RESET_EMAIL.salt)
     except:
       return {"error":"unknown verification token"}, 404
 
@@ -82,7 +83,7 @@ class ForgotPasswordView(Resource):
 
     if not u.confirmed_at:
       return {'error':'this user was never verified. It should be deleted within a day'}, 403
-    send_password_reset_email(token,url=reset_url)
+    send_email(token,reset_url,PASSWORD_RESET_EMAIL, token)
     return {"message":"success"}
   
   def put(self,token):
@@ -90,7 +91,7 @@ class ForgotPasswordView(Resource):
     Check if the current user has the right email, and, if so, change the password
     '''
     try:
-      email = current_app.ts.loads(token, max_age=600, salt='reset-email')
+      email = current_app.ts.loads(token, max_age=600, salt=PASSWORD_RESET_EMAIL.salt)
     except:
       current_app.logger.warning("PUT on reset-password with invalid token. This indicates a brute-force attack!")
       return {"error":"unknown verification token"}, 404
@@ -263,7 +264,7 @@ class ChangeEmailView(Resource):
       abort(401)
     try:
       data = get_post_data(request)
-      desired_new_email = data['email']
+      email = data['email']
       password = data['password']
       verify_url = data['verify_url']
     except (AttributeError, KeyError):
@@ -273,11 +274,10 @@ class ChangeEmailView(Resource):
     if not u.validate_password(password):
       abort(401)
         
-    if user_manipulator.first(email=desired_new_email) is not None:
-      return {"error":"{email} has already been registered".format(email=desired_new_email)}, 403
-
-    send_verification_email(desired_new_email,url=verify_url)
-    user_manipulator.update(u, email=desired_new_email, confirmed_at=None)
+    if user_manipulator.first(email=email) is not None:
+      return {"error":"{email} has already been registered".format(email=email)}, 403
+    send_email(email,verify_url,VERIFICATION_EMAIL, email)
+    user_manipulator.update(u, email=email, confirmed_at=None)
     logout_user()
     return {"message":"success"},200
 
@@ -312,7 +312,7 @@ class VerifyEmailView(Resource):
   decorators = [ratelimit(20,600,scope_func=scope_func)]
   def get(self,token):
     try:
-      email = current_app.ts.loads(token, max_age=86400,salt='verification-email')
+      email = current_app.ts.loads(token, max_age=86400,salt=VERIFICATION_EMAIL.salt)
     except:
       return {"error":"unknown verification token"}, 404
 
@@ -350,8 +350,7 @@ class UserRegistrationView(Resource):
 
     if user_manipulator.first(email=email) is not None:
       return {'error':'an account is already registered with that email'}, 409
-
-    send_verification_email(email,url=verify_url)
+    send_email(email,verify_url,VERIFICATION_EMAIL, email)
     u = user_manipulator.create(
       email=email, 
       password=password

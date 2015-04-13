@@ -11,6 +11,7 @@ import json
 
 from adsws import accounts
 from adsws.accounts import utils
+from adsws.accounts.emails import PASSWORD_RESET_EMAIL, VERIFICATION_EMAIL
 
 import httpretty
 import requests
@@ -232,7 +233,7 @@ class TestAccounts(TestCase):
       self.assertEqual(r.json['message'],'success')
 
       #Now let's test GET and PUT requests with the encoded token
-      msg,token = utils.send_password_reset_email(self.REAL_USER_EMAIL)
+      msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',PASSWORD_RESET_EMAIL, self.REAL_USER_EMAIL)
       url = url_for('forgotpasswordview',token=token)
 
       #Test de-coding and verifying of the token
@@ -258,8 +259,8 @@ class TestAccounts(TestCase):
     can be resolved with the verify endpoint
     '''
 
-    msg,token = utils.send_verification_email("this_email_wasnt@registered",url="http://foo.com/api")
-    self.assertIn("http://foo.com/api",msg.html)
+    msg, token = utils.send_email("this_email_wasnt@registered",'localhost',VERIFICATION_EMAIL, "this_email_wasnt@registered")
+    self.assertIn("localhost",msg.html)
 
     url = url_for('verifyemailview',token=token)
 
@@ -274,7 +275,7 @@ class TestAccounts(TestCase):
     self.assertStatus(r,404)
     self.assertEqual(r.json['error'],'unknown verification token')
 
-    msg,token = utils.send_verification_email(self.REAL_USER_EMAIL)
+    msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',VERIFICATION_EMAIL,self.REAL_USER_EMAIL)
     url = url_for('verifyemailview',token=token)
 
     #Test a proper verification

@@ -11,7 +11,7 @@ import json
 
 from adsws import accounts
 from adsws.accounts import utils
-from adsws.accounts.emails import PASSWORD_RESET_EMAIL, VERIFICATION_EMAIL
+from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
 
 import httpretty
 import requests
@@ -100,7 +100,7 @@ class TestAccounts(TestCase):
     Test that a 401 response does not include a WWW-Authenticate header, which the browser
     will respond to by opening a login prompt
     '''
-    urls = [url_for(i) for i in ['protectedview','userauthview']]
+    urls = [url_for(i) for i in ['oauthprotectedview','userauthview']]
     for url in urls:
       r = self.client.get(url)
       self.assertNotIn('WWW-Authenticate',r.headers,msg='challenge issued on %s' % url)
@@ -152,7 +152,7 @@ class TestAccounts(TestCase):
       self.assertStatus(r,400)
 
       #POST to make the API client
-      r = c.post(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
+      r = c.put(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
       self.assertStatus(r,200)
       self.assertIn('access_token',r.json)
       tok = r.json['access_token']
@@ -162,7 +162,7 @@ class TestAccounts(TestCase):
       self.assertEqual(tok,r.json['access_token'])
 
       #POST should generate a new access_token
-      r = c.post(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
+      r = c.put(url,headers={'content-type':'application/json','X-CSRFToken':csrf})
       self.assertNotEqual(tok,r.json['access_token'])
       tok2 = r.json['access_token']
       self.assertNotEqual(tok,tok2)
@@ -233,7 +233,7 @@ class TestAccounts(TestCase):
       self.assertEqual(r.json['message'],'success')
 
       #Now let's test GET and PUT requests with the encoded token
-      msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',PASSWORD_RESET_EMAIL, self.REAL_USER_EMAIL)
+      msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',PasswordResetEmail, self.REAL_USER_EMAIL)
       url = url_for('forgotpasswordview',token=token)
 
       #Test de-coding and verifying of the token
@@ -253,13 +253,13 @@ class TestAccounts(TestCase):
       self.assertEqual(current_user.email, self.REAL_USER_EMAIL)
 
 
-  def test_verification_email(self):
+  def test_VerificationEmail(self):
     '''
     Test encoding an email, and see if it 
     can be resolved with the verify endpoint
     '''
 
-    msg, token = utils.send_email("this_email_wasnt@registered",'localhost',VERIFICATION_EMAIL, "this_email_wasnt@registered")
+    msg, token = utils.send_email("this_email_wasnt@registered",'localhost',VerificationEmail, "this_email_wasnt@registered")
     self.assertIn("localhost",msg.html)
 
     url = url_for('verifyemailview',token=token)
@@ -275,7 +275,7 @@ class TestAccounts(TestCase):
     self.assertStatus(r,404)
     self.assertEqual(r.json['error'],'unknown verification token')
 
-    msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',VERIFICATION_EMAIL,self.REAL_USER_EMAIL)
+    msg, token = utils.send_email(self.REAL_USER_EMAIL,'localhost',VerificationEmail,self.REAL_USER_EMAIL)
     url = url_for('verifyemailview',token=token)
 
     #Test a proper verification
@@ -331,10 +331,6 @@ class TestAccounts(TestCase):
       self.assertEqual(r.json['username'],self.BOOTSTRAP_USER_EMAIL)
       self.assertEqual(current_user.email,self.BOOTSTRAP_USER_EMAIL) #This will log the user in as the bootstrap user
       csrf = self.get_csrf()
-
-      #Test disallowed GET when authenticated as BOOTSTRAP_USER
-      r = c.get(url)
-      self.assertStatus(r,401)
 
       #Test incorrect login
       payload = {'username':'foo','password':'bar'}

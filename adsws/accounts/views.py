@@ -1,8 +1,4 @@
-# from flask.ext.jwt import jwt_required
-# from flask import Blueprint
-
 import datetime
-import requests
 from werkzeug.security import gen_salt
 
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
@@ -13,483 +9,632 @@ from adsws.core import db, user_manipulator
 from flask.ext.ratelimiter import ratelimit
 from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.restful import Resource, abort
-from flask.ext.wtf.csrf import generate_csrf
-from flask import Blueprint, current_app, session, abort, request
-from .utils import (
-  scope_func, validate_email, validate_password, 
-  verify_recaptcha, get_post_data, send_email)
+from flask import current_app, session, abort, request
+from .utils import scope_func, validate_email, validate_password, \
+    verify_recaptcha, get_post_data, send_email, login_required, \
+    print_token
 from .exceptions import ValidationError
-from .emails import (PASSWORD_RESET_EMAIL, 
-                    VERIFICATION_EMAIL,)
+from .emails import PasswordResetEmail, VerificationEmail
+
 
 class StatusView(Resource):
-  def get(self):
-    return {'app':current_app.name,'status': 'online'}, 200
+    """
+    Health check resource
+    """
+    def get(self):
+        return {'app': current_app.name, 'status': 'online'}, 200
 
-class ProtectedView(Resource):
-  '''This view is oauth2-authentication protected'''
-  decorators = [oauth2.require_oauth()]
-  def get(self):
-    return {'app':current_app.name,'oauth':request.oauth.user.email}
+
+class OAuthProtectedView(Resource):
+    """
+    Resource for checking that oauth2.require_oauth is satisfied
+    """
+    decorators = [oauth2.require_oauth()]
+
+    def get(self):
+        return {'app': current_app.name, 'oauth': request.oauth.user.email}
+
 
 class DeleteAccountView(Resource):
-  def post(self):
-    '''
-    Delete the current user's account
-    use POST instead of GET to be validated by csrf protection
-    '''
-    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
+    """
+    Implements the deletion of a adsws.core.users.models.User object
+    """
+    decorators = [login_required]
 
-    u = user_manipulator.first(email=current_user.email)
-    logout_user()
-    user_manipulator.delete(u)
-    return {"message":"success"}, 200
+    def post(self):
+        """
+        Delete the current user's account
+        use POST instead of GET to enable csrf validation
+        """
+        u = user_manipulator.first(email=current_user.email)
+        logout_user()
+        user_manipulator.delete(u)
+        return {"message": "success"}, 200
+
 
 class ForgotPasswordView(Resource):
-  def get(self,token):
-    '''
-    Decode a token into an email, if the signature is validated.
-    Log the user in without a password so that the PUT method works
-    '''
-    try:
-      email = current_app.ts.loads(token, max_age=600, salt=PASSWORD_RESET_EMAIL.salt)
-    except:
-      return {"error":"unknown verification token"}, 404
+    """
+    Implements "reset password" functionality
+    """
+    def get(self, token):
+        """
+        Attempts to decode a verification token into an email.
+        Responds with the resulting decoded email
 
-    u = user_manipulator.first(email=email)
-    if u is None:
-      current_app.logger.warning("[GET] Reset password validated link, but no user exists for {email}".format(email=email))
-      abort(500)
-    return {"email":email}, 200
-  
-  def post(self,token):
-    '''
-    Send the password reset email to the specified email address (recaptcha protected)
-    '''
-    if token==current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(403)
-    try:
-      data = get_post_data(request)
-      reset_url = data['reset_url']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
-    if not verify_recaptcha(request):
-      return {'error': 'captcha was not verified'}, 403
-    
-    u = user_manipulator.first(email=token)
-    if u is None:
-      return {'error':'no such user exists'}, 404
+        :param token: HMAC encoded string
+        :type token: basestring
+        """
+        try:
+            email = current_app.ts.loads(token,
+                                         max_age=600,
+                                         salt=PasswordResetEmail.salt)
+        except:
+            current_app.logger.warning(
+                "Invalid Token {0} in ForgotPasswordView".format(token)
+            )
+            return {"error": "unknown verification token"}, 404
 
-    if not u.confirmed_at:
-      return {'error':'this user was never verified. It should be deleted within a day'}, 403
-    send_email(token,reset_url,PASSWORD_RESET_EMAIL, token)
-    return {"message":"success"}
-  
-  def put(self,token):
-    '''
-    Check if the current user has the right email, and, if so, change the password
-    '''
-    try:
-      email = current_app.ts.loads(token, max_age=600, salt=PASSWORD_RESET_EMAIL.salt)
-    except:
-      current_app.logger.warning("PUT on reset-password with invalid token. This indicates a brute-force attack!")
-      return {"error":"unknown verification token"}, 404
+        # Check that the user still exists
+        u = user_manipulator.first(email=email)
+        if u is None:
+            current_app.logger.error(
+                "[GET] Reset password validated link,"
+                " but no user exists for {email}".format(email=email))
+            abort(400)
+        return {"email": email}, 200
 
-    try:
-      data = get_post_data(request)
-      new_password1 = data['password1']
-      new_password2 = data['password2']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
+    def post(self, token):
+        """
+        Send the password reset email to the specified email address
+        (recaptcha protected)
+        Note that param "token" represents the raw email address
+        of the recipient, and it is not expected to be encoded.
 
-    if new_password1 != new_password2:
-      return {'error':'passwords do not match'}, 400
-    try:
-      validate_password(new_password1)
-    except ValidationError, e:
-      return {'error':'validation error'}, 400
+        :param token: email address of the recipient
+        :type token: basestring
+        """
+        if token == current_app.config['BOOTSTRAP_USER_EMAIL']:
+            abort(403)
+        try:
+            data = get_post_data(request)
+            reset_url = data['reset_url']
+        except (AttributeError, KeyError):
+            return {'error': 'malformed request'}, 400
+        if not verify_recaptcha(request):
+            return {'error': 'captcha was not verified'}, 403
 
-    u = user_manipulator.first(email=email)
-    if u is None:
-      current_app.logger.warning("[PUT] Reset password validated link, but no user exists for {email}".format(email=email))
-      abort(500)
-    user_manipulator.update(u,password=new_password1)
-    logout_user()
-    login_user(u,force=True)
-    return {"message":"success"}, 200
+        u = user_manipulator.first(email=token)
+        if u is None:
+            return {'error': 'no such user exists'}, 404
+
+        if not u.confirmed_at:
+            return {'error': 'This email was never verified. It will be '
+                             'deleted from out database within a day'}, 403
+        send_email(token, reset_url, PasswordResetEmail, token)
+        return {"message": "success"}, 200
+
+    def put(self, token):
+        """
+        Check if the current user has the same email as the decoded token,
+        and, if so, change that user's password to that specified in
+        the PUT body
+
+        :param token: HMAC encoded email string
+        :type token: basestring
+        """
+        try:
+            email = current_app.ts.loads(token,
+                                         max_age=600,
+                                         salt=PasswordResetEmail.salt)
+        except:
+            current_app.logger.critical(
+                "PUT on reset-password with invalid token. "
+                "This may indicate a brute-force attack!"
+            )
+            return {"error": "unknown verification token"}, 404
+
+        try:
+            data = get_post_data(request)
+            new_password1 = data['password1']
+            new_password2 = data['password2']
+        except (AttributeError, KeyError):
+            return {'error':'malformed request'}, 400
+
+        if new_password1 != new_password2:
+            return {'error':'passwords do not match'}, 400
+        try:
+            validate_password(new_password1)
+        except ValidationError, e:
+            return {'error':'validation error'}, 400
+
+        u = user_manipulator.first(email=email)
+        if u is None:
+            current_app.logger.error(
+                "[PUT] Reset password validated link,"
+                " but no user exists for {email}".format(email=email)
+            )
+            abort(500)
+        user_manipulator.update(u, password=new_password1)
+        logout_user()
+        login_user(u, force=True)
+        return {"message": "success"}, 200
+
 
 class ChangePasswordView(Resource):
-  def post(self):
-    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
+    """
+    Implements change password functionality
+    """
+    decorators = [login_required]
 
-    try:
-      data = get_post_data(request)
-      old_password = data['old_password']
-      new_password1 = data['new_password1']
-      new_password2 = data['new_password2']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
+    def post(self):
+        """
+        Verify that the current user's password is correct, that the desired
+        new password is valid, and finally update the password in the User
+        object
+        """
+        try:
+            data = get_post_data(request)
+            old_password = data['old_password']
+            new_password1 = data['new_password1']
+            new_password2 = data['new_password2']
+        except (AttributeError, KeyError):
+            return {'error': 'malformed request'}, 400
 
-    if not current_user.validate_password(old_password):
-      return {'error':'please verify your current password'},401
+        if not current_user.validate_password(old_password):
+            return {'error': 'please verify your current password'}, 401
 
-    if new_password1 != new_password2:
-      return {'error':'passwords do not match'}, 400
-    try:
-      validate_password(new_password1)
-    except ValidationError, e:
-      return {'error':'validation error'}, 400
+        if new_password1 != new_password2:
+            return {'error': 'passwords do not match'}, 400
+        try:
+            validate_password(new_password1)
+        except ValidationError, e:
+            return {'error': 'validation error'}, 400
 
-    u = user_manipulator.first(email=current_user.email)
-    user_manipulator.update(u,password=new_password1)
-    return {'message':'success'}
+        u = user_manipulator.first(email=current_user.email)
+        user_manipulator.update(u, password=new_password1)
+        return {'message': 'success'}, 200
+
 
 class PersonalTokenView(Resource):
-  decorators = [ratelimit(20,600,scope_func=scope_func)]
-  def get(self):
-    '''GET to this endpoint returns the ADS API client token, which
-    is effectively a personal access token'''
-    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
-    client = OAuthClient.query.filter_by(
-      user_id=current_user.get_id(),
-      name=u'ADS API client',
-    ).first()
-    if not client:
-      return {'message':'no ADS API client found'}, 200
+    """
+    Implements getting/setting a personal API token
+    """
+    decorators = [
+        ratelimit(10, 86400, scope_func=scope_func),
+        login_required,
+    ]
 
-    token = OAuthToken.query.filter_by(
-      client_id=client.client_id, 
-      user_id=current_user.get_id(),
-    ).first()
+    def get(self):
+        """
+        This endpoint returns the ADS API client token, which
+        is effectively a personal access token
+        """
+        client = OAuthClient.query.filter_by(
+            user_id=current_user.get_id(),
+            name=u'ADS API client',
+        ).first()
+        if not client:
+            return {'message': 'no ADS API client found'}, 200
 
-    if not token:
-      current_app.logger.error('no ADS API client token found for {email}. This should not happen!'.format(email=current_user.email))
-      return {'message':'no ADS API client token found. This should not happen!'}, 500
+        token = OAuthToken.query.filter_by(
+            client_id=client.client_id,
+            user_id=current_user.get_id(),
+        ).first()
 
-    return {
-          'access_token': token.access_token,
-          'refresh_token': token.refresh_token,
-          'username': current_user.email,
-          'expire_in': token.expires.isoformat() if isinstance(token.expires,datetime.datetime) else token.expires,
-          'token_type': 'Bearer',
-          'scopes': token.scopes,
-         }
+        if not token:
+            current_app.logger.error(
+                'no ADS API client token '
+                'found for {email}. This should not happen!'.format(
+                    email=current_user.email
+                )
+            )
+            return {'message': 'no ADS API token found'}, 500
 
-  def post(self):
-    '''POST to this endpoint generates a new API key'''
-    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
+        return print_token(token)
 
-    client = OAuthClient.query.filter_by(
-      user_id=current_user.get_id(),
-      name=u'ADS API client',
-    ).first()
+    def put(self):
+        """
+        Generates a new API key
+        :return: dict containing the API key data structure
+        """
 
-    if client is None:
-      client = OAuthClient(
-      user_id=current_user.get_id(),
-      name=u'ADS API client',
-      description=u'ADS API client',
-      is_confidential=False,
-      is_internal=True,
-      _default_scopes=' '.join(current_app.config['USER_API_DEFAULT_SCOPES']),
-    )
-    client.gen_salt()
-    
-    db.session.add(client)
-    try:
-      db.session.commit()
-    except:
-      abort(503)
-    current_app.logger.info("Created ADS API client for {email}".format(email=current_user.email))
-    token = OAuthToken.query.filter_by(
-      client_id=client.client_id, 
-      user_id=current_user.get_id(),
-    ).first()
+        client = OAuthClient.query.filter_by(
+            user_id=current_user.get_id(),
+            name=u'ADS API client',
+        ).first()
 
-    if token is None:
-      token = OAuthToken(
-        client_id=client.client_id,
-        user_id=current_user.get_id(),
-        access_token=gen_salt(40),
-        refresh_token=gen_salt(40),
-        expires=datetime.datetime(2500,1,1),
-        _scopes=' '.join(current_app.config['USER_API_DEFAULT_SCOPES']),
-        is_personal=False,
-      )
-      db.session.add(token)
-      try:
-        db.session.commit()
-      except:
-        db.session.rollback()
-        abort(503)
-    else:
-      token.access_token = gen_salt(40)
+        if client is None:  # If no client exists, create a new one
+            client = OAuthClient(
+                user_id=current_user.get_id(),
+                name=u'ADS API client',
+                description=u'ADS API client',
+                is_confidential=False,
+                is_internal=True,
+                _default_scopes=' '.join(
+                    current_app.config['USER_API_DEFAULT_SCOPES']
+                ),
+            )
+            client.gen_salt()
 
-    db.session.add(token)
-    try:
-      db.session.commit()
-    except:
-      db.session.rollback()
-      abort(503)  
-    current_app.logger.info("Updated ADS API token for {email}".format(email=current_user.email))
-    return {
+            token = OAuthToken(
+                client_id=client.client_id,
+                user_id=current_user.get_id(),
+                access_token=gen_salt(40),
+                refresh_token=gen_salt(40),
+                expires=datetime.datetime(2500,1,1),
+                _scopes=' '.join(
+                    current_app.config['USER_API_DEFAULT_SCOPES']
+                ),
+                is_personal=False,
+            )
+
+            db.session.add(client)
+            db.session.add(token)
+            try:
+                db.session.commit()
+            except:
+                abort(503)
+            current_app.logger.info(
+                "Created ADS API client+token for {0}".format(
+                    current_user.email
+                )
+            )
+        else:  # Client exists; find its token and change the access_key
+            token = OAuthToken.query.filter_by(
+                client_id=client.client_id,
+                user_id=current_user.get_id(),
+            ).first()
+            token.access_token = gen_salt(40)
+
+            db.session.add(token)
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                abort(503)
+            current_app.logger.info(
+                "Updated ADS API token for {0}".format(current_user.email)
+            )
+        expiry = token.expires.isoformat() if \
+            isinstance(token.expires,datetime.datetime) else token.expires
+        return {
             'access_token': token.access_token,
             'refresh_token': token.refresh_token,
             'username': current_user.email,
-            'expire_in': token.expires.isoformat() if isinstance(token.expires,datetime.datetime) else token.expires,
+            'expire_in': expiry,
             'token_type': 'Bearer',
             'scopes': token.scopes,
-           }
+        }
+
 
 class LogoutView(Resource):
-  def get(self):
-    logout_user()
-    return {"message":"success"}, 200
+    """
+    View that calls flask.ext.login.logout_user()
+    """
+    def get(self):
+        logout_user()
+        return {"message": "success"}, 200
+
 
 class ChangeEmailView(Resource):
-  decorators = [ratelimit(1000,600,scope_func=scope_func)]  
-  def post(self):
-    '''
-    POST desired email and password to change email, if that email isn't already registerd
+    """
+    Implements change email functionality
+    """
 
-    This will DEACTIVATE the current user, meaning that the user will have to visit a new
-    confirm email link to reactive their account
-    '''
+    decorators = [
+        ratelimit(1000, 600, scope_func=scope_func),
+        login_required,
+    ]
 
-    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
-    try:
-      data = get_post_data(request)
-      email = data['email']
-      password = data['password']
-      verify_url = data['verify_url']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
+    def post(self):
+        """
+        POST desired email and password to change the current user's email.
+        Checks that the desired new email isn't already registerd
 
-    u = user_manipulator.first(email=current_user.email)
-    if not u.validate_password(password):
-      abort(401)
-        
-    if user_manipulator.first(email=email) is not None:
-      return {"error":"{email} has already been registered".format(email=email)}, 403
-    send_email(email,verify_url,VERIFICATION_EMAIL, email)
-    user_manipulator.update(u, email=email, confirmed_at=None)
-    logout_user()
-    return {"message":"success"},200
+        This will DEACTIVATE the current user, meaning that the
+        user will have to visit a new confirm email link to reactive
+        their account
+        """
+        try:
+            data = get_post_data(request)
+            email = data['email']
+            password = data['password']
+            verify_url = data['verify_url']
+        except (AttributeError, KeyError):
+            return {'error': 'malformed request'}, 400
+
+        u = user_manipulator.first(email=current_user.email)
+        if not u.validate_password(password):
+            abort(401)
+
+        if user_manipulator.first(email=email) is not None:
+            return {
+                "error": "{0} has already been registered".format(email)
+            }, 403
+        send_email(email,verify_url, VerificationEmail, email)
+        user_manipulator.update(u, email=email, confirmed_at=None)
+        logout_user()
+        return {"message": "success"},200
+
 
 class UserAuthView(Resource):
-  decorators = [ratelimit(50,120,scope_func=scope_func)]
-  def post(self):
-    try:
-      data = get_post_data(request)
-      username = data['username']
-      password = data['password']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
+    """
+    Implements login and logout functionality
+    """
+    decorators = [ratelimit(30, 120, scope_func=scope_func)]
 
-    u = user_manipulator.first(email=username)
-    if u is None or not u.validate_password(password):
-      abort(401)
-    if u.confirmed_at is None:
-      return {"error":"account has not been verified"}, 403
+    def post(self):
+        """
+        Authenticate the user, logout the current user, login the new user
+        :return: dict containing success message
+        """
+        try:
+            data = get_post_data(request)
+            email = data['username']
+            password = data['password']
+        except (AttributeError, KeyError):
+            return {'error': 'malformed request'}, 400
 
-    if current_user.is_authenticated(): #Logout of previous user (may have been bumblebee)
-      logout_user()
-    login_user(u,force=True) #Login to real user
-    return {"message":"success"}, 200
+        u = user_manipulator.first(email=email)
+        if u is None or not u.validate_password(password):
+            abort(401)
+        if u.confirmed_at is None:
+            return {"error": "account has not been verified"}, 403
 
-  def get(self):
-    #view pattern, return profile/user attributes
-    if not current_user.is_authenticated() or current_user.email==current_app.config['BOOTSTRAP_USER_EMAIL']:
-      abort(401)
-    return {"user":current_user.email}
+        # Logout of previous user (may have been bumblebee)
+        if current_user.is_authenticated():
+            logout_user()
+        login_user(u, force=True)  # Login to real user
+        return {"message": "success"}, 200
+
 
 class VerifyEmailView(Resource):
-  decorators = [ratelimit(20,600,scope_func=scope_func)]
-  def get(self,token):
-    try:
-      email = current_app.ts.loads(token, max_age=86400,salt=VERIFICATION_EMAIL.salt)
-    except:
-      return {"error":"unknown verification token"}, 404
+    """
+    Decode a TimerSerializer token into an email, returning an error message
+    to the client if this task fails
 
-    u = user_manipulator.first(email=email)
-    if u is None:
-      return {"error":"no user associated with that verification token"}, 404
-    if u.confirmed_at is not None:
-      return {"error": "this user and email has already been validated"}, 400
+    If the token is decoded, set User.confirm_at to datetime.now()
+    """
+    decorators = [ratelimit(20, 600, scope_func=scope_func)]
 
-    user_manipulator.update(u,confirmed_at=datetime.datetime.now())
-    login_user(u, remember=False, force=True)
-    return {"message":"success","email":email}
+    def get(self,token):
+        try:
+            email = current_app.ts.loads(token,
+                                         max_age=86400,
+                                         salt=VerificationEmail.salt)
+        except:
+            current_app.logger.warning(
+                "{0} verification token not validated".format(token)
+            )
+            return {"error": "unknown verification token"}, 404
+
+        u = user_manipulator.first(email=email)
+        if u is None:
+            return {"error": "no user associated "
+                             "with that verification token"}, 404
+        if u.confirmed_at is not None:
+            return {"error": "this user and email "
+                             "has already been validated"}, 400
+
+        user_manipulator.update(u, confirmed_at=datetime.datetime.now())
+        login_user(u, remember=False, force=True)
+        return {"message": "success", "email": email}
+
 
 class UserRegistrationView(Resource):
-  decorators = [ratelimit(50,600,scope_func=scope_func)]
-  def post(self):
-    try:
-      data = get_post_data(request)
-      email = data['email']
-      password = data['password1']
-      repeated = data['password2']
-      verify_url = data['verify_url']
-    except (AttributeError, KeyError):
-      return {'error':'malformed request'}, 400
-    
-    if not verify_recaptcha(request):
-      return {'error': 'captcha was not verified'}, 403
-    if password!=repeated:
-      return {'error': 'passwords do not match'}, 400
-    try:
-      validate_email(email)
-      validate_password(password)
-    except ValidationError, e:
-      return {'error':'validation error'}, 400
+    """
+    Implements new user registration
+    """
 
-    if user_manipulator.first(email=email) is not None:
-      return {'error':'an account is already registered with that email'}, 409
-    send_email(email,verify_url,VERIFICATION_EMAIL, email)
-    u = user_manipulator.create(
-      email=email, 
-      password=password
-    )
-    return {"message":"success"}, 200
+    decorators = [ratelimit(50, 600, scope_func=scope_func)]
+
+    def post(self):
+        """
+        Standard user registration workflow;
+        verifies that the email is available, creates a de-activated accounts,
+        and sends verification email that serves to activate said account
+        """
+        try:
+            data = get_post_data(request)
+            email = data['email']
+            password = data['password1']
+            repeated = data['password2']
+            verify_url = data['verify_url']
+        except (AttributeError, KeyError):
+            return {'error': 'malformed request'}, 400
+
+        if not verify_recaptcha(request):
+            return {'error': 'captcha was not verified'}, 403
+        if password!=repeated:
+            return {'error': 'passwords do not match'}, 400
+        try:
+            validate_email(email)
+            validate_password(password)
+        except ValidationError, e:
+            return {'error': 'validation error'}, 400
+
+        if user_manipulator.first(email=email) is not None:
+            return {'error': 'an account is already'
+                             ' registered for {0}'.format(email)}, 409
+        send_email(email, verify_url, VerificationEmail, email)
+        u = user_manipulator.create(
+            email=email,
+            password=password
+        )
+        return {"message": "success"}, 200
+
 
 class Bootstrap(Resource):
-  decorators = [ratelimit(400,86400,scope_func=scope_func)]
+    """
+    Implements "bootstrap" functionality, which returns the data necessary
+    for the bumblebee javascript client to authenticate and interact with
+    other adsws-api resources.
+    """
 
-  def get(self):
-    """Returns the datastruct necessary for Bumblebee bootstrap."""
+    decorators = [ratelimit(400, 86400, scope_func=scope_func)]
 
-    #Non-authenticated = login as bumblebee user
-    if not current_user.is_authenticated() or current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-      token = bootstrap_bumblebee()
-    else:
-      token = bootstrap_user()
+    def get(self):
+        """
+        If the current user is unauthenticated, or the current user
+        is the "bootstrap" (anon) user, return/create a "BB Client" OAuthClientf
+        and token depending if "oauth_client" is encoded into their
+        session cookie
 
-    return {
-            'access_token': token.access_token,
-            'refresh_token': token.refresh_token,
-            'username': current_user.email,
-            'expire_in': token.expires.isoformat() if isinstance(token.expires,datetime.datetime) else token.expires,
-            'token_type': 'Bearer',
-            'scopes': token.scopes,
-            'csrf': generate_csrf(),
-           }
+        If the user is a authenticated as a real user, return/create
+        a "BB Client" OAuthClient and token depending if that user already has
+        one in the database
+        """
 
-def bootstrap_bumblebee():
-  salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
-  scopes = ' '.join(current_app.config['BOOTSTRAP_SCOPES'])
-  user_email = current_app.config['BOOTSTRAP_USER_EMAIL']
-  expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
-  u = user_manipulator.first(email=user_email)
-  if u is None:
-    current_app.logger.error("No user exists with email [%s]" % user_email)
-    abort(500)
-  login_user(u, remember=False, force=True)
-  client, token = None, None
+        if not current_user.is_authenticated() or \
+                current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+            token = Bootstrap.bootstrap_bumblebee()
+        else:
+            token = Bootstrap.bootstrap_user()
 
-  #See if the session has a memory of the client
-  if '_oauth_client' in session:
-    client = OAuthClient.query.filter_by(
-      client_id=session['_oauth_client'],
-      user_id=current_user.get_id(),
-      name=u'BB client',
-    ).first()
-          
-  if client is None:
-    client = OAuthClient(
-      user_id=current_user.get_id(),
-      name=u'BB client',
-      description=u'BB client',
-      is_confidential=False,
-      is_internal=True,
-      _default_scopes=scopes,
-    )
-    client.gen_salt()
-    
-    db.session.add(client)
-    db.session.commit()
-    session['_oauth_client'] = client.client_id
+        return print_token(token)
 
-  token = OAuthToken.query.filter_by(
-    client_id=client.client_id, 
-    user_id=current_user.get_id(),
-    is_personal=False,
-    is_internal=True,
-  ).filter(OAuthToken.expires > datetime.datetime.now()).first()
+    @staticmethod
+    def bootstrap_bumblebee():
+        """
+        Return or create a OAuthClient owned by the "bumblebee" user.
+        Re-uses an existing client if "oauth_client" is encoded into the
+        session cookie, otherwise writes a new client to the database.
 
-  if token is None:
-    if isinstance(expires,int):
-      expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=expires)
-    token = OAuthToken(
-      client_id=client.client_id,
-      user_id=current_user.get_id(),
-      access_token=gen_salt(salt_length),
-      refresh_token=gen_salt(salt_length),
-      expires=expires,
-      _scopes=scopes,
-      is_personal=False,
-      is_internal=True,
-    )
+        Similar logic performed for the OAuthToken.
 
-    db.session.add(token)
-    try:
-      db.session.commit()
-    except:
-      db.session.rollback()
-      abort(503)
-  return token
+        :return: OAuthToken instance
+        """
+        salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
+        scopes = ' '.join(current_app.config['BOOTSTRAP_SCOPES'])
+        user_email = current_app.config['BOOTSTRAP_USER_EMAIL']
+        expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
+        client_name = current_app.config.get('BOOTSTRAP_CLIENT_NAME', u'BB client')
+        u = user_manipulator.first(email=user_email)
+        if u is None:
+            current_app.logger.critical(
+                "bootstrap_bumblebee called with unknown email {0}. "
+                "Is the database in a consistent state?".format(user_email))
+            abort(500)
+        login_user(u, remember=False, force=True)
+        client, token, uid = None, None, current_user.get_id()
 
-def bootstrap_user():
-  client = OAuthClient.query.filter_by(
-      user_id=current_user.get_id(),
-      name=u'BB client',
-    ).first()
-  if client is None:
-    scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
-    salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
-    client = OAuthClient(
-      user_id=current_user.get_id(),
-      name=u'BB client',
-      description=u'BB client',
-      is_confidential=True,
-      is_internal=True,
-      _default_scopes=scopes,
-    )
-    client.gen_salt()
-    db.session.add(client)
-    try:
-      db.session.commit()
-    except:
-      db.session.rollback()
-      abort(503)
+        #  Check if "oauth_client" is encoded in the session cookie
+        if '_oauth_client' in session:
+            client = OAuthClient.query.filter_by(
+                client_id=session['_oauth_client'],
+                user_id=uid,
+                name=client_name,
+            ).first()
 
-    token = OAuthToken(
-      client_id=client.client_id,
-      user_id=current_user.get_id(),
-      access_token=gen_salt(salt_length),
-      refresh_token=gen_salt(salt_length),
-      expires= datetime.datetime(2500,1,1),
-      _scopes=scopes,
-      is_personal=False,
-      is_internal=True,
-    )
-    db.session.add(token)
-    try:
-      db.session.commit()
-    except:
-      db.session.rollback()
-      abort(503)
-    current_app.logger.info("Created BB client for {email}".format(email=current_user.email))
-  else:
-    token = OAuthToken.query.filter_by(
-      client_id=client.client_id, 
-      user_id=current_user.get_id(),
-    ).first()
+        if client is None:
+            client = OAuthClient(
+                user_id=uid,
+                name=client_name,
+                description=client_name,
+                is_confidential=False,
+                is_internal=True,
+                _default_scopes=scopes,
+            )
+            client.gen_salt()
 
-  session['_oauth_client'] = client.client_id
-  return token
+            db.session.add(client)
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                abort(503)
+            session['_oauth_client'] = client.client_id
+
+        token = OAuthToken.query.filter_by(
+            client_id=client.client_id,
+            user_id=current_user.get_id(),
+            is_personal=False,
+            is_internal=True,
+        ).filter(OAuthToken.expires > datetime.datetime.now()).first()
+
+        if token is None:
+            if isinstance(expires,int):
+                expires = datetime.datetime.utcnow() \
+                        + datetime.timedelta(seconds=expires)
+                token = OAuthToken(
+                    client_id=client.client_id,
+                    user_id=current_user.get_id(),
+                    access_token=gen_salt(salt_length),
+                    refresh_token=gen_salt(salt_length),
+                    expires=expires,
+                    _scopes=scopes,
+                    is_personal=False,
+                    is_internal=True,
+                )
+
+                db.session.add(token)
+                try:
+                    db.session.commit()
+                except:
+                    db.session.rollback()
+                    abort(503)
+        return token
+
+    @staticmethod
+    def bootstrap_user():
+        """
+        Return or create a OAuthClient owned by the authenticated real user.
+        Re-uses an existing client if "oauth_client" is found in the database
+        for this user, otherwise writes a new client to the database.
+
+        Similar logic performed for the OAuthToken.
+
+        :return: OAuthToken instance
+        """
+
+        client = OAuthClient.query.filter_by(
+          user_id=current_user.get_id(),
+          name=u'BB client',
+        ).first()
+        if client is None:
+            scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
+            salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
+            client = OAuthClient(
+                user_id=current_user.get_id(),
+                name=u'BB client',
+                description=u'BB client',
+                is_confidential=True,
+                is_internal=True,
+                _default_scopes=scopes,
+            )
+            client.gen_salt()
+            db.session.add(client)
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                abort(503)
+
+            token = OAuthToken(
+              client_id=client.client_id,
+              user_id=current_user.get_id(),
+              access_token=gen_salt(salt_length),
+              refresh_token=gen_salt(salt_length),
+              expires= datetime.datetime(2500,1,1),
+              _scopes=scopes,
+              is_personal=False,
+              is_internal=True,
+            )
+            db.session.add(token)
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+                abort(503)
+            current_app.logger.info(
+                "Created BB client for {email}".format(email=current_user.email)
+            )
+        else:
+            token = OAuthToken.query.filter_by(
+                client_id=client.client_id,
+                user_id=current_user.get_id(),
+            ).first()
+
+        session['_oauth_client'] = client.client_id
+        return token
 

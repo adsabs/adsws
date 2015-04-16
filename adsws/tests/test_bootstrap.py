@@ -35,12 +35,12 @@ class TestBootstrap(ApiTestCase):
         r = self.client.get(url_for('bootstrap'))
         self.assertTrue(r.status_code, 200)
         data = json.loads(r.data)
-        for k in ['access_token','expire_in','scopes','token_type','username','refresh_token']:
+        for k in ['access_token','expire_in','scopes','token_type','username','refresh_token','csrf']:
             self.assertIn(k,data,msg="{k} not in {data}".format(k=k,data=data))
             self.assertIsNotNone(data[k],msg="data[\"{k}\"] is None".format(k=k))
         self.assertEqual(username,data['username'])
 
-        r = self.client.get(url_for('protectedview'),headers={"Authorization": "Bearer %s" % data['access_token']})
+        r = self.client.get(url_for('oauthprotectedview'),headers={"Authorization": "Bearer %s" % data['access_token']})
         self.assertStatus(r,200)
 
 TESTSUITE = make_test_suite(TestBootstrap)

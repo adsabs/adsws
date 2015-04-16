@@ -37,7 +37,10 @@ def send_email(email_addr, base_url, email_template, *payload):
     :rtype flask.ext.mail.Message, basestring
     """
 
-    token = current_app.ts.dumps(' '.join(payload),salt=email_template.salt)
+    token = current_app.ts.dumps(
+        ' '.join(map(unicode, payload)),
+        salt=email_template.salt
+    )
     endpoint = '{url}/{token}'.format(url=base_url,token=token)
     msg = Message(subject=email_template.subject,
                   recipients=[email_addr],

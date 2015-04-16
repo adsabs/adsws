@@ -85,6 +85,7 @@ class TestAccounts(TestCase):
             SQLALCHEMY_BINDS=None,
             SQLALCHEMY_DATABASE_URI='sqlite://',
             TESTING=False,
+            DEBUG=False,
             SITE_SECURE_URL='http://localhost',
             GOOGLE_RECAPTCHA_ENDPOINT='http://google.com/verify_recaptcha',
             GOOGLE_RECAPTCHA_PRIVATE_KEY='fake_recaptcha_key',
@@ -242,7 +243,10 @@ class TestAccounts(TestCase):
 
     def test_change_email(self):
         """
-        Test the change email workflow
+        Test the change email workflow.
+
+        The workflow is tightly coupled with the verify-email workflow, which
+        should be de-coupled by using signals in the future
         """
         url = url_for('changeemailview')
         with self.client as c:
@@ -291,16 +295,40 @@ class TestAccounts(TestCase):
             r = c.post(
                 url,
                 data=json.dumps(payload),
-                headers={'X-CSRFToken':csrf}
+                headers={'X-CSRFToken': csrf}
             )
-            self.assertStatus(r,200)
+            self.assertStatus(r, 200)
 
             u = user_manipulator.first(email='changed@email')
             self.assertIsNotNone(u)
             self.assertIsNone(u.confirmed_at)
+            self.assertIsNotNone(
+                user_manipulator.first(email=previous_email)
+            )
+            self.assertIsNotNone(
+                user_manipulator.first(email=previous_email).confirmed_at
+            )
+            self.assertNotEqual(self.real_user.email, "changed@email")
+
+            # Get the token that this view will send, send it to the
+            # verfication email endpoint, and check that the user's email
+            # was correctly updated
+            msg, token = utils.send_email(
+                "changed@email",
+                "localhost",
+                VerificationEmail,
+                "changed@email",
+                self.real_user.id
+            )
+
+            url = url_for('verifyemailview', token=token)
+            r = self.client.get(url)
+            self.assertStatus(r, 200)
             self.assertIsNone(
                 user_manipulator.first(email=previous_email)
             )
+            self.assertEqual(self.real_user.email, "changed@email")
+
 
     def test_reset_password(self):
         """

@@ -14,7 +14,8 @@ from .utils import scope_func, validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
     print_token
 from .exceptions import ValidationError
-from .emails import PasswordResetEmail, VerificationEmail
+from .emails import PasswordResetEmail, VerificationEmail, \
+    EmailChangedNotification
 
 
 class StatusView(Resource):
@@ -331,9 +332,11 @@ class ChangeEmailView(Resource):
         POST desired email and password to change the current user's email.
         Checks that the desired new email isn't already registerd
 
-        This will DEACTIVATE the current user, meaning that the
-        user will have to visit a new confirm email link to reactive
-        their account
+        This will create the new user. The encoded email payload will have
+        a second argument `id` which is the id of the user making this
+        request. We assume that the view responsible for verifying emails
+        knows what to do with this extra argument. This should be deprecated
+        by using signals in the future.
         """
         try:
             data = get_post_data(request)
@@ -351,10 +354,12 @@ class ChangeEmailView(Resource):
             return {
                 "error": "{0} has already been registered".format(email)
             }, 403
-        send_email(email,verify_url, VerificationEmail, email)
-        user_manipulator.update(u, email=email, confirmed_at=None)
-        logout_user()
-        return {"message": "success"},200
+        send_email(email, verify_url, VerificationEmail, email, u.id)
+        send_email(current_user.email, '', EmailChangedNotification, '')
+        user_manipulator.create(
+            email=email,
+            password=password,)
+        return {"message": "success"}, 200
 
 
 class UserAuthView(Resource):
@@ -397,7 +402,7 @@ class VerifyEmailView(Resource):
     """
     decorators = [ratelimit(20, 600, scope_func=scope_func)]
 
-    def get(self,token):
+    def get(self, token):
         try:
             email = current_app.ts.loads(token,
                                          max_age=86400,
@@ -408,6 +413,12 @@ class VerifyEmailView(Resource):
             )
             return {"error": "unknown verification token"}, 404
 
+        # This logic is necessary to de-activate accounts via the change-email
+        # workflow. This strong coupling should be deprecated by using signals.
+        previous_uid = None
+        if " " in email:
+            email, previous_uid = email.split()
+
         u = user_manipulator.first(email=email)
         if u is None:
             return {"error": "no user associated "
@@ -415,8 +426,19 @@ class VerifyEmailView(Resource):
         if u.confirmed_at is not None:
             return {"error": "this user and email "
                              "has already been validated"}, 400
-
-        user_manipulator.update(u, confirmed_at=datetime.datetime.now())
+        if previous_uid:
+            # De-activate previous accounts by deleting the account associated
+            # with the new email address, then update the old account with the
+            # new email address. Again, this should be deprecated with signals.
+            user_manipulator.delete(u)
+            u = user_manipulator.first(id=previous_uid)
+            user_manipulator.update(
+                u,
+                email=email,
+                confirmed_at=datetime.datetime.now()
+            )
+        else:
+            user_manipulator.update(u, confirmed_at=datetime.datetime.now())
         login_user(u, remember=False, force=True)
         return {"message": "success", "email": email}
 

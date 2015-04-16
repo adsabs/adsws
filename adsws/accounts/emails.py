@@ -13,6 +13,7 @@ class Email(object):
     subject = None
     salt = None
 
+
 class PasswordResetEmail(Email):
     msg = '''Hi,
 Someone (probably you) has requested a password reset on the account associated with this email address.
@@ -29,6 +30,7 @@ If this is a mistake, then just ignore this email.
     subject = "[ADS] Password reset"
     salt = 'password-reset-email'
 
+
 class VerificationEmail(Email):
     msg = '''
 Hi,
@@ -43,3 +45,18 @@ If this is a mistake, then just ignore this email.
 -The ADS team'''
     subject = "[ADS] Please verify your email address"
     salt = 'verification-email'
+
+
+class EmailChangedNotification(Email):
+    msg = '''
+Hi,
+
+Someone (probably you) has just changed the email associated with this account.
+
+A verification email to the new address was sent. After visiting the verification link therein, this email will no longer be associated with this account.
+
+If you need further support, please contact ads@cfa.harvard.edu.
+
+-The ADS team'''
+    subject = "[ADS] An email change has been requested"
+    salt = ""

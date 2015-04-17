@@ -18,7 +18,7 @@ Flask-Registry
 Flask-Email
 Flask-Mail
 SQLAlchemy
-sqlalchemy-utils
+sqlalchemy-utils==0.27.7
 Werkzeug
 requests
 alembic

@@ -111,7 +111,11 @@ class ForgotPasswordView(Resource):
         if not u.confirmed_at:
             return {'error': 'This email was never verified. It will be '
                              'deleted from out database within a day'}, 403
-        send_email(token, reset_url, PasswordResetEmail, token)
+        send_email(
+            email_addr=token,
+            email_template=PasswordResetEmail,
+            payload=token
+        )
         return {"message": "success"}, 200
 
     def put(self, token):
@@ -354,8 +358,16 @@ class ChangeEmailView(Resource):
             return {
                 "error": "{0} has already been registered".format(email)
             }, 403
-        send_email(email, verify_url, VerificationEmail, email, u.id)
-        send_email(current_user.email, '', EmailChangedNotification, '')
+        send_email(
+            email_addr=email,
+            base_url=verify_url,
+            email_template=VerificationEmail,
+            payload=[email, u.id]
+        )
+        send_email(
+            email_addr=current_user.email,
+            email_template=EmailChangedNotification
+        )
         user_manipulator.create(
             email=email,
             password=password,)
@@ -478,7 +490,12 @@ class UserRegistrationView(Resource):
         if user_manipulator.first(email=email) is not None:
             return {'error': 'an account is already'
                              ' registered for {0}'.format(email)}, 409
-        send_email(email, verify_url, VerificationEmail, email)
+        send_email(
+            email_addr=email,
+            base_url=verify_url,
+            email_template=VerificationEmail,
+            payload=email
+        )
         u = user_manipulator.create(
             email=email,
             password=password

@@ -2,11 +2,13 @@ import datetime
 import requests
 from functools import wraps
 
-from .exceptions import ValidationError
 from flask import request, current_app
 from flask.ext.mail import Message
 from flask.ext.login import current_user as cu
 from flask.ext.wtf.csrf import generate_csrf
+
+from .exceptions import ValidationError
+from .emails import Email
 
 def get_post_data(request):
     """
@@ -20,7 +22,7 @@ def get_post_data(request):
         return request.values
 
 
-def send_email(email_addr, base_url, email_template, *payload):
+def send_email(email_addr='', base_url='', email_template=Email, payload=None):
     """
     Encrypts a payload using itsDangerous.TimeSerializer, adding it along with a base
     URL to an email template. Sends an email with this data using the current app's
@@ -36,12 +38,12 @@ def send_email(email_addr, base_url, email_template, *payload):
     :return: msg,token
     :rtype flask.ext.mail.Message, basestring
     """
-
-    token = current_app.ts.dumps(
-        ' '.join(map(unicode, payload)),
-        salt=email_template.salt
-    )
-    endpoint = '{url}/{token}'.format(url=base_url,token=token)
+    if payload is None:
+        payload = []
+    if isinstance(payload, (list, tuple)):
+        payload = ' '.join(map(unicode, payload))
+    token = current_app.ts.dumps(payload, salt=email_template.salt)
+    endpoint = '{url}/{token}'.format(url=base_url, token=token)
     msg = Message(subject=email_template.subject,
                   recipients=[email_addr],
                   html=email_template.msg.format(endpoint=endpoint))

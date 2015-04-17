@@ -9,9 +9,9 @@ class Email(object):
     """
     Data structure that contains email content data
     """
-    msg = None
-    subject = None
-    salt = None
+    msg = ''
+    subject = ''
+    salt = ''
 
 
 class PasswordResetEmail(Email):
@@ -59,4 +59,3 @@ If you need further support, please contact ads@cfa.harvard.edu.
 
 -The ADS team'''
     subject = "[ADS] An email change has been requested"
-    salt = ""

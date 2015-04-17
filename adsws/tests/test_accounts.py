@@ -314,11 +314,9 @@ class TestAccounts(TestCase):
             # verfication email endpoint, and check that the user's email
             # was correctly updated
             msg, token = utils.send_email(
-                "changed@email",
-                "localhost",
-                VerificationEmail,
-                "changed@email",
-                self.real_user.id
+                email_addr="changed@email",
+                email_template=VerificationEmail,
+                payload = ["changed@email", self.real_user.id],
             )
 
             url = url_for('verifyemailview', token=token)
@@ -380,10 +378,10 @@ class TestAccounts(TestCase):
 
             # Now let's test GET and PUT requests with the encoded token
             msg, token = utils.send_email(
-                self.real_user.email,
-                'localhost',
-                PasswordResetEmail,
-                self.real_user.email)
+                email_addr=self.real_user.email,
+                email_template=PasswordResetEmail,
+                payload=self.real_user.email
+            )
             url = url_for('forgotpasswordview', token=token)
 
             # Test de-coding and verifying of the token
@@ -419,13 +417,14 @@ class TestAccounts(TestCase):
         # Even though we have a a valid token, no user was registered with this
         # email address. This should never happen in normal use.
         msg, token = utils.send_email(
-            "this_email_wasnt@registered",
-            'localhost',
-            VerificationEmail,
-            "this_email_wasnt@registered")
-        self.assertIn("localhost",msg.html)
+            email_addr="this_email_wasnt@registered",
+            base_url='localhost',
+            email_template=VerificationEmail,
+            payload="this_email_wasnt@registered"
+        )
+        self.assertIn("localhost", msg.html)
 
-        url = url_for('verifyemailview',token=token)
+        url = url_for('verifyemailview', token=token)
         r = self.client.get(url)
         self.assertStatus(r, 404)
         self.assertEqual(r.json['error'],"no user associated with that "
@@ -439,10 +438,10 @@ class TestAccounts(TestCase):
 
         # Test a valid token with a registered user
         msg, token = utils.send_email(
-            self.real_user.email,
-            'localhost',
-            VerificationEmail,
-            self.real_user.email)
+            email_addr=self.real_user.email,
+            email_template=VerificationEmail,
+            payload=self.real_user.email
+        )
         url = url_for('verifyemailview', token=token)
         r = self.client.get(url)
         self.assertStatus(r, 200)

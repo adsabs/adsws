@@ -14,6 +14,8 @@ import datetime
 import json
 from unittest import TestCase as UnitTestCase
 
+RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
+
 class TestUtils(UnitTestCase):
     """Test account validation utilities"""
 
@@ -92,7 +94,7 @@ class TestAccounts(TestCase):
             SECURITY_REGISTER_BLUEPRINT=False,
             BOOTSTRAP_USER_EMAIL='bootstrap_user@unittests',
             MAIL_SUPPRESS_SEND=True,
-            RATELIMITER_KEY_PREFIX='unittest.{}'.format(datetime.datetime.now()),
+            RATELIMITER_KEY_PREFIX=RATELIMITER_KEY_PREFIX,
             SECRET_KEY="unittests-secret-key",
         )
         return app

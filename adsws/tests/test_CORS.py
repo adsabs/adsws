@@ -1,78 +1,91 @@
-
-import os
-
-from flask import Flask, session, url_for, request, jsonify, Blueprint, current_app
-
 from adsws.core import db
-from adsws.testsuite import FlaskAppTestCase, make_test_suite, run_test_suite
+from adsws.testsuite import make_test_suite, run_test_suite
 from adsws import api
 
-from mock import MagicMock
-try:
-    from six.moves.urllib.parse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
+from flask import current_app
+from flask.ext.testing import TestCase
 
 
+class ApiCORSTestCase(TestCase):
+    """Verify that the API handles CORS in the desired manner"""
 
-class ApiTestCase(FlaskAppTestCase):
-    '''Verify the basic mechanisms.'''
+    def setUp(self):
+        db.create_all(app=self.app)
 
-    SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    SQLALCHEMY_BINDS = None
-    CORS_DOMAINS = ['http://localhost','localhost:5000','localhost']
-    CORS_METHODS = ['GET', 'OPTIONS', 'POST', 'PUT']
-    CORS_HEADERS = ['content-type','X-BB-Api-Client-Version','Authorization','Accept','foo']
-    WEBSERVICES = {}
+    def tearDown(self):
+        db.drop_all(app=self.app)
 
     def create_app(self):
         app = api.create_app(
-                SQLALCHEMY_DATABASE_URI=self.SQLALCHEMY_DATABASE_URI,
-                SQLALCHEMY_BINDS=self.SQLALCHEMY_BINDS,
-                CORS_DOMAINS = self.CORS_DOMAINS,
-                CORS_HEADERS = self.CORS_HEADERS,
-                CORS_METHODS = self.CORS_METHODS,
-                WEBSERVICES = self.WEBSERVICES,
-                )
-        db.create_all(app=app)
+            SQLALCHEMY_DATABASE_URI='sqlite://',
+            SQLALCHEMY_BINDS=None,
+            CORS_DOMAINS=['http://localhost', 'localhost:5000', 'localhost'],
+            CORS_HEADERS=['content-type', 'X-BB-Api-Client-Version',
+                          'Authorization', 'Accept', 'foo'],
+            CORS_METHODS=['GET', 'OPTIONS', 'POST', 'PUT'],
+            WEBSERVICES={},
+            )
         return app
-    
-    # def parse_redirect(self, location, parse_fragment=False):
-    #     from werkzeug.urls import url_parse, url_decode, url_unparse
-    #     scheme, netloc, script_root, qs, anchor = url_parse(location)
-    #     return (
-    #         url_unparse((scheme, netloc, script_root, '', '')),
-    #         url_decode(anchor if parse_fragment else qs)
-    #     )
-        
+
+    def compare_headers(self, header, _list):
+        """
+        Utility function that parses headers into a list, and asserts that
+        that parsed list if equal to an input list
+
+        :param header: Raw string header
+        :param _list: List to comapre against, after parsing the header
+        :return: Exception or None
+        """
+        if isinstance(header, basestring):
+            header = [i.strip() for i in header.split(',')]
+        self.assertItemsEqual(header, _list)
+
     def test_allow_origin(self):
+        """
+        Ensure that response headers have the correct CORS_DOMAINS
+        """
+
         r = self.client.get('/status', headers=None)
-        self.assertStatus(r,200)
+        self.assertStatus(r, 200)
+        self.compare_headers(
+            r.headers.get('Access-Control-Allow-Origin'),
+            current_app.config['CORS_DOMAINS'],
+        )
 
-        for origin in ['http://localhost','localhost:5000','localhost']:
-            r = self.client.get('/status', headers={'Origin':origin})
-            self.assertStatus(r,200)
-            self.assertTrue(origin in r.headers.get('Access-Control-Allow-Origin'))
-
-    def compareHeaders(self,header_,list_):
-        if isinstance(header_,basestring):
-            header_ = [i.strip() for i in header_.split(',')]
-        self.assertEqual(sorted(header_),sorted(list_))
+        for origin in ['http://localhost', 'localhost:5000', 'localhost']:
+            r = self.client.get('/status', headers={'Origin': origin})
+            self.assertStatus(r, 200)
+            self.assertIn(origin, r.headers.get('Access-Control-Allow-Origin'))
 
     def test_options(self):
-        r = self.client.options('/status', headers={
-                        'Origin': 'http://localhost',
-                        'Access-Control-Request-Method': 'OPTIONS',
-                        'Access-Control-Request-Headers': 'accept, x-bb-api-client-version, content-type'
-                        })
+        """
+        responses to the http OPTIONS method should return info about the
+        server's CORS configuration
+        """
+        r = self.client.options(
+            '/status',
+            headers={
+                'Origin': 'http://localhost',
+                'Access-Control-Request-Method': 'OPTIONS',
+                'Access-Control-Request-Headers': 'accept, '
+                                                  'x-bb-api-client-version, '
+                                                  'content-type'
+            }
+        )
         self.assertIn('Access-Control-Allow-Methods', r.headers)
         self.assertIn('Access-Control-Allow-Headers', r.headers)
 
-        self.compareHeaders(r.headers['Access-Control-Allow-Methods'],self.CORS_METHODS)
-        self.compareHeaders(r.headers['Access-Control-Allow-Headers'],self.CORS_HEADERS)
+        self.compare_headers(
+            r.headers['Access-Control-Allow-Methods'],
+            current_app.config['CORS_METHODS']
+        )
+        self.compare_headers(
+            r.headers['Access-Control-Allow-Headers'],
+            current_app.config['CORS_HEADERS']
+        )
         
         
-TESTSUITE = make_test_suite(ApiTestCase)
+TESTSUITE = make_test_suite(ApiCORSTestCase)
 
 if __name__ == '__main__':
     run_test_suite(TESTSUITE)

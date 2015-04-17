@@ -561,12 +561,33 @@ class TestAccounts(TestCase):
             r = c.get(url)
             self.assertEqual(r.json['username'], self.bootstrap_user.email)
             self.assertEqual(current_user.email, self.bootstrap_user.email)
+            for k in ['access_token', 'expire_in', 'scopes', 'token_type',
+                      'username', 'refresh_token', 'csrf']:
+                self.assertIn(
+                    k, r.json,
+                    msg="{k} not in {data}".format(k=k, data=r.json)
+                )
+                self.assertIsNotNone(
+                    r.json[k],
+                    msg="data[\"{k}\"] is None".format(k=k)
+                )
+            first_tok = r.json['access_token']
+
+            # Visiting the OAuthProtectedView with this bearer token should
+            # return 200
+            r = c.get(
+                url_for('oauthprotectedview'),
+                headers={
+                    "Authorization": "Bearer {0}".format(first_tok)
+                }
+            )
+            self.assertStatus(r, 200)
 
             # Now manually expire the token, and make sure that re-visting
             # /bootstrap does not give back the expired token
             from adsws.modules.oauth2server.models import OAuthToken
             tok = db.session.query(OAuthToken).filter_by(
-                access_token=r.json['access_token']).one()
+                access_token=first_tok).one()
             tok.expires = datetime.datetime.now()
             db.session.commit()
 
@@ -587,11 +608,32 @@ class TestAccounts(TestCase):
             # for the bumblebee javascript client, and specifically contain
             # that authenticated user's data
             r = c.get(url)
-            self.assertIn('access_token', r.json)
+            for k in ['access_token', 'expire_in', 'scopes', 'token_type',
+                      'username', 'refresh_token', 'csrf']:
+                self.assertIn(
+                    k, r.json,
+                    msg="{k} not in {data}".format(k=k, data=r.json)
+                )
+                self.assertIsNotNone(
+                    r.json[k],
+                    msg="data[\"{k}\"] is None".format(k=k)
+                )
             self.assertEqual(r.json['username'], self.real_user.email)
+            self.assertEqual(current_user.email, self.real_user.email)
             self.assertEqual(
                 r.json['scopes'], current_app.config['USER_DEFAULT_SCOPES']
             )
+
+            # Visiting the OAuthProtectedView with this bearer token should
+            # return 200
+            r = c.get(
+                url_for('oauthprotectedview'),
+                headers={
+                    "Authorization": "Bearer {0}".format(r.json['access_token'])
+                }
+            )
+            self.assertStatus(r, 200)
+
 
     def test_change_password(self):
         """

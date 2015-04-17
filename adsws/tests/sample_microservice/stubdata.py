@@ -5,3 +5,4 @@ class Stubdata:
         'GET': {'resource': 'GETPOST', 'method': 'get'},
         'POST': {'resource': 'GETPOST', 'method': 'post'},
     }
+    PUT = {'resource': 'PUT'}

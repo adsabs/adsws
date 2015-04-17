@@ -49,6 +49,14 @@ class POST(Resource):
     def post(self):
         return Stubdata.POST
 
+class PUT(Resource):
+    """desc for PUT"""
+    scopes = []
+    rate_limit = [1000, 60*60*24]
+
+    def put(self):
+        return Stubdata.PUT
+
 
 class GETPOST(Resource):
     """desc for GETPOST"""

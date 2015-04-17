@@ -88,6 +88,16 @@ class DiscovererTestCase:
         r = self.open('GET', '/test_webservice/POST')
         self.assertStatus(r, 405)
 
+    def test_PUT_resc(self):
+        """
+        test sample application POST resource
+        """
+        r = self.open('PUT', '/test_webservice/PUT')
+        self.assertEqual(r.json, Stubdata.PUT)
+
+        r = self.open('GET', '/test_webservice/POST')
+        self.assertStatus(r, 405)
+
     def test_GETPOST_resc(self):
         """
         test sample application GETPOST resource

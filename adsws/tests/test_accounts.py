@@ -563,6 +563,7 @@ class TestAccounts(TestCase):
             r = c.get(url)
             self.assertEqual(r.json['username'], self.bootstrap_user.email)
             self.assertEqual(current_user.email, self.bootstrap_user.email)
+            self.assertTrue(r.json['anonymous'])
             for k in ['access_token', 'expire_in', 'scopes', 'token_type',
                       'username', 'refresh_token', 'csrf']:
                 self.assertIn(
@@ -596,6 +597,7 @@ class TestAccounts(TestCase):
             # re-visit the bootstrap URL, test to see if we get a fresh token
             r = c.get(url)
             self.assertNotEqual(r.json['access_token'], tok.access_token)
+            self.assertTrue(r.json['anonymous'])
 
     def test_bootstrap_user(self):
         """
@@ -625,6 +627,8 @@ class TestAccounts(TestCase):
             self.assertEqual(
                 r.json['scopes'], current_app.config['USER_DEFAULT_SCOPES']
             )
+            self.assertFalse(r.json['anonymous'])
+
 
             # Visiting the OAuthProtectedView with this bearer token should
             # return 200
@@ -635,6 +639,7 @@ class TestAccounts(TestCase):
                 }
             )
             self.assertStatus(r, 200)
+
 
 
     def test_change_password(self):

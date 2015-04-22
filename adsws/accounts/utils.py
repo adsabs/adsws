@@ -176,6 +176,8 @@ def print_token(token):
     """
     expiry = token.expires.isoformat() if \
         isinstance(token.expires, datetime.datetime) else token.expires
+    anon = True if cu.email == current_app.config['BOOTSTRAP_USER_EMAIL'] \
+        else False
     return {
         'access_token': token.access_token,
         'refresh_token': token.refresh_token,
@@ -184,4 +186,5 @@ def print_token(token):
         'token_type': 'Bearer',
         'scopes': token.scopes,
         'csrf': generate_csrf(),
+        'anonymous': anon,
     }

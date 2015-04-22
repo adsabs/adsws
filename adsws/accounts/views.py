@@ -327,7 +327,7 @@ class ChangeEmailView(Resource):
     """
 
     decorators = [
-        ratelimit(1000, 600, scope_func=scope_func),
+        ratelimit(5, 600, scope_func=scope_func),
         login_required,
     ]
 

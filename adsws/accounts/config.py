@@ -1,4 +1,4 @@
-BOOTSTRAP_USER_EMAIL = 'anonymous@adslabs.org'
+BOOTSTRAP_USER_EMAIL = 'anonymous@ads'
 BOOTSTRAP_TOKEN_EXPIRES = 3600*24  # 1 day
 BOOTSTRAP_SCOPES = []
 USER_DEFAULT_SCOPES = ['user']
@@ -39,4 +39,4 @@ CACHE = {
 RATELIMITER_BACKEND = 'flaskcacheredis'
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'
-MAIL_DEFAULT_SENDER='no-reply@adslabs.org'
+MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'

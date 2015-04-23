@@ -161,7 +161,7 @@ class ForgotPasswordView(Resource):
             abort(500)
         user_manipulator.update(u, password=new_password1)
         logout_user()
-        login_user(u, force=True)
+        login_user(u, remember=True)
         return {"message": "success"}, 200
 
 
@@ -370,7 +370,10 @@ class ChangeEmailView(Resource):
         )
         user_manipulator.create(
             email=email,
-            password=password,)
+            password=password,
+            active=True,
+            registered_at=datetime.datetime.now(),
+        )
         return {"message": "success"}, 200
 
 
@@ -401,7 +404,7 @@ class UserAuthView(Resource):
         # Logout of previous user (may have been bumblebee)
         if current_user.is_authenticated():
             logout_user()
-        login_user(u, force=True)  # Login to real user
+        login_user(u, remember=True)  # Login to real user
         return {"message": "success"}, 200
 
 
@@ -451,7 +454,7 @@ class VerifyEmailView(Resource):
             )
         else:
             user_manipulator.update(u, confirmed_at=datetime.datetime.now())
-        login_user(u, remember=False, force=True)
+        login_user(u, remember=True)
         return {"message": "success", "email": email}
 
 
@@ -498,7 +501,9 @@ class UserRegistrationView(Resource):
         )
         u = user_manipulator.create(
             email=email,
-            password=password
+            password=password,
+            active=True,
+            registered_at=datetime.datetime.now(),
         )
         return {"message": "success"}, 200
 
@@ -554,7 +559,7 @@ class Bootstrap(Resource):
                 "bootstrap_bumblebee called with unknown email {0}. "
                 "Is the database in a consistent state?".format(user_email))
             abort(500)
-        login_user(u, remember=False, force=True)
+        login_user(u, remember=False)
         client, token, uid = None, None, current_user.get_id()
 
         #  Check if "oauth_client" is encoded in the session cookie

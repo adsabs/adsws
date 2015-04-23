@@ -531,7 +531,7 @@ class TestAccounts(TestCase):
                 data=json.dumps(payload),
                 headers={'X-CSRFToken': csrf}
             )
-            self.assertStatus(r,403)
+            self.assertStatus(r, 403)
             self.assertEqual(r.json['error'],'account has not been verified')
 
             # Correct login on a verified account
@@ -546,6 +546,8 @@ class TestAccounts(TestCase):
             )
             self.assertStatus(r, 200)
             self.assertEqual(current_user.email, self.real_user.email)
+            self.assertEqual(current_user.login_count, 1)
+            self.assertIsInstance(current_user.last_login_at, datetime.date)
 
     def test_bootstrap_bumblebee(self):
         """

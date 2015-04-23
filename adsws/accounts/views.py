@@ -266,7 +266,7 @@ class PersonalTokenView(Resource):
                 user_id=current_user.get_id(),
                 access_token=gen_salt(40),
                 refresh_token=gen_salt(40),
-                expires=datetime.datetime(2500,1,1),
+                expires=datetime.datetime(2500, 1, 1),
                 _scopes=' '.join(
                     current_app.config['USER_API_DEFAULT_SCOPES']
                 ),
@@ -373,6 +373,7 @@ class ChangeEmailView(Resource):
             password=password,
             active=True,
             registered_at=datetime.datetime.now(),
+            login_count=0,
         )
         return {"message": "success"}, 200
 
@@ -405,6 +406,12 @@ class UserAuthView(Resource):
         if current_user.is_authenticated():
             logout_user()
         login_user(u, remember=True)  # Login to real user
+        user_manipulator.update(
+            u,
+            last_login_at=datetime.datetime.now(),
+            login_count=u.login_count+1 if u.login_count else 1,
+            last_login_ip=request.remote_addr,
+        )
         return {"message": "success"}, 200
 
 
@@ -504,6 +511,7 @@ class UserRegistrationView(Resource):
             password=password,
             active=True,
             registered_at=datetime.datetime.now(),
+            login_count=0,
         )
         return {"message": "success"}, 200
 

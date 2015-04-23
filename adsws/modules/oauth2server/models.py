@@ -9,7 +9,6 @@ from wtforms import validators
 from sqlalchemy_utils import URLType
 
 from adsws.core import db, user_manipulator
-from adsws.modules.classic.user import ClassicUserInfo
 
 from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, \
     InvalidRedirectURIError
@@ -126,6 +125,9 @@ class OAuthClient(db.Model):
 
     is_internal = db.Column(db.Boolean, default=False)
     """ Determins if client application is an internal application. """
+
+    last_activity = db.Column(db.DateTime, nullable=True)
+    """ Datetime that stores the last time this client was accessed. """
 
     _redirect_uris = db.Column(db.Text)
     """A newline-separated list of redirect URIs. First is the default URI."""

@@ -410,7 +410,6 @@ class UserAuthView(Resource):
             u,
             last_login_at=datetime.datetime.now(),
             login_count=u.login_count+1 if u.login_count else 1,
-            last_login_ip=request.remote_addr,
         )
         return {"message": "success"}, 200
 
@@ -539,9 +538,19 @@ class Bootstrap(Resource):
 
         if not current_user.is_authenticated() or \
                 current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-            token = Bootstrap.bootstrap_bumblebee()
+            client, token = Bootstrap.bootstrap_bumblebee()
         else:
-            token = Bootstrap.bootstrap_user()
+            client, token = Bootstrap.bootstrap_user()
+
+        client.last_activity = datetime.datetime.now()
+        try:
+            db.session.add(client)
+            db.session.commit()
+        except Exception, e:
+            db.session.rollback()
+            current_app.logger.error("Error on bootstrap: {}".format(e))
+            abort(503)
+        session['_oauth_client'] = client.client_id
 
         return print_token(token)
 
@@ -595,7 +604,6 @@ class Bootstrap(Resource):
             except:
                 db.session.rollback()
                 abort(503)
-            session['_oauth_client'] = client.client_id
 
         token = OAuthToken.query.filter_by(
             client_id=client.client_id,
@@ -625,7 +633,7 @@ class Bootstrap(Resource):
                 except:
                     db.session.rollback()
                     abort(503)
-        return token
+        return client, token
 
     @staticmethod
     def bootstrap_user():
@@ -687,6 +695,5 @@ class Bootstrap(Resource):
                 user_id=current_user.get_id(),
             ).first()
 
-        session['_oauth_client'] = client.client_id
-        return token
+        return client, token
 

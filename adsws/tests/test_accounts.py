@@ -329,7 +329,6 @@ class TestAccounts(TestCase):
             )
             self.assertEqual(self.real_user.email, "changed@email")
 
-
     def test_reset_password(self):
         """
         test the reset password workflow
@@ -449,13 +448,18 @@ class TestAccounts(TestCase):
         self.assertStatus(r, 200)
         self.assertEqual(r.json["email"], self.real_user.email)
         self.assertIsInstance(self.real_user.confirmed_at, datetime.date)
+        self.assertAlmostEqual(
+            self.real_user.confirmed_at,
+            datetime.datetime.now(),
+            delta=datetime.timedelta(seconds=1),
+        )
+
 
         # Test for an already confirmed email
         r = self.client.get(url)
         self.assertStatus(r, 400)
         self.assertEqual(r.json["error"], "this user and email has already "
                                           "been validated")
-
 
     def test_verify_google_recaptcha(self):
         """
@@ -499,22 +503,25 @@ class TestAccounts(TestCase):
             fakerequest
         )
 
-
     def test_login_and_logout(self):
         """
         tests a login and logout pattern, including incorrect login
         """
         url = url_for('userauthview')
 
-        payload = {'username':'foo','password':'bar'}
-        r = self.client.post(url,data=json.dumps(payload),headers={'content-type':'application/json'})
-        self.assertStatus(r,400) #No csrf token = 400
+        payload = {'username': 'foo', 'password': 'bar'}
+        r = self.client.post(
+            url,
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'}
+        )
+        self.assertStatus(r, 400)  # No csrf token = 400
 
         with self.client as c:
             csrf = self.get_csrf()
 
             # Incorrect login should return 401
-            payload = {'username':'foo','password':'bar'}
+            payload = {'username': 'foo', 'password': 'bar'}
             r = c.post(
                 url,
                 data=json.dumps(payload),
@@ -532,7 +539,7 @@ class TestAccounts(TestCase):
                 headers={'X-CSRFToken': csrf}
             )
             self.assertStatus(r, 403)
-            self.assertEqual(r.json['error'],'account has not been verified')
+            self.assertEqual(r.json['error'], 'account has not been verified')
 
             # Correct login on a verified account
             user_manipulator.update(
@@ -548,6 +555,11 @@ class TestAccounts(TestCase):
             self.assertEqual(current_user.email, self.real_user.email)
             self.assertEqual(current_user.login_count, 1)
             self.assertIsInstance(current_user.last_login_at, datetime.date)
+            self.assertAlmostEqual(
+               current_user.last_login_at,
+               datetime.datetime.now(),
+               delta=datetime.timedelta(seconds=1),
+            )
 
     def test_bootstrap_bumblebee(self):
         """
@@ -596,6 +608,18 @@ class TestAccounts(TestCase):
             tok.expires = datetime.datetime.now()
             db.session.commit()
 
+            # Test that the client has an updated last_activity attribute
+            from adsws.modules.oauth2server.models import OAuthClient
+            client = db.session.query(OAuthClient).filter_by(
+                client_id=tok.client_id
+            ).one()
+            self.assertIsInstance(client.last_activity, datetime.date)
+            self.assertAlmostEqual(
+                client.last_activity,
+                datetime.datetime.now(),
+                delta=datetime.timedelta(seconds=1),
+            )
+
             # re-visit the bootstrap URL, test to see if we get a fresh token
             r = c.get(url)
             self.assertNotEqual(r.json['access_token'], tok.access_token)
@@ -631,7 +655,6 @@ class TestAccounts(TestCase):
             )
             self.assertFalse(r.json['anonymous'])
 
-
             # Visiting the OAuthProtectedView with this bearer token should
             # return 200
             r = c.get(
@@ -641,8 +664,6 @@ class TestAccounts(TestCase):
                 }
             )
             self.assertStatus(r, 200)
-
-
 
     def test_change_password(self):
         """
@@ -691,7 +712,6 @@ class TestAccounts(TestCase):
             self.assertStatus(r, 200)
             self.assertEqual(r.json['message'], 'success')
             self.assertTrue(self.real_user.validate_password('123Abc'))
-
 
     def test_register_user(self):
         """

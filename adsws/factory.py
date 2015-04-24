@@ -10,7 +10,6 @@ import os
 import warnings
 import logging
 import logging.handlers
-from collections import namedtuple
 
 from werkzeug.contrib.fixers import ProxyFix
 from flask import Flask, g, request, jsonify
@@ -21,13 +20,17 @@ from flask_registry import Registry, ExtensionRegistry, \
 
 from .middleware import HTTPMethodOverrideMiddleware
 
-def create_app(app_name=None, instance_path=None, static_path=None, static_folder=None, **kwargs_config):
+
+def create_app(app_name=None, instance_path=None, static_path=None,
+               static_folder=None, **kwargs_config):
     """Returns a :class:`Flask` application instance configured with common
     functionality for the AdsWS platform.
 
     :param app_name: application package name
     :param instance_path: application package path
-    :param **kwargs: a dictionary of settings to override
+    :param static_path: flask.Flask static_path kwarg
+    :param static_folder: flask.Flask static_folder kwarg
+    :param kwargs_config: a dictionary of settings to override
     """
     # Flask application name
     app_name = app_name or '.'.join(__name__.split('.')[0:-1])
@@ -41,10 +44,9 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
     try:
         if not os.path.exists(instance_path):
             os.makedirs(instance_path)
-    except Exception:
+    except:
         pass
-    
-    
+
     app = Flask(app_name, instance_path=instance_path, instance_relative_config=False, static_path=static_path, static_folder=static_folder)
     
     # Handle both URLs with and without trailing slashes by Flask.
@@ -55,18 +57,20 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
         app.config.from_object('%s.config' % app_name)
     except ImportError:
         pass
-    app.config.from_pyfile(os.path.join(instance_path, 'config.py'), silent=True)
-    app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'), silent=True)
-    
+    app.config.from_pyfile(
+        os.path.join(instance_path, 'config.py'),
+        silent=True
+    )
+    app.config.from_pyfile(
+        os.path.join(instance_path, 'local_config.py'),
+        silent=True
+    )
     if kwargs_config:
         # Update application config from parameters.
         app.config.update(kwargs_config)
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
-    
-    # add CORE_ variables to their non-core values
-    update_config(app)
 
     # ====================
     # Application assembly
@@ -96,14 +100,19 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
 
     app.before_request(set_translations)
 
-    if app.config.get('PRODUCTION',False):
-        app.wsgi_app = ProxyFix(app.wsgi_app,num_proxies=app.config.get('NUM_PROXIES',2))
+    if app.config.get('PRODUCTION', False):
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app,
+            num_proxies=app.config.get('NUM_PROXIES', 2)
+        )
 
     if app.config.get('HTTPS_ONLY',False):
-        #Contains the x-forwared-proto in the criteria already
+        # Contains the x-forwarded-proto in the criteria already
         # only works if app.debug=False
-        SSLify(app,permanent=True) #permanent=True responds with 302 instead of 301
-          # Register custom error handlers
+        # permanent=True responds with 302 instead of 301
+        SSLify(app, permanent=True)
+
+    # Register custom error handlers
     if not app.config.get('DEBUG'):
         app.errorhandler(404)(on_404)
         app.errorhandler(401)(on_401)
@@ -111,17 +120,21 @@ def create_app(app_name=None, instance_path=None, static_path=None, static_folde
         app.errorhandler(405)(on_405)
     return app
 
+
 def on_404(e):
-  return jsonify(dict(error='Not found')), 404
+    return jsonify(dict(error='Not found')), 404
+
 
 def on_401(e):
-  return jsonify(dict(error='Unauthorized')), 401
+    return jsonify(dict(error='Unauthorized')), 401
+
 
 def on_429(e):
-  return jsonify(dict(error='Too many requests')), 429
+    return jsonify(dict(error='Too many requests')), 429
+
 
 def on_405(e):
-  return jsonify(dict(error='Method not allowed')), 405
+    return jsonify(dict(error='Method not allowed')), 405
 
   
 def set_translations():
@@ -133,46 +146,18 @@ def set_translations():
     def _(s, **kwargs):
         return s % kwargs
     g._ = _
-    
-    
+
+
 def register_secret_key(app):
-    """Register sercret key in application configuration."""
-    SECRET_KEY = app.config.get('SECRET_KEY') or \
-        app.config.get('SITE_SECRET_KEY', 'change_me')
+    """
+    Register sercret key in application configuration., and warns that it
+    has not been set properly.
+    """
+    if app.config.get('SECRET_KEY') is None:
+        app.config['SECRET_KEY'] = 'dev'
+        warnings.warn("Using insecure dev SECRET_KEY", UserWarning)
 
-    if not SECRET_KEY or SECRET_KEY == 'change_me':
-        fill_secret_key = """
-    Set variable SECRET_KEY with random string in instance/local_config.py
 
-    You can use following commands:
-    $ %s
-        """ % ('python manage.py create-secret-key', )
-        warnings.warn(fill_secret_key, UserWarning)
-
-    app.config["SECRET_KEY"] = SECRET_KEY
-    
-
-def update_config(app):
-    for k, v in app.config.items():
-        if k.startswith('CORE_'):
-            key = k[5:]
-            if key in app.config:
-                if isinstance(app.config.get(key), type(v)):
-                    if isinstance(v, list):
-                        for x in v:
-                            app.config.get(key).append(x)
-                    elif isinstance(v, dict):
-                        app.config.get(key).update(v)
-                    else:
-                        app.logger.warning('Ignoring overwrite: %s=%s %s=%s'
-                                       % (k, v, key, app.config.get(key)))
-                else:
-                    app.logger.warning('Incompatible type ignored: %s=%s %s=%s'
-                                       % (k, v, key, app.config.get(key)))
-            else:
-                app.config[key] = v
-
-    
 def configure_logging(app):
     """Configure logging."""
 
@@ -182,48 +167,55 @@ def configure_logging(app):
         RotatingFileHandler = logging.handlers.RotatingFileHandler 
 
     def log_exception(exc_info):
-        """Override to default Flask.log_exception (more verbose logging on exceptions)"""
+        """
+        Override default Flask.log_exception for more verbose logging on
+        exceptions.
+        """
         try:
-          oauth_user = request.oauth
+            oauth_user = request.oauth
         except AttributeError:
-          oauth_user = None
+            oauth_user = None
 
         app.logger.error(
             """
-Request:     {method} {path}
-IP:          {ip}
-Agent:       {agent_platform} | {agent_browser} {agent_browser_version}
-Raw Agent:   {agent}
-Oauth2:      {oauth_user}
+            Request:     {method} {path}
+            IP:          {ip}
+            Agent:       {agent_platform} | {agent_browser} {agent_browser_version}
+            Raw Agent:   {agent}
+            Oauth2:      {oauth_user}
             """.format(
-                method = request.method,
-                path = request.path,
-                ip = request.remote_addr,
-                agent_platform = request.user_agent.platform,
-                agent_browser = request.user_agent.browser,
-                agent_browser_version = request.user_agent.version,
-                agent = request.user_agent.string,
-                oauth_user = oauth_user
-            ), exc_info=exc_info
+                method=request.method,
+                path=request.path,
+                ip=request.remote_addr,
+                agent_platform=request.user_agent.platform,
+                agent_browser=request.user_agent.browser,
+                agent_browser_version=request.user_agent.version,
+                agent=request.user_agent.string,
+                oauth_user=oauth_user,
+                ), exc_info=exc_info
         )
-    app.log_exception=log_exception
+    app.log_exception = log_exception
 
-    fn = os.path.join(app.instance_path,app.config.get('LOG_FILE','logs/adsws.log'))
+    fn = app.config.get('LOG_FILE')
+    if fn is None:
+        fn = os.path.join(app.instance_path, 'logs/adsws.log')
+
     if not os.path.exists(os.path.dirname(fn)):
-      os.makedirs(os.path.dirname(fn))
-    rfh = RotatingFileHandler(fn, maxBytes=100000, backupCount=10)
+        os.makedirs(os.path.dirname(fn))
+
+    rfh = RotatingFileHandler(fn, maxBytes=1000000, backupCount=10)
     rfh.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s '
         '[in %(pathname)s:%(lineno)d]')
     )
-    #NOTE: 
+    # NOTE:
     # Setting the level on just the handler seems to have *no* effect;
     # setting the level on app.logger seems to have the desired effect.
     # I do not understand this behavior
-    #rfh.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
+    # rfh.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
     app.logger.setLevel((app.config.get('LOG_LEVEL', logging.INFO)))
     if rfh not in app.logger.handlers:
-      app.logger.addHandler(rfh)
+        app.logger.addHandler(rfh)
     app.logger.debug("Logging initialized")
 
 

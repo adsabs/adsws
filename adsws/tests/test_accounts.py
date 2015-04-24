@@ -46,10 +46,7 @@ class TestUtils(UnitTestCase):
 
     def test_validate_password(self):
         err, func = utils.ValidationError, utils.validate_password  # shorthand
-        self.assertRaises(err, func, "no Numbers")
-        self.assertRaises(err, func, "123456")
-        self.assertRaises(err, func, "2Shrt")
-        self.assertRaises(err, func, "n0 caps")
+        self.assertRaises(err, func, "n0")
         self.assertTrue(func("123Aabc"))
 
 

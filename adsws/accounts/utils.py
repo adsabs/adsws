@@ -111,20 +111,9 @@ def validate_password(password):
 
     :type password: basestring
     """
-    password_length = len(password)
+    if len(password) < 4:
+        raise ValidationError('Password must have at least 4 characers')
 
-    # Count lowercase, uppercase and numbers
-    lowers = uppers = digits = 0
-    for ch in password:
-        if ch.islower(): lowers+=1
-        if ch.isupper(): uppers+=1
-        if ch.isdigit(): digits+=1
-
-    is_valid = password_length>=6 and lowers and uppers and digits
-    if not is_valid:
-        raise ValidationError('Password must have at least 6 characters \
-                              with one lowercase letter, one uppercase \
-                              letter and one number')
     return True
 
 

@@ -143,14 +143,14 @@ class ForgotPasswordView(Resource):
             new_password1 = data['password1']
             new_password2 = data['password2']
         except (AttributeError, KeyError):
-            return {'error':'malformed request'}, 400
+            return {'error': 'malformed request'}, 400
 
         if new_password1 != new_password2:
-            return {'error':'passwords do not match'}, 400
+            return {'error': 'passwords do not match'}, 400
         try:
             validate_password(new_password1)
         except ValidationError, e:
-            return {'error':'validation error'}, 400
+            return {'error': 'validation error'}, 400
 
         u = user_manipulator.first(email=email)
         if u is None:
@@ -300,16 +300,7 @@ class PersonalTokenView(Resource):
             current_app.logger.info(
                 "Updated ADS API token for {0}".format(current_user.email)
             )
-        expiry = token.expires.isoformat() if \
-            isinstance(token.expires,datetime.datetime) else token.expires
-        return {
-            'access_token': token.access_token,
-            'refresh_token': token.refresh_token,
-            'username': current_user.email,
-            'expire_in': expiry,
-            'token_type': 'Bearer',
-            'scopes': token.scopes,
-        }
+        return print_token(token)
 
 
 class LogoutView(Resource):
@@ -488,7 +479,7 @@ class UserRegistrationView(Resource):
 
         if not verify_recaptcha(request):
             return {'error': 'captcha was not verified'}, 403
-        if password!=repeated:
+        if password != repeated:
             return {'error': 'passwords do not match'}, 400
         try:
             validate_email(email)

@@ -1,6 +1,6 @@
 from adsws.testsuite import make_test_suite, \
-    run_test_suite, AdsWSAppTestCase, FlaskAppTestCase, AdsWSTestCase
-
+    run_test_suite, FlaskAppTestCase
+from flask import session
 import os 
 import inspect
 import tempfile
@@ -15,10 +15,22 @@ class FactoryTest(FlaskAppTestCase):
         }
         
     def test_factory(self):
-        self.assertEqual(self.app.config.get('FOO'), 'bar', "The app didn't get property: foo")
+        self.assertEqual(
+            self.app.config.get('FOO'),
+            'bar',
+            "The app didn't get property: foo"
+        )
         rootf = os.path.realpath(os.path.join(os.path.dirname(inspect.getfile(inspect.currentframe())), '../../adsws'))
         self.assertEqual(self.app.root_path, rootf, "root_path is not correct")
         self.assertEqual(self.app.instance_path, os.path.realpath(os.path.join(rootf, '../instance')), "instance_path is not correct")
+
+    def test_sesssion(self):
+        """
+        Ensure that session.permanent=True
+        """
+        with self.app.test_request_context('/'):
+            self.app.preprocess_request()
+            self.assertTrue(session.permanent, True)
 
 class FactoryTestCustomInstanceDir(FlaskAppTestCase):
     @property

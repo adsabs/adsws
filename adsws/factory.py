@@ -12,7 +12,7 @@ import logging
 import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
-from flask import Flask, g, request, jsonify
+from flask import Flask, g, request, jsonify, session
 from flask.ext.sslify import SSLify
 
 from flask_registry import Registry, ExtensionRegistry, \
@@ -99,6 +99,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
     app.before_request(set_translations)
+    app.before_request(make_session_permanent)
 
     if app.config.get('PRODUCTION', False):
         app.wsgi_app = ProxyFix(
@@ -106,7 +107,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
             num_proxies=app.config.get('NUM_PROXIES', 2)
         )
 
-    if app.config.get('HTTPS_ONLY',False):
+    if app.config.get('HTTPS_ONLY', False):
         # Contains the x-forwarded-proto in the criteria already
         # only works if app.debug=False
         # permanent=True responds with 302 instead of 301
@@ -219,3 +220,11 @@ def configure_logging(app):
     app.logger.debug("Logging initialized")
 
 
+def make_session_permanent():
+    """
+    This will set the expire value on the cookie, thus making it
+    persist for as long as app.permanent_session_lifetime (31 days)
+    Note that SESSION_REFRESH_EACH_REQUEST (default:True) controls
+    if the expiry is refreshed on subsequent visits.
+    """
+    session.permanent = True

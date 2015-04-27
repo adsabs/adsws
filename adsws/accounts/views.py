@@ -277,7 +277,8 @@ class PersonalTokenView(Resource):
             db.session.add(token)
             try:
                 db.session.commit()
-            except:
+            except Exception, e:
+                current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
             current_app.logger.info(
                 "Created ADS API client+token for {0}".format(
@@ -294,8 +295,9 @@ class PersonalTokenView(Resource):
             db.session.add(token)
             try:
                 db.session.commit()
-            except:
+            except Exception, e:
                 db.session.rollback()
+                current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
             current_app.logger.info(
                 "Updated ADS API token for {0}".format(current_user.email)
@@ -592,8 +594,9 @@ class Bootstrap(Resource):
             db.session.add(client)
             try:
                 db.session.commit()
-            except:
+            except Exception, e:
                 db.session.rollback()
+                current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
 
         token = OAuthToken.query.filter_by(
@@ -621,8 +624,9 @@ class Bootstrap(Resource):
                 db.session.add(token)
                 try:
                     db.session.commit()
-                except:
+                except Exception, e:
                     db.session.rollback()
+                    current_app.logger.error("Unknown DB error: {0}".format(e))
                     abort(503)
         return client, token
 
@@ -657,25 +661,27 @@ class Bootstrap(Resource):
             db.session.add(client)
             try:
                 db.session.commit()
-            except:
+            except Exception, e:
                 db.session.rollback()
+                current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
 
             token = OAuthToken(
-              client_id=client.client_id,
-              user_id=current_user.get_id(),
-              access_token=gen_salt(salt_length),
-              refresh_token=gen_salt(salt_length),
-              expires= datetime.datetime(2500,1,1),
-              _scopes=scopes,
-              is_personal=False,
-              is_internal=True,
+                client_id=client.client_id,
+                user_id=current_user.get_id(),
+                access_token=gen_salt(salt_length),
+                refresh_token=gen_salt(salt_length),
+                expires=datetime.datetime(2500,1,1),
+                _scopes=scopes,
+                is_personal=False,
+                is_internal=True,
             )
             db.session.add(token)
             try:
                 db.session.commit()
-            except:
+            except Exception, e:
                 db.session.rollback()
+                current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
             current_app.logger.info(
                 "Created BB client for {email}".format(email=current_user.email)

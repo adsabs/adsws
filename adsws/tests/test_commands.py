@@ -108,7 +108,7 @@ class TestManage_Accounts(TestCase):
         )
 
         # Only those tokens which have already expired should be removed
-        cleanup_tokens(app=self.app)
+        cleanup_tokens(app_override=self.app)
         current_tokens = db.session.query(OAuthToken).all()
         self.assertNotEqual(original_tokens, current_tokens)
         self.assertEqual(3, len(current_tokens))
@@ -121,7 +121,7 @@ class TestManage_Accounts(TestCase):
         # and check that this token has been removed after calling
         # the cleanup_tokens script again
         time.sleep(3)
-        cleanup_tokens(app=self.app)
+        cleanup_tokens(app_override=self.app)
         current_tokens = db.session.query(OAuthToken).all()
         self.assertNotEqual(original_tokens, current_tokens)
         self.assertEqual(2, len(current_tokens))
@@ -143,12 +143,12 @@ class TestManage_Accounts(TestCase):
         )
 
         # No clients should be cleaned
-        cleanup_clients(app=self.app, timedelta="days=31")
+        cleanup_clients(app_override=self.app, timedelta="days=31")
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(5, len(current_clients))
 
         # Cleanup all clients that are older than 0 seconds from now()
-        cleanup_clients(app=self.app, timedelta="seconds=0")
+        cleanup_clients(app_override=self.app, timedelta="seconds=0")
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(3, len(current_clients))
 
@@ -156,13 +156,13 @@ class TestManage_Accounts(TestCase):
         # client after this operation.
 
         time.sleep(3.1)
-        cleanup_clients(app=self.app, timedelta="seconds=0.1")
+        cleanup_clients(app_override=self.app, timedelta="seconds=0.1")
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(2, len(current_clients))
 
         # Cleanup the client whose last_activity was set to 1 hour
         # into the future. This case should never happen in practice!
-        cleanup_clients(app=self.app, timedelta="hours=-1")
+        cleanup_clients(app_override=self.app, timedelta="hours=-1")
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(1, len(current_clients))
 

@@ -6,7 +6,7 @@ from adsws.modules.oauth2server.provider import oauth2
 
 from adsws.core import db, user_manipulator
 
-from flask.ext.ratelimiter import ratelimit
+from adsws.ext.ratelimiter import ratelimit
 from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.restful import Resource, abort
 from flask import current_app, session, abort, request

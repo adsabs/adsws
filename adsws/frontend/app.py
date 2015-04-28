@@ -1,6 +1,5 @@
 from .. import factory
 
-from flask.ext.ratelimiter import RateLimiter
 from flask.ext.restful import Api
 from .views import (GlobalResourcesView, StatusView)
 
@@ -11,8 +10,6 @@ def create_app(resources={},**kwargs_config):
   app.config['resources'] = resources
   api = Api(app)
   api.unauthorized = lambda noop: noop #Overwrite WWW-Authenticate challenge on 401
-
-  ratelimiter = RateLimiter(app=app)
 
   api.add_resource(StatusView,'/',endpoint="root_statusview")  
   api.add_resource(StatusView,'/status')

@@ -7,7 +7,7 @@ from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
 from importlib import import_module
-from flask.ext.ratelimiter import ratelimit
+from adsws.ext.ratelimiter import ratelimit
 
 _KNOWN_CLIENTS = {
     'vp9a0zwOcx7XJETZyHhC1DwpqGXhKl75iKNCvqSx': "vis-services"

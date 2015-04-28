@@ -1,7 +1,6 @@
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
-from flask.ext.ratelimiter import RateLimiter
 from flask.ext.restful import Api
 from flask.ext.cors import CORS
 from flask.ext.wtf.csrf import CsrfProtect
@@ -29,8 +28,6 @@ def create_app(**kwargs_config):
 
     api = Api(app)
     api.unauthorized = lambda noop: noop #Overwrite WWW-Authenticate challenge on 401
-
-    ratelimiter = RateLimiter(app=app)
 
     csrf = CsrfProtect(app)
 

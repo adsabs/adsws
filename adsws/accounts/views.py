@@ -6,11 +6,11 @@ from adsws.modules.oauth2server.provider import oauth2
 
 from adsws.core import db, user_manipulator
 
-from flask.ext.ratelimiter import ratelimit
+from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.restful import Resource, abort
 from flask import current_app, session, abort, request
-from .utils import scope_func, validate_email, validate_password, \
+from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
     print_token
 from .exceptions import ValidationError

@@ -31,6 +31,7 @@ class User(UserMixin, db.Model):
     last_login_at = db.Column(db.DateTime())
     login_count = db.Column(db.Integer)
     registered_at = db.Column(db.DateTime())
+    ratelimit_level = db.Column(db.Integer)
 
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))

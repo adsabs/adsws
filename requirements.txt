@@ -1,4 +1,5 @@
-flask-ratelimiter
+#flask-ratelimiter
+-e git+https://github.com/inveniosoftware/flask-ratelimiter@3b2f84e8b12c2eb3d0f90e760e2a43f17de81c2b#egg=flask-ratelimiter
 flask-cors==1.9.0
 flask-RESTful
 flask-sslify

@@ -1,7 +1,9 @@
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',
-              'adsws.ext.security', ]
+              'adsws.ext.security',
+              'adsws.ext.ratelimiter',
+]
 
 PACKAGES = ['adsws.modules.oauth2server', ]
 

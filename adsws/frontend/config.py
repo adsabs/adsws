@@ -1,0 +1,1 @@
+EXTENSIONS = ['adsws.ext.ratelimiter']

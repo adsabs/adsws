@@ -743,7 +743,7 @@ class TestAccounts(TestCase):
             r = c.post(
                 url,
                 data=json.dumps(payload),
-                headers={'X-CSRFToken':csrf}
+                headers={'X-CSRFToken': csrf}
             )
             self.assertStatus(r, 409)
 
@@ -753,7 +753,7 @@ class TestAccounts(TestCase):
                 'password1': 'Password1',
                 'password2': 'Password1',
                 'g-recaptcha-response': 'correct_response',
-                'verify_url':'http://not_relevant.com'
+                'verify_url': 'http://not_relevant.com'
             }
             r = c.post(
                 url,

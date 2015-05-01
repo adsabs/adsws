@@ -1,34 +1,13 @@
 import os
 import requests
-from werkzeug.security import gen_salt
+import copy
 from flask import request
 from views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
 from importlib import import_module
-from adsws.ext.ratelimiter import ratelimit
-
-_KNOWN_CLIENTS = {
-    'vp9a0zwOcx7XJETZyHhC1DwpqGXhKl75iKNCvqSx': "vis-services"
-}  # Ugly hack until we have a dynamic rate limits in place
-
-
-def scope_func(request):
-    """
-    Finds the correct key with which to attach rate limit on
-    :type request: flask.request
-    :return: key with which to rate limit on
-    """
-    if 'X-Forwarded-Authorization' in request.headers:
-        # Ugly hack to not track known services while also not
-        # double-counting real users. Dynamic rate limits will deprecate this
-        if request.oauth.client.client_id in _KNOWN_CLIENTS:
-            return "{client}.{random}".format(
-                client=request.oauth.client.client_id,
-                random=gen_salt(5)
-            )
-    return request.oauth.client.client_id
+from adsws.ext.ratelimiter import ratelimit, scope_func, limit_func
 
 
 def bootstrap_local_module(service_uri, deploy_path, app):
@@ -66,10 +45,11 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
+            d = attr_base.rate_limit[0]
             view = ratelimit(
-                limit=attr_base.rate_limit[0],
+                limit=lambda default=d, **kwargs: limit_func(default),
                 per=attr_base.rate_limit[1],
-                scope_func=lambda: scope_func(request),
+                scope_func=lambda: scope_func(),
                 key_func=lambda: request.endpoint
             )(view)
 
@@ -82,6 +62,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         if 'OPTIONS' in rule.methods:
             rule.methods.remove('OPTIONS')
         app.add_url_rule(route, route, view, methods=rule.methods)
+
 
 def bootstrap_remote_service(service_uri, deploy_path, app):
     """
@@ -126,17 +107,20 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
 
         for method in properties['methods']:
             if method not in proxyview.methods:
-                app.logger.warning("Could not create a ProxyView for method %s for %s" % (method,service_uri))
+                app.logger.warning("Could not create a ProxyView for "
+                                   "method {meth} for {ep}"
+                                   .format(meth=method, ep=service_uri))
                 continue
 
             view = proxyview.dispatcher
 
             # Decorate the view with ratelimit.
             # We should fail if the remote app does not define rate_limit
+            d = properties['rate_limit'][0]
             view = ratelimit(
-                limit = properties['rate_limit'][0],
-                per= properties['rate_limit'][1],
-                scope_func=lambda: scope_func(request),
+                limit=lambda default=d, **kwargs: limit_func(default),
+                per=properties['rate_limit'][1],
+                scope_func=lambda: scope_func(),
                 key_func=lambda: request.endpoint,
             )(view)
 

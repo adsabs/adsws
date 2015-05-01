@@ -1,5 +1,7 @@
-from flask import current_app
+from flask import current_app, g
 from adsws.testsuite import make_test_suite, run_test_suite
+from adsws.core import user_manipulator
+from flask.ext.login import current_user
 from api_base import ApiTestCase
 from adsws import api
 import subprocess
@@ -8,6 +10,7 @@ import time
 from sample_microservice import Stubdata
 
 LIVESERVER_WAIT_SECONDS = 2.5
+
 
 class DiscovererTestCase:
     """
@@ -30,7 +33,7 @@ class DiscovererTestCase:
 
     def tearDownRemoteServer(self):
         """
-        Kills the subprocess containing the liveserver
+        Kills the subprocess running the liveserver
         """
         self.liveserver.kill()
         time.sleep(LIVESERVER_WAIT_SECONDS)
@@ -123,14 +126,33 @@ class DiscovererTestCase:
         go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT')
         r = go()
         self.assertStatus(r, 200)
+        self.assertEqual(g._rate_limit_info.remaining, 2)
         r = go()
         self.assertStatus(r, 200)
+        self.assertEqual(g._rate_limit_info.remaining, 1)
         r = go()
-        time.sleep(1)  # Make sure cache is caught up
+        time.sleep(0.1)  # Make sure cache is caught up
         self.assertStatus(r, 429)
-        time.sleep(10)
+        self.assertEqual(g._rate_limit_info.remaining, 0)
+
+        # Wait until the ratelimit has expired, then try again.
+        time.sleep(5)
         r = go()
         self.assertStatus(r, 200)
+        self.assertEqual(g._rate_limit_info.remaining, 2)
+
+    def test_user_ratelimit(self):
+        """
+        Set the user's ratelimit_level to a value and confirm that
+        """
+        user_manipulator.update(self.user, ratelimit_level=10)
+
+        r = self.open('GET', '/test_webservice/LOW_RATE_LIMIT')
+        self.assertStatus(r, 200)
+        self.assertEqual(
+            g._rate_limit_info.remaining,
+            self.user.ratelimit_level*3 - 1,
+        )
 
 
 class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
@@ -157,6 +179,8 @@ class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE="parent",
+            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+                time.time()),
         )
         return app
 
@@ -174,7 +198,7 @@ class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
         self.assertEqual(current_app.config['TEST_SPECIFIC_CONFIG'], 'foo')
 
 
-class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
+class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
     """
     . Run a third party service (webserver via subprocess)
     . create discoverer app, connecting to the service
@@ -198,7 +222,9 @@ class DiscoverRemoteServerTestCase(ApiTestCase,DiscovererTestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE='parent',
-          )
+            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+                time.time()),
+        )
         self.tearDownRemoteServer()
         return app
 

@@ -2,13 +2,14 @@ import datetime
 import requests
 from functools import wraps
 
-from flask import request, current_app
+from flask import current_app
 from flask.ext.mail import Message
 from flask.ext.login import current_user as cu
 from flask.ext.wtf.csrf import generate_csrf
 
 from .exceptions import ValidationError
 from .emails import Email
+
 
 def get_post_data(request):
     """
@@ -51,21 +52,7 @@ def send_email(email_addr='', base_url='', email_template=Email, payload=None):
     return msg, token
 
 
-def scope_func():
-    """
-    Returns the key with which to track the user's requests
-    for the purposes of ratelimiting
-    """
-    if cu.is_authenticated() and \
-            cu.email != current_app.config['BOOTSTRAP_USER_EMAIL']:
-        return cu.email
-    elif hasattr(request, 'oauth') and request.oauth.client:
-        return request.oauth.client.client_id
-    else:
-        return request.remote_addr
-
-
-def verify_recaptcha(request,ep=None):
+def verify_recaptcha(request, ep=None):
     """
     Verify a google recaptcha based on the data contained in the request
 
@@ -78,10 +65,10 @@ def verify_recaptcha(request,ep=None):
         ep = current_app.config['GOOGLE_RECAPTCHA_ENDPOINT']
     data = get_post_data(request)
     payload = {
-      'secret': current_app.config['GOOGLE_RECAPTCHA_PRIVATE_KEY'],
-      'remoteip': request.remote_addr,
-      'response': data['g-recaptcha-response']
-      }
+        'secret': current_app.config['GOOGLE_RECAPTCHA_PRIVATE_KEY'],
+        'remoteip': request.remote_addr,
+        'response': data['g-recaptcha-response']
+    }
     r = requests.post(ep,data=payload)
     r.raise_for_status()
     return True if r.json()['success'] == True else False

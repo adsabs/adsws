@@ -118,6 +118,13 @@ class DiscovererTestCase:
         r = self.open('GET', '/test_webservice/SCOPED')
         self.assertStatus(r, 401)
 
+    def test_headers(self):
+        """
+        test that a Cache-Control header is returned
+        """
+        r = self.open('GET','/test_webservice/GET')
+        self.assertIn('Cache-Control', r.headers)
+
     def test_LOW_RATE_LIMIT(self):
         """
         test sample application ratelimited resource, including hitting the

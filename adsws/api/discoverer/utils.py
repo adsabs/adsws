@@ -1,6 +1,6 @@
 import os
 import requests
-import copy
+from flask.ext.headers import headers
 from flask import request
 from views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
@@ -56,6 +56,9 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # Decorate the view with require_oauth
         if hasattr(attr_base, 'scopes'):
             view = oauth2.require_oauth(*attr_base.scopes)(view)
+
+        # Add cache-control headers
+        view = headers({'Cache-Control': 'public, max-age=600'})(view)
 
         # Let flask handle OPTIONS, which it will not do if we explicitly
         # add it to the url_map
@@ -127,6 +130,9 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             # Decorate with the advertised oauth2 scopes
             # We should fail if the remote app does not define scopes
             view = oauth2.require_oauth(*properties['scopes'])(view)
+
+            # Add cache-control headers
+            view = headers({'Cache-Control': 'public, max-age=600'})(view)
 
             # Either make a new route with this view, or append the new method
             # to an existing route if one exists with the same name

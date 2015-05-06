@@ -5,6 +5,7 @@ Management commands for account related activities (including oauth)
 import datetime
 
 from adsws.modules.oauth2server.models import OAuthToken, OAuthClient
+from adsws.core.users import User
 from adsws.core import db
 from adsws.accounts import create_app
 
@@ -12,6 +13,59 @@ from flask.ext.script import Manager
 
 accounts_manager = Manager(create_app())
 accounts_manager.__doc__ = __doc__  # Overwrite default docstring
+
+
+def parse_timedelta(s):
+    """
+    Helper function which converts a string formatted timedelta into a
+    datetime.timedelta object
+
+    :param s: string formatted timedelta (e.g. "days=1")
+    :return: parsed timedelta
+    :rtype: datetime.timedelta
+    """
+
+    td = {s.split('=')[0]: float(s.split('=')[1])}
+    return datetime.timedelta(**td)
+
+@accounts_manager.command
+def cleanup_users(app_override=None, timedelta="hours=2"):
+    """
+    Deletes stale users from the database. Stale users are defined as users
+    that have a registered_at value of `now`-`timedelta` but not confirmed_at
+    value
+
+    This is expected to coorespond to users that created an account but never
+    verified it.
+
+    :param app_override: flask.app instance to use instead of manager.app
+    :param timedelta: String representing the datetime.timedelta against which
+            to compare user's registered_at ["hours=24"].
+    :return: None
+    """
+
+    app = accounts_manager.app if app_override is None else app_override
+
+    td = parse_timedelta(timedelta)
+
+    with app.app_context():
+        users = db.session.query(User).filter(
+            User.registered_at <= datetime.datetime.now()-td,
+            User.confirmed_at == None,
+        )
+
+        deletions = 0
+
+        for user in users:
+            db.session.delete(user)
+            deletions += 1
+        try:
+            db.session.commit()
+        except Exception, e:
+            app.logger.error("Could not cleanup stale users. "
+                             "Database error; rolled back: {0}".format(e))
+        app.logger.info("Deleted {0} stale users".format(deletions))
+
 
 @accounts_manager.command
 def cleanup_tokens(app_override=None):
@@ -22,10 +76,7 @@ def cleanup_tokens(app_override=None):
     :return: None
     """
 
-    if app_override is not None:
-        app = app_override
-    else:
-        app = accounts_manager.app
+    app = accounts_manager.app if app_override is None else app_override
 
     with app.app_context():
         tokens = db.session.query(OAuthToken).filter(
@@ -57,13 +108,9 @@ def cleanup_clients(app_override=None, timedelta="days=31"):
     :return: None
     """
 
-    if app_override is not None:
-        app = app_override
-    else:
-        app = accounts_manager.app
+    app = accounts_manager.app if app_override is None else app_override
 
-    td = {timedelta.split('=')[0]: float(timedelta.split('=')[1])}
-    td = datetime.timedelta(**td)
+    td = parse_timedelta(timedelta)
 
     with app.app_context():
         clients = db.session.query(OAuthClient).filter(

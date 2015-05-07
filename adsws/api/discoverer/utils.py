@@ -58,7 +58,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
             view = oauth2.require_oauth(*attr_base.scopes)(view)
 
         # Add cache-control headers
-        view = headers({'Cache-Control': 'public, max-age=600'})(view)
+        view = headers(app.config.get('API_PROXYVIEW_HEADERS'))(view)
 
         # Let flask handle OPTIONS, which it will not do if we explicitly
         # add it to the url_map
@@ -132,7 +132,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             view = oauth2.require_oauth(*properties['scopes'])(view)
 
             # Add cache-control headers
-            view = headers({'Cache-Control': 'public, max-age=600'})(view)
+            view = headers(app.config.get('API_PROXYVIEW_HEADERS'))(view)
 
             # Either make a new route with this view, or append the new method
             # to an existing route if one exists with the same name

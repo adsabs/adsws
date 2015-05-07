@@ -36,3 +36,5 @@ WEBSERVICES = {
     'adsws.solr.app': '/solr',
     'adsws.graphics.app': '/graphics',
 }
+
+API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}

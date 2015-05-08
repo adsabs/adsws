@@ -5,7 +5,6 @@ from functools import wraps
 from flask import current_app
 from flask.ext.mail import Message
 from flask.ext.login import current_user as cu
-from flask.ext.wtf.csrf import generate_csrf
 
 from .exceptions import ValidationError
 from .emails import Email
@@ -161,6 +160,5 @@ def print_token(token):
         'expire_in': expiry,
         'token_type': 'Bearer',
         'scopes': token.scopes,
-        'csrf': generate_csrf(),
         'anonymous': anon,
     }

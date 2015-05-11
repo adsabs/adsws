@@ -558,6 +558,10 @@ class TestAccounts(TestCase):
                delta=datetime.timedelta(seconds=1),
             )
 
+            # Test logout
+            r = c.post(url_for('logoutview'),headers={'X-CSRFToken': csrf})
+            self.assertRaises(AttributeError, lambda: current_user.email)
+
     def test_bootstrap_bumblebee(self):
         """
         test the bootstrap bumblebee functionality, namely that

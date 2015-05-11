@@ -309,7 +309,7 @@ class LogoutView(Resource):
     """
     View that calls flask.ext.login.logout_user()
     """
-    def get(self):
+    def post(self):
         logout_user()
         return {"message": "success"}, 200
 

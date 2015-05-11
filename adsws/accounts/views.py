@@ -9,6 +9,7 @@ from adsws.core import db, user_manipulator
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask.ext.login import current_user, login_user, logout_user
 from flask.ext.restful import Resource, abort
+from flask.ext.wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
@@ -455,6 +456,20 @@ class VerifyEmailView(Resource):
             user_manipulator.update(u, confirmed_at=datetime.datetime.now())
         login_user(u)
         return {"message": "success", "email": email}
+
+
+class CSRFView(Resource):
+    """
+    Returns a csrf token
+    """
+
+    decorators = [ratelimit(50, 600, scope_func=scope_func)]
+
+    def get(self):
+        """
+        Returns a csrf token
+        """
+        return {'csrf': generate_csrf()}
 
 
 class UserRegistrationView(Resource):

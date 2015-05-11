@@ -138,7 +138,7 @@ class TestAccounts(TestCase):
         """
 
         #  httpretty socket blocks if enabled before calling self.get_csrf() !
-        r = self.client.get(url_for('bootstrap'))
+        r = self.client.get(url_for('csrfview'))
         return r.json['csrf']
 
     def login(self, user, client, csrf):
@@ -580,7 +580,7 @@ class TestAccounts(TestCase):
             self.assertEqual(current_user.email, self.bootstrap_user.email)
             self.assertTrue(r.json['anonymous'])
             for k in ['access_token', 'expire_in', 'scopes', 'token_type',
-                      'username', 'refresh_token', 'csrf']:
+                      'username', 'refresh_token']:
                 self.assertIn(
                     k, r.json,
                     msg="{k} not in {data}".format(k=k, data=r.json)
@@ -640,7 +640,7 @@ class TestAccounts(TestCase):
             # that authenticated user's data
             r = c.get(url)
             for k in ['access_token', 'expire_in', 'scopes', 'token_type',
-                      'username', 'refresh_token', 'csrf']:
+                      'username', 'refresh_token']:
                 self.assertIn(
                     k, r.json,
                     msg="{k} not in {data}".format(k=k, data=r.json)

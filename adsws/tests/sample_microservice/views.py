@@ -1,4 +1,4 @@
-from flask import current_app
+from flask import current_app, request
 from flask.ext.restful import Resource
 import inspect
 import sys
@@ -32,6 +32,17 @@ class Resources(Resource):
         return func_list, 200
 
 
+class EchoHeaders(Resource):
+    """
+    Echos the headers recieved
+    """
+    scopes = []
+    rate_limit = [1000, 60*60*24]
+
+    def get(self):
+        return dict(request.headers)
+
+
 class GET(Resource):
     """desc for GET"""
     scopes = []
@@ -48,6 +59,7 @@ class POST(Resource):
 
     def post(self):
         return Stubdata.POST
+
 
 class PUT(Resource):
     """desc for PUT"""

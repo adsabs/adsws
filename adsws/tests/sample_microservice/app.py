@@ -1,6 +1,7 @@
 from flask import Blueprint
 from flask import Flask
-from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT, PUT
+from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT, \
+    PUT, EchoHeaders
 from flask.ext.restful import Api
 
 
@@ -30,6 +31,7 @@ def create_app(blueprint_only=False):
     api = Api(bp)
 
     api.add_resource(Resources, '/resources')
+    api.add_resource(EchoHeaders, '/ECHO_HEADERS')
     api.add_resource(GET, '/GET')
     api.add_resource(POST, '/POST')
     api.add_resource(PUT, '/PUT')

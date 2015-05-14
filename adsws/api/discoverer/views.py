@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from flask.ext.restful import Resource
+from werkzeug.datastructures import Headers
 from urlparse import urljoin
 import requests
 import json
@@ -23,6 +24,9 @@ class ProxyView(Resource):
         path = request.full_path.replace(self.deploy_path, '', 1)
         path = path[1:] if path.startswith('/') else path
         ep = urljoin(self.service_uri, path)
+        h = Headers(request.headers.items())
+        h.setdefault('X-Adsws-Uid', request.oauth.user.id)
+        request.headers = h
         return self.__getattribute__(request.method.lower())(ep, request)
 
     def get(self, ep, request):

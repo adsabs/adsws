@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from flask import current_app
 from flask.ext.login import current_user
 from flask_oauthlib.provider import OAuth2Provider
-from flask_login import current_user
 
 from adsws.core import db, user_manipulator
 from .models import OAuthToken, OAuthClient, OAuthGrant
@@ -17,12 +16,30 @@ from .models import OAuthToken, OAuthClient, OAuthGrant
 
 oauth2 = OAuth2Provider()
 
+
+def touch_client(client, td=timedelta(minutes=10)):
+    """
+    Updates a oauth2client.last_activity to the current time if the last
+    last_activity time is at least older than td
+
+    :param client: oauth2client instance
+    :param td: timedelta with which to decide to perform a database write
+    :type td: datetime.timedelta
+    :return: None
+    """
+    now = datetime.datetime.now()
+    if client.last_activity < now-td:
+        client.last_activity = now
+
+
 @oauth2.clientgetter
 def load_client(client_id):
     """
     Loads the client that is sending the requests.
     """
-    return OAuthClient.query.filter_by(client_id=client_id).first()
+    client = OAuthClient.query.filter_by(client_id=client_id).first()
+    touch_client(client)
+    return client
 
 @oauth2.grantgetter
 def load_grant(client_id, code):

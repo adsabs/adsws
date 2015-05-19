@@ -27,4 +27,5 @@ alembic
 six
 redis
 ConcurrentLogHandler
+-e git+https://github.com/adsabs/flask-consulate@bc2623f9344f0517f35cd1f0c0bd32e0743c843d#egg=flask-consulate
 -e .

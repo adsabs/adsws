@@ -14,6 +14,7 @@ import logging.handlers
 from werkzeug.contrib.fixers import ProxyFix
 from flask import Flask, g, request, jsonify, session
 from flask.ext.sslify import SSLify
+from flask.ext.consulate import Consul
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -47,7 +48,13 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     except:
         pass
 
-    app = Flask(app_name, instance_path=instance_path, instance_relative_config=False, static_path=static_path, static_folder=static_folder)
+    app = Flask(
+        app_name,
+        instance_path=instance_path,
+        instance_relative_config=False,
+        static_path=static_path,
+        static_folder=static_folder
+    )
     
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
@@ -61,12 +68,14 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         os.path.join(instance_path, 'config.py'),
         silent=True
     )
-    app.config.from_pyfile(
-        os.path.join(instance_path, 'local_config.py'),
-        silent=True
-    )
+
+    try:
+        app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'))
+    except IOError:
+        consul = Consul(app)
+        consul.apply_remote_config()
+
     if kwargs_config:
-        # Update application config from parameters.
         app.config.update(kwargs_config)
 
     # Ensure SECRET_KEY has a value in the application configuration

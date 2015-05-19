@@ -115,6 +115,7 @@ class ForgotPasswordView(Resource):
         send_email(
             email_addr=token,
             email_template=PasswordResetEmail,
+            base_url=reset_url,
             payload=token
         )
         return {"message": "success"}, 200

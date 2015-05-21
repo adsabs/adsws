@@ -14,7 +14,7 @@ import logging.handlers
 from werkzeug.contrib.fixers import ProxyFix
 from flask import Flask, g, request, jsonify, session
 from flask.ext.sslify import SSLify
-from flask.ext.consulate import Consul
+from flask.ext.consulate import Consul, ConsulConnectionError
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -59,24 +59,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
 
-    app.config.from_object('adsws.config')
-    try:
-        app.config.from_object('%s.config' % app_name)
-    except ImportError:
-        pass
-    app.config.from_pyfile(
-        os.path.join(instance_path, 'config.py'),
-        silent=True
-    )
-
-    try:
-        app.config.from_pyfile(os.path.join(instance_path, 'local_config.py'))
-    except IOError:
-        consul = Consul(app)
-        consul.apply_remote_config()
-
-    if kwargs_config:
-        app.config.update(kwargs_config)
+    load_config(app, kwargs_config)
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
@@ -145,6 +128,49 @@ def on_429(e):
 
 def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
+
+
+def load_config(app, kwargs_config):
+    """
+    writes to app.config heiracharchly based on files on disk and consul
+    :param app: flask.Flask application instance
+    :param kwargs_config: dictionary to update the config
+    :return: None
+    """
+
+    try:
+        app.config.from_object('adsws.config')
+    except (IOError, ImportError):
+        app.logger.warning("Could not load object adsws.config")
+    try:
+        app.config.from_object('%s.config' % app.name)
+    except (IOError, ImportError):
+        app.logger.warning("Could not load object {}.config".format(app.name))
+
+    try:
+        f = os.path.join(app.instance_path, 'config.py')
+        app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+
+    try:
+        f = os.path.join(app.instance_path, 'local_config.py')
+        app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+
+    try:
+        consul = Consul(app)
+        consul.apply_remote_config()
+    except ConsulConnectionError:
+        app.logger.warning(
+            "Could not load config from consul at {}".format(
+                os.environ.get('CONSUL_HOST', 'localhost')
+            )
+        )
+
+    if kwargs_config:
+        app.config.update(kwargs_config)
 
   
 def set_translations():

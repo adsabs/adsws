@@ -164,7 +164,7 @@ def load_config(app, kwargs_config):
         consul.apply_remote_config()
         # Consul stores the hex encoded secret key, but the database
         # expects the raw bytes
-        app.config['SECRET_KEY'] = app.config['SECREY_KEY'].decode('hex')
+        app.config['SECRET_KEY'] = app.config['SECRET_KEY'].decode('hex')
     except ConsulConnectionError:
         app.logger.warning(
             "Could not load config from consul at {}".format(

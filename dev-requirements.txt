@@ -1,9 +1,4 @@
-pytest
-pytest-cache
-pytest-cov
-pytest-pep8
 cloud
-coverage
 mock
 httpretty
 splinter

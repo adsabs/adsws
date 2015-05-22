@@ -6,6 +6,7 @@ flask-RESTful
 flask-sslify
 Flask>=0.9
 gunicorn
+psycopg2
 Flask-SQLAlchemy
 Flask-Security
 Flask-Menu

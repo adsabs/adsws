@@ -1,7 +1,6 @@
 from flask import current_app, g
 from adsws.testsuite import make_test_suite, run_test_suite
 from adsws.core import user_manipulator
-from flask.ext.login import current_user
 from api_base import ApiTestCase
 from adsws import api
 import subprocess

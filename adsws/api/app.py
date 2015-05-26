@@ -5,7 +5,7 @@ from flask.ext.restful import Api
 from flask.ext.cors import CORS
 from flask import jsonify
 
-from views import StatusView, ProtectedView
+from views import StatusView, ProtectedView, UserResolver
 from discoverer import discover
 
 def create_app(**kwargs_config):
@@ -19,7 +19,7 @@ def create_app(**kwargs_config):
     # Overwrite WWW-Authenticate challenge on 401
     api.unauthorized = lambda noop: noop
 
-    cors = CORS(
+    CORS(
         app,
         origins=app.config.get('CORS_DOMAINS'),
         allow_headers=app.config.get('CORS_HEADERS'),
@@ -29,6 +29,7 @@ def create_app(**kwargs_config):
     app.json_encoder = JSONEncoder
     api.add_resource(StatusView, '/status')
     api.add_resource(ProtectedView, '/protected')
+    api.add_resource(UserResolver, '/user/<string:identifier>')
     discover(app)  # Incorporate local and remote applications into this one
 
     # Register custom error handlers

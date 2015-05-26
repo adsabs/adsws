@@ -52,9 +52,7 @@ class ApiTestCase(FlaskAppTestCase):
         from adsws.modules.oauth2server.registry import scopes as scopes_registry
         
         # Register a test scope
-        scopes_registry.register(Scope('api:search'))
-        scopes_registry.register(Scope('api:tvrh'))
-        scopes_registry.register(Scope('ads:default'))
+        scopes_registry.register(Scope('adsws:internal'))
         self.base_url = self.app.config.get('SITE_SECURE_URL')
         
         # create a client in the database
@@ -66,7 +64,7 @@ class ApiTestCase(FlaskAppTestCase):
             is_confidential=False,
             user_id=user.id,
             _redirect_uris='%s/client/authorized' % self.base_url,
-            _default_scopes="test:scope"
+            _default_scopes="adsws:internal"
         )
         db.session.add(c1)
         db.session.commit()
@@ -83,7 +81,7 @@ class ApiTestCase(FlaskAppTestCase):
                                'bumblebee',
                                consumer_key='bumblebee', 
                                consumer_secret='client secret',
-                               request_token_params={'scope': ['api:search', 'api:tvrh','ads:default']})
+                               request_token_params={'scope': ['adsws:internal']})
         
         # authorize the user - normally, this would happen as a middle step
         # before /oauth/authorize is accessed

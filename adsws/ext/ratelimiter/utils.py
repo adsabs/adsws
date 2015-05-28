@@ -2,7 +2,8 @@
 Utility functions for adsws.ext.ratelimiter
 """
 
-from flask import request
+from flask import request, current_app
+from flask.ext.login import current_user
 
 
 def scope_func():
@@ -17,6 +18,10 @@ def scope_func():
             email=request.oauth.user.email,
             client=request.oauth.client.client_id,
         )
+    # Check if we have a user authenticated via a session cookie
+    elif hasattr(current_user, 'email') and \
+            current_user.email != current_app.config['BOOTSTRAP_USER_EMAIL']:
+        return "{email}".format(email=current_user.email)
     # If request doesn't have oauth-identifying information, fall back to
     # the request's IP address.
     else:

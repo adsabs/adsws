@@ -14,7 +14,7 @@ from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
     print_token
-from .exceptions import ValidationError
+from .exceptions import ValidationError, NoClientError, NoTokenError
 from .emails import PasswordResetEmail, VerificationEmail, \
     EmailChangedNotification
 
@@ -531,12 +531,10 @@ class Bootstrap(Resource):
     other adsws-api resources.
     """
 
-    decorators = [ratelimit(400, 86400, scope_func=scope_func)]
-
     def get(self):
         """
         If the current user is unauthenticated, or the current user
-        is the "bootstrap" (anon) user, return/create a "BB Client" OAuthClientf
+        is the "bootstrap" (anon) user, return/create a "BB Client" OAuthClient
         and token depending if "oauth_client" is encoded into their
         session cookie
 
@@ -545,25 +543,60 @@ class Bootstrap(Resource):
         one in the database
         """
 
-        if not current_user.is_authenticated() or \
-                current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-            client, token = Bootstrap.bootstrap_bumblebee()
+        # If we visit this endpoint and are unauthenticated, then login as
+        # our anonymous user
+        if not current_user.is_authenticated():
+            login_user(user_manipulator.first(
+                email=current_app.config['BOOTSTRAP_USER_EMAIL']
+            ))
+
+        if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+            try:
+                client, token = Bootstrap.load_client(
+                    session.get('oauth_client', '')
+                )
+                if client.user_id != current_user.get_id():
+                    raise NoClientError("client/user mistmatch")
+            except (NoTokenError, NoClientError):
+                client, token = Bootstrap.bootstrap_bumblebee()
+                session['oauth_client'] = client.client_id
         else:
             client, token = Bootstrap.bootstrap_user()
 
         client.last_activity = datetime.datetime.now()
-        try:
-            db.session.add(client)
-            db.session.commit()
-        except Exception, e:
-            db.session.rollback()
-            current_app.logger.error("Error on bootstrap: {}".format(e))
-            abort(503)
-        session['_oauth_client'] = client.client_id
-
+        db.session.commit()
         return print_token(token)
 
     @staticmethod
+    def load_client(clientid):
+        """
+        Loads an Oauth2client from a client id string and returns that client
+        and a valid oauth2token
+
+        :param clientid: OAuthClient.client_id
+        :type clientid: basestring
+        :return: OAuthClient instance
+        """
+        client = OAuthClient.query.filter_by(
+            client_id=clientid,
+        ).first()
+
+        if client is None:
+            raise NoClientError("No client found")
+
+        token = OAuthToken.query.filter_by(
+            client_id=client.client_id,
+            is_personal=False,
+            is_internal=True,
+        ).filter(OAuthToken.expires > datetime.datetime.now()).first()
+
+        if token is None:
+            raise NoTokenError("No valid token found")
+
+        return client, token
+
+    @staticmethod
+    @ratelimit(400, 60*60*24, scope_func=scope_func)
     def bootstrap_bumblebee():
         """
         Return or create a OAuthClient owned by the "bumblebee" user.
@@ -574,79 +607,47 @@ class Bootstrap(Resource):
 
         :return: OAuthToken instance
         """
+        assert current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']
+
         salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
-        scopes = ' '.join(current_app.config['BOOTSTRAP_SCOPES'])
-        user_email = current_app.config['BOOTSTRAP_USER_EMAIL']
+        scopes = ' '.join(current_app.config.get('BOOTSTRAP_SCOPES', []))
         expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
-        client_name = current_app.config.get('BOOTSTRAP_CLIENT_NAME', u'BB client')
-        u = user_manipulator.first(email=user_email)
-        if u is None:
-            current_app.logger.critical(
-                "bootstrap_bumblebee called with unknown email {0}. "
-                "Is the database in a consistent state?".format(user_email))
-            abort(500)
-        login_user(u)
-        client, token, uid = None, None, current_user.get_id()
+        client_name = current_app.config.get('BOOTSTRAP_CLIENT_NAME', 'BB client')
+        uid = current_user.get_id()
 
-        #  Check if "oauth_client" is encoded in the session cookie
-        if '_oauth_client' in session:
-            client = OAuthClient.query.filter_by(
-                client_id=session['_oauth_client'],
-                user_id=uid,
-                name=client_name,
-            ).first()
+        client = OAuthClient(
+            user_id=uid,
+            name=client_name,
+            description=client_name,
+            is_confidential=False,
+            is_internal=True,
+            _default_scopes=scopes,
+        )
+        client.gen_salt()
 
-        if client is None:
-            client = OAuthClient(
-                user_id=uid,
-                name=client_name,
-                description=client_name,
-                is_confidential=False,
-                is_internal=True,
-                _default_scopes=scopes,
-            )
-            client.gen_salt()
+        db.session.add(client)
 
-            db.session.add(client)
-            try:
-                db.session.commit()
-            except Exception, e:
-                db.session.rollback()
-                current_app.logger.error("Unknown DB error: {0}".format(e))
-                abort(503)
+        if isinstance(expires, int):
+            expires = datetime.datetime.utcnow() + datetime.timedelta(
+                seconds=expires)
 
-        token = OAuthToken.query.filter_by(
+        token = OAuthToken(
             client_id=client.client_id,
-            user_id=current_user.get_id(),
+            user_id=uid,
+            expires=expires,
+            _scopes=scopes,
+            access_token=gen_salt(salt_length),
+            refresh_token=gen_salt(salt_length),
             is_personal=False,
             is_internal=True,
-        ).filter(OAuthToken.expires > datetime.datetime.now()).first()
+        )
 
-        if token is None:
-            if isinstance(expires,int):
-                expires = datetime.datetime.utcnow() \
-                        + datetime.timedelta(seconds=expires)
-                token = OAuthToken(
-                    client_id=client.client_id,
-                    user_id=current_user.get_id(),
-                    access_token=gen_salt(salt_length),
-                    refresh_token=gen_salt(salt_length),
-                    expires=expires,
-                    _scopes=scopes,
-                    is_personal=False,
-                    is_internal=True,
-                )
-
-                db.session.add(token)
-                try:
-                    db.session.commit()
-                except Exception, e:
-                    db.session.rollback()
-                    current_app.logger.error("Unknown DB error: {0}".format(e))
-                    abort(503)
+        db.session.add(token)
+        db.session.commit()
         return client, token
 
     @staticmethod
+    @ratelimit(100, 600, scope_func=scope_func)
     def bootstrap_user():
         """
         Return or create a OAuthClient owned by the authenticated real user.
@@ -657,48 +658,42 @@ class Bootstrap(Resource):
 
         :return: OAuthToken instance
         """
+        assert current_user.email != current_app.config['BOOTSTRAP_USER_EMAIL']
+
+        uid = current_user.get_id()
+        client_name = current_app.config.get('BOOTSTRAP_CLIENT_NAME', 'BB client')
 
         client = OAuthClient.query.filter_by(
-          user_id=current_user.get_id(),
-          name=u'BB client',
+            user_id=uid,
+            name=client_name,
         ).first()
+
         if client is None:
             scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
             salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
             client = OAuthClient(
                 user_id=current_user.get_id(),
-                name=u'BB client',
-                description=u'BB client',
+                name=client_name,
+                description=client_name,
                 is_confidential=True,
                 is_internal=True,
                 _default_scopes=scopes,
             )
             client.gen_salt()
             db.session.add(client)
-            try:
-                db.session.commit()
-            except Exception, e:
-                db.session.rollback()
-                current_app.logger.error("Unknown DB error: {0}".format(e))
-                abort(503)
 
             token = OAuthToken(
                 client_id=client.client_id,
-                user_id=current_user.get_id(),
+                user_id=uid,
                 access_token=gen_salt(salt_length),
                 refresh_token=gen_salt(salt_length),
-                expires=datetime.datetime(2500,1,1),
+                expires=datetime.datetime(2500, 1, 1),
                 _scopes=scopes,
                 is_personal=False,
                 is_internal=True,
             )
             db.session.add(token)
-            try:
-                db.session.commit()
-            except Exception, e:
-                db.session.rollback()
-                current_app.logger.error("Unknown DB error: {0}".format(e))
-                abort(503)
+            db.session.commit()
             current_app.logger.info(
                 "Created BB client for {email}".format(email=current_user.email)
             )

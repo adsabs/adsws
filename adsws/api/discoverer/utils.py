@@ -116,9 +116,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                 continue
 
             view = proxyview.dispatcher
+            properties.setdefault('rate_limit', [1000, 86400])
+            properties.setdefault('scopes', [])
 
             # Decorate the view with ratelimit.
-            # We should fail if the remote app does not define rate_limit
             d = properties['rate_limit'][0]
             view = ratelimit(
                 limit=lambda default=d, **kwargs: limit_func(default),
@@ -128,7 +129,6 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             )(view)
 
             # Decorate with the advertised oauth2 scopes
-            # We should fail if the remote app does not define scopes
             view = oauth2.require_oauth(*properties['scopes'])(view)
 
             # Add cache-control headers

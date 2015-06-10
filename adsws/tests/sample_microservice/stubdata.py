@@ -6,3 +6,4 @@ class Stubdata:
         'POST': {'resource': 'GETPOST', 'method': 'post'},
     }
     PUT = {'resource': 'PUT'}
+    DELETE={'resource': 'DELETE'}

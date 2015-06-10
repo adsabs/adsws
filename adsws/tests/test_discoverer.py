@@ -100,6 +100,16 @@ class DiscovererTestCase:
         r = self.open('GET', '/test_webservice/POST')
         self.assertStatus(r, 405)
 
+    def test_DELETE_resc(self):
+        """
+        test sample application DELETE resource
+        """
+        r = self.open('DELETE', '/test_webservice/DELETE')
+        self.assertEqual(r.json, Stubdata.DELETE)
+
+        r = self.open('GET', '/test_webservice/DELETE')
+        self.assertStatus(r, 405)
+
     def test_GETPOST_resc(self):
         """
         test sample application GETPOST resource

@@ -43,6 +43,17 @@ class EchoHeaders(Resource):
         return dict(request.headers)
 
 
+class DELETE(Resource):
+    """
+    desc for DELETE
+    """
+    scopes = []
+    rate_limit = [1000, 60*60*24]
+
+    def delete(self):
+        return Stubdata.DELETE
+
+
 class GET(Resource):
     """desc for GET"""
     scopes = []

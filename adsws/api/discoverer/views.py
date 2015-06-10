@@ -63,3 +63,17 @@ class ProxyView(Resource):
         if isinstance(resp, basestring):
             resp = json.loads(resp)
         return jsonify(resp)
+
+    def delete(self, ep, request):
+        """
+        Proxy to remote PUT endpoint, should be invoked via self.dispatcher()
+        """
+        if not isinstance(request.data, basestring):
+            request.data = json.dumps(request.data)
+        r = requests.delete(ep, data=request.data, headers=request.headers)
+        resp = r.json()
+
+        # This should only be necessary for httpretty in unittests
+        if isinstance(resp, basestring):
+            resp = json.loads(resp)
+        return jsonify(resp)

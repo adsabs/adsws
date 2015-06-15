@@ -54,6 +54,17 @@ class DELETE(Resource):
         return Stubdata.DELETE
 
 
+class _410Response(Resource):
+    """
+    return a 410 response code
+    """
+    scopes = []
+    rate_limit = [1000, 60*60*24]
+
+    def get(self):
+        return {"message": "gone"}, 410
+
+
 class GET(Resource):
     """desc for GET"""
     scopes = []

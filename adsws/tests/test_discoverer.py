@@ -70,6 +70,13 @@ class DiscovererTestCase:
         r = self.open('GET', '/test_webservice/resources')
         self.assertStatus(r, 200)
 
+    def test_410_resc(self):
+        """
+        Test that the response code is properly forwarded through adsws
+        """
+        r = self.open('GET', '/test_webservice/410')
+        self.assertStatus(r, 410)
+
     def test_GET_resc(self):
         """
         test sample application GET resource

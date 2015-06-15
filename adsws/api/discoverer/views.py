@@ -1,10 +1,9 @@
-from flask import jsonify, request
+from flask import request
 from flask.ext.restful import Resource
 from werkzeug.datastructures import Headers
 from urlparse import urljoin
 import requests
 import json
-
 
 
 class ProxyView(Resource):
@@ -15,7 +14,7 @@ class ProxyView(Resource):
         self.service_uri = service_uri
         self.deploy_path = deploy_path
 
-    def dispatcher(self, **kwargs):
+    def dispatcher(self):
         """
         Having a dispatch based on request.method solves being able to set up
         ProxyViews on the same resource for different routes. However, it
@@ -27,14 +26,15 @@ class ProxyView(Resource):
         h = Headers(request.headers.items())
         h.setdefault('X-Adsws-Uid', request.oauth.user.id)
         request.headers = h
-        return self.__getattribute__(request.method.lower())(ep, request)
+        resp = self.__getattribute__(request.method.lower())(ep, request)
+        return resp.text, resp.status_code
 
     def get(self, ep, request):
         """
         Proxy to remote GET endpoint, should be invoked via self.dispatcher()
         """
         r = requests.get(ep, headers=request.headers)
-        return jsonify(r.json())
+        return r
 
     def post(self, ep, request):
         """
@@ -43,12 +43,7 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         r = requests.post(ep, data=request.data, headers=request.headers)
-        resp = r.json()
-
-        # This should only be necessary for httpretty in unittests
-        if isinstance(resp, basestring):
-            resp = json.loads(resp)
-        return jsonify(resp)
+        return r
 
     def put(self, ep, request):
         """
@@ -57,12 +52,7 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         r = requests.put(ep, data=request.data, headers=request.headers)
-        resp = r.json()
-
-        # This should only be necessary for httpretty in unittests
-        if isinstance(resp, basestring):
-            resp = json.loads(resp)
-        return jsonify(resp)
+        return r
 
     def delete(self, ep, request):
         """
@@ -71,9 +61,4 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         r = requests.delete(ep, data=request.data, headers=request.headers)
-        resp = r.json()
-
-        # This should only be necessary for httpretty in unittests
-        if isinstance(resp, basestring):
-            resp = json.loads(resp)
-        return jsonify(resp)
+        return r

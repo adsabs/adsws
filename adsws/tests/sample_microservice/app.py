@@ -1,19 +1,10 @@
-from flask import Blueprint
 from flask import Flask
 from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT, \
-    PUT, EchoHeaders, DELETE
+    PUT, EchoHeaders, DELETE, _410Response
 from flask.ext.restful import Api
 
 
-def _create_blueprint_():
-    return Blueprint(
-        'sample_application',
-        __name__,
-        static_folder=None,
-    )
-
-
-def create_app(blueprint_only=False):
+def create_app():
     app = Flask(__name__, static_folder=None)
 
     app.url_map.strict_slashes = False
@@ -27,8 +18,7 @@ def create_app(blueprint_only=False):
     # between tests, otherwise _registered_once=False
     # will cause app.register_blueprint to fail
     # reload(views)
-    bp = _create_blueprint_()
-    api = Api(bp)
+    api = Api(app)
 
     api.add_resource(Resources, '/resources')
     api.add_resource(EchoHeaders, '/ECHO_HEADERS')
@@ -39,10 +29,8 @@ def create_app(blueprint_only=False):
     api.add_resource(GETPOST, '/GETPOST')
     api.add_resource(SCOPED, '/SCOPED')
     api.add_resource(LOW_RATE_LIMIT, '/LOW_RATE_LIMIT')
+    api.add_resource(_410Response, '/410')
 
-    if blueprint_only:
-        return bp
-    app.register_blueprint(bp)
     return app
 
 

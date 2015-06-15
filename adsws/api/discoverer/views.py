@@ -14,7 +14,7 @@ class ProxyView(Resource):
         self.service_uri = service_uri
         self.deploy_path = deploy_path
 
-    def dispatcher(self):
+    def dispatcher(self, **kwargs):
         """
         Having a dispatch based on request.method solves being able to set up
         ProxyViews on the same resource for different routes. However, it

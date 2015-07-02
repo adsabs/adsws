@@ -13,8 +13,11 @@ import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
 from flask import Flask, g, request, jsonify, session
+from flask.ext.login import current_user
 from flask.ext.sslify import SSLify
 from flask.ext.consulate import Consul, ConsulConnectionError
+from adsws.modules.oauth2server.provider import oauth2
+from werkzeug.datastructures import Headers
 
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
@@ -111,6 +114,18 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         app.errorhandler(401)(on_401)
         app.errorhandler(429)(on_429)
         app.errorhandler(405)(on_405)
+
+    @oauth2.after_request
+    def set_adsws_uid_header(valid, oauth):
+        """
+        If the user is authenticated, inject the header "X-adsws-uid" into
+        the incoming request header
+        """
+        if current_user.is_authenticated():
+            h = Headers(request.headers.items())
+            h.add_header("X-Adsws-Uid", current_user.id)
+            request.headers = h
+        return valid, oauth
     return app
 
 

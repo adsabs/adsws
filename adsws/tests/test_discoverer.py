@@ -177,6 +177,14 @@ class DiscovererTestCase:
             self.user.ratelimit_level*3 - 1,
         )
 
+    def test_adsws_user_header(self):
+        """
+        Test that the correct 'adsws-user' header is passed to remote
+        services
+        """
+        r = self.open('GET', '/test_webservice/ECHO_HEADERS')
+        self.assertIn('X-Adsws-Uid', r.json)
+        self.assertEqual(self.user.id, int(r.json['X-Adsws-Uid']))
 
 class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
     """
@@ -271,15 +279,6 @@ class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
 
         # The remote service should have a completely isolated config
         self.assertNotIn('TEST_SPECIFIC_CONFIG', current_app.config)
-
-    def test_adsws_user_header(self):
-        """
-        Test that the correct 'adsws-user' header is passed to remote
-        services
-        """
-        r = self.open('GET', '/test_webservice/ECHO_HEADERS')
-        self.assertIn('X-Adsws-Uid', r.json)
-        self.assertEqual(self.user.id, int(r.json['X-Adsws-Uid']))
 
 
 TESTSUITE = make_test_suite(

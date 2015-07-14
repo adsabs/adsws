@@ -10,6 +10,7 @@ from flask import Flask
 from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 
+from adsws import slackback
 from adsws import accounts
 from adsws import api
 from adsws import frontend
@@ -28,12 +29,14 @@ def get_resources(*apps):
 
 API = dict(mount='/v1',app=api.create_app())
 ACCOUNTS = dict(mount='/v1/accounts',app=accounts.create_app())
+SLACKBACK = dict(mount='/v1/slackback',app=slackback.create_app())
 
-resources = get_resources(API,ACCOUNTS)
+resources = get_resources(API,ACCOUNTS,SLACKBACK)
 
 application = DispatcherMiddleware(frontend.create_app(resources=resources), {
     API['mount']: API['app'],
     ACCOUNTS['mount']: ACCOUNTS['app'],
+    SLACKBACK['mount']: SLACKBACK['app']
 })
 
 if __name__ == "__main__":

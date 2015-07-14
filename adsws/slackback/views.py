@@ -4,7 +4,6 @@ Views
 """
 
 import json
-
 from flask import current_app, request
 from flask.ext.restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
@@ -12,7 +11,6 @@ from adsws.slackback.client import client
 from adsws.slackback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
-from simplejson import JSONDecodeError
 
 CHECK_CAPTCHA = False
 API_DOCS = 'https://github.com/adsabs/adsabs-dev-api'
@@ -25,6 +23,11 @@ ERROR_MISSING_KEYWORDS = dict(
          .format(API_DOCS),
     number=404
 )
+ERROR_WRONG_ENDPOINT = dict(
+    body='Re-directed due to malformed request or incorrect end point',
+    number=302
+)
+
 
 class SlackFeedback(Resource):
     """
@@ -113,7 +116,11 @@ class SlackFeedback(Resource):
                                 .format(slack_response.status_code))
 
         # Slack annoyingly redirects if you have the wrong end point
-        if slack_response.status_code == 200:
+        current_app.logger.info('Slack API' in slack_response.text)
+
+        if 'Slack API' in slack_response.text:
+            return err(ERROR_WRONG_ENDPOINT)
+        elif slack_response.status_code == 200:
             return {}, 200
         else:
-            return {'msg': slack_response.text}, slack_response.status_code
+            return {'msg': 'Unknown error'}, slack_response.status_code

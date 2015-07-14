@@ -1,4 +1,3 @@
-cloud
 mock
 httpretty
 splinter

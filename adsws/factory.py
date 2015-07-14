@@ -124,6 +124,11 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         if current_user.is_authenticated():
             h = Headers(request.headers.items())
             h.add_header("X-Adsws-Uid", current_user.id)
+            if current_user.ratelimit_level is not None:
+                h.add_header(
+                    "X-Adsws-Ratelimit-Level",
+                    current_user.ratelimit_level
+                )
             request.headers = h
         return valid, oauth
     return app

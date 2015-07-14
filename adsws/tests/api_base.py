@@ -46,8 +46,7 @@ class ApiTestCase(FlaskAppTestCase):
         
         user = user_manipulator.create(email='montysolr', password='montysolr', active=True)
         self.user = user
-        user_manipulator.create(email='villain', password='villain', active=True)
-        
+
         from adsws.modules.oauth2server.models import OAuthClient, Scope, OAuthToken
         from adsws.modules.oauth2server.registry import scopes as scopes_registry
         

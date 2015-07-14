@@ -34,7 +34,7 @@ class OAuthProtectedView(Resource):
     decorators = [oauth2.require_oauth()]
 
     def get(self):
-        return {'app': current_app.name, 'oauth': request.oauth.user.email, 'X-adsws-uid': request.headers.get('X-adsws-uid')}
+        return {'app': current_app.name, 'oauth': request.oauth.user.email}
 
 
 class DeleteAccountView(Resource):

@@ -1,6 +1,5 @@
 flask-headers
-#flask-ratelimiter
--e git+https://github.com/inveniosoftware/flask-ratelimiter@3b2f84e8b12c2eb3d0f90e760e2a43f17de81c2b#egg=flask-ratelimiter
+git+https://github.com/inveniosoftware/flask-ratelimiter@3b2f84e8b12c2eb3d0f90e760e2a43f17de81c2b#egg=flask-ratelimiter
 flask-cors==1.9.0
 flask-RESTful
 flask-sslify
@@ -12,9 +11,8 @@ Flask-Security
 Flask-Menu
 Flask-Script
 Flask-Breadcrumbs
-#Flask-OAuthlib
--e git+https://github.com/lepture/flask-oauthlib.git@e092a5f46ff6c78d313a6eb2f89ee746fb190dfb#egg=Flask-OAuthlib
-Flask-WTF
+git+https://github.com/lepture/flask-oauthlib.git@e092a5f46ff6c78d313a6eb2f89ee746fb190dfb#egg=Flask-OAuthlib
+Flask-WTF==0.11
 WTForms-Alchemy
 Flask-Testing
 Flask-Registry
@@ -28,5 +26,5 @@ alembic
 six
 redis
 ConcurrentLogHandler
--e git+https://github.com/adsabs/flask-consulate@8d7e60122cbc73693ac37a5468b9be78bea774a1#egg=flask-consulate
--e .
+git+https://github.com/adsabs/flask-consulate@95506c5b1641f38a02b426de7a36cdd68f6f16d1#egg=flask-consulate
+.

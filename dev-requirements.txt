@@ -1,4 +1,6 @@
-cloud
 mock
 httpretty
-splinter
+coveralls
+pytest
+coverage
+pytest-cov

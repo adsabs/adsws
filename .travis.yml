@@ -20,7 +20,6 @@ services:
   - redis-server
 
 install:
-  - "pip install --upgrade pip coveralls pep257 pytest pytest-pep8 pytest-cov pytest-cache coverage"
   - "pip install -r requirements.txt"
   - "pip install -r dev-requirements.txt"
 
@@ -32,3 +31,5 @@ after_success:
 
 notifications:
   email: false
+
+sudo: false

@@ -207,7 +207,7 @@ class PersonalTokenView(Resource):
     Implements getting/setting a personal API token
     """
     decorators = [
-        ratelimit(10, 86400, scope_func=scope_func),
+        ratelimit(500, 43200, scope_func=scope_func),
         login_required,
     ]
 

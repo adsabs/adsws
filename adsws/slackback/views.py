@@ -12,7 +12,6 @@ from adsws.slackback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
 
-CHECK_CAPTCHA = False
 API_DOCS = 'https://github.com/adsabs/adsabs-dev-api'
 ERROR_UNVERIFIED_CAPTCHA = dict(
     body='captcha was not verified',
@@ -89,13 +88,12 @@ class SlackFeedback(Resource):
         post_data = get_post_data(request)
         current_app.logger.info('Received feedback: {0}'.format(post_data))
 
-        if CHECK_CAPTCHA:
-            if not post_data.get('g-recaptcha-response', False) or \
-                    not verify_recaptcha(request):
-                current_app.logger.info('The captcha was not verified!')
-                return err(ERROR_UNVERIFIED_CAPTCHA)
-            else:
-                current_app.logger.info('Skipped captcha!')
+        if not post_data.get('g-recaptcha-response', False) or \
+                not verify_recaptcha(request):
+            current_app.logger.info('The captcha was not verified!')
+            return err(ERROR_UNVERIFIED_CAPTCHA)
+        else:
+            current_app.logger.info('Skipped captcha!')
 
         try:
             current_app.logger.info('Prettifiying post data: {0}'

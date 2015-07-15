@@ -5,38 +5,36 @@
 
     adsws wsgi module
 """
-from flask import Flask
-
 from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 
-from adsws import slackback
+from adsws import feedback
 from adsws import accounts
 from adsws import api
 from adsws import frontend
 
 def get_resources(*apps):
-  r = {}
-  for _container in apps:
-    app = _container['app']
-    mnt = _container['mount']
-    r[app.name] = {}
-    r[app.name]['endpoints'] = []
-    r[app.name]['base'] = mnt
-    for rule in app.url_map.iter_rules():
-      r[app.name]['endpoints'].append(rule.rule)
-  return r
+    r = {}
+    for _container in apps:
+        app = _container['app']
+        mnt = _container['mount']
+        r[app.name] = {}
+        r[app.name]['endpoints'] = []
+        r[app.name]['base'] = mnt
+        for rule in app.url_map.iter_rules():
+            r[app.name]['endpoints'].append(rule.rule)
+    return r
 
-API = dict(mount='/v1',app=api.create_app())
-ACCOUNTS = dict(mount='/v1/accounts',app=accounts.create_app())
-SLACKBACK = dict(mount='/slackback',app=slackback.create_app())
+API = dict(mount='/v1', app=api.create_app())
+ACCOUNTS = dict(mount='/v1/accounts', app=accounts.create_app())
+FEEDBACK = dict(mount='/feedback', app=feedback.create_app())
 
-resources = get_resources(API,ACCOUNTS,SLACKBACK)
+resources = get_resources(API, ACCOUNTS, FEEDBACK)
 
 application = DispatcherMiddleware(frontend.create_app(resources=resources), {
     API['mount']: API['app'],
     ACCOUNTS['mount']: ACCOUNTS['app'],
-    SLACKBACK['mount']: SLACKBACK['app']
+    FEEDBACK['mount']: FEEDBACK['app']
 })
 
 if __name__ == "__main__":

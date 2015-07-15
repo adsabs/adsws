@@ -4,7 +4,9 @@ Application factory
 
 from .. import factory
 from flask.ext.restful import Api
-from adsws.slackback.views import SlackFeedback
+from flask.ext.cors import CORS
+from adsws.feedback.views import SlackFeedback
+
 
 def create_app(**kwargs_config):
     """
@@ -22,6 +24,13 @@ def create_app(**kwargs_config):
 
     # Register extensions
     api = Api(app)
+    CORS(
+        app,
+        origins=app.config.get('CORS_DOMAINS'),
+        allow_headers=app.config.get('CORS_HEADERS'),
+        methods=app.config.get('CORS_METHODS'),
+        supports_credentials=True,
+    )
 
     # Add end points
     api.add_resource(SlackFeedback, '/slack')

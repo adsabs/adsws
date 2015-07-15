@@ -8,7 +8,7 @@ import requests
 from flask import current_app, request
 from flask.ext.restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
-from adsws.slackback.utils import err
+from adsws.feedback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
 

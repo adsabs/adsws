@@ -7,11 +7,11 @@ import json
 import unittest
 import requests
 
-from adsws import slackback
+from adsws import feedback
 from flask import url_for, current_app
 from flask.ext.testing import TestCase
 from httpretty import HTTPretty
-from adsws.slackback.views import SlackFeedback, verify_recaptcha
+from adsws.feedback.views import SlackFeedback, verify_recaptcha
 
 
 class GoogleRecaptchaService(object):
@@ -70,6 +70,7 @@ class GoogleRecaptchaService(object):
         HTTPretty.reset()
         HTTPretty.disable()
 
+
 class SlackWebService(object):
     """
     context manager that mocks a ADSWS API response
@@ -125,6 +126,7 @@ class SlackWebService(object):
         HTTPretty.reset()
         HTTPretty.disable()
 
+
 class TestBase(TestCase):
     """
     A basic base class for all of the tests here
@@ -134,8 +136,9 @@ class TestBase(TestCase):
         """
         Create the wsgi application
         """
-        app_ = slackback.create_app()
+        app_ = feedback.create_app()
         return app_
+
 
 class TestFunctionals(TestBase):
     """

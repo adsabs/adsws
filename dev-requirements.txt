@@ -1,10 +1,5 @@
 mock
 httpretty
-splinter
 coveralls
-pep257
 pytest
-pytest-pep8
-pytest-cov
-pytest-cache
 coverage

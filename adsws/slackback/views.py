@@ -4,10 +4,10 @@ Views
 """
 
 import json
+import requests
 from flask import current_app, request
 from flask.ext.restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
-from adsws.slackback.client import client
 from adsws.slackback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
@@ -106,7 +106,7 @@ class SlackFeedback(Resource):
                                      .format(error, post_data))
             return err(ERROR_MISSING_KEYWORDS)
 
-        slack_response = client().post(
+        slack_response = requests.post(
             url=current_app.config['FEEDBACK_SLACK_END_POINT'],
             data=formatted_post_data
         )

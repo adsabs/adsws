@@ -29,7 +29,7 @@ def get_resources(*apps):
 
 API = dict(mount='/v1',app=api.create_app())
 ACCOUNTS = dict(mount='/v1/accounts',app=accounts.create_app())
-SLACKBACK = dict(mount='/v1/slackback',app=slackback.create_app())
+SLACKBACK = dict(mount='/slackback',app=slackback.create_app())
 
 resources = get_resources(API,ACCOUNTS,SLACKBACK)
 

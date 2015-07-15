@@ -11,7 +11,6 @@ from adsws import slackback
 from flask import url_for, current_app
 from flask.ext.testing import TestCase
 from httpretty import HTTPretty
-from adsws.slackback.client import client
 from adsws.slackback.views import SlackFeedback, verify_recaptcha
 
 
@@ -203,7 +202,7 @@ class TestUnits(TestBase):
         }
 
         with SlackWebService():
-            response = client().post(
+            response = requests.post(
                 current_app.config['FEEDBACK_SLACK_END_POINT'],
                 data=post_data
             )
@@ -218,7 +217,7 @@ class TestUnits(TestBase):
         post_data = {}
 
         with SlackWebService():
-            response = client().post(
+            response = requests.post(
                 current_app.config['FEEDBACK_SLACK_END_POINT'],
                 data=post_data
             )

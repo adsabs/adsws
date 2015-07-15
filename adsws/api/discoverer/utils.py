@@ -58,7 +58,8 @@ def bootstrap_local_module(service_uri, deploy_path, app):
             view = oauth2.require_oauth(*attr_base.scopes)(view)
 
         # Add cache-control headers
-        view = headers(app.config.get('API_PROXYVIEW_HEADERS'))(view)
+        if app.config.get('API_PROXYVIEW_HEADERS'):
+          view = headers(app.config['API_PROXYVIEW_HEADERS'])(view)
 
         # Let flask handle OPTIONS, which it will not do if we explicitly
         # add it to the url_map

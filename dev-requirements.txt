@@ -3,3 +3,4 @@ httpretty
 coveralls
 pytest
 coverage
+pytest-cov

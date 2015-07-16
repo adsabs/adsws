@@ -133,7 +133,8 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             view = oauth2.require_oauth(*properties['scopes'])(view)
 
             # Add cache-control headers
-            view = headers(app.config.get('API_PROXYVIEW_HEADERS'))(view)
+            if app.config.get('API_PROXYVIEW_HEADERS'):
+                view = headers(app.config['API_PROXYVIEW_HEADERS'])(view)
 
             # Either make a new route with this view, or append the new method
             # to an existing route if one exists with the same name

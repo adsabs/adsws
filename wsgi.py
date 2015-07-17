@@ -27,7 +27,7 @@ def get_resources(*apps):
 
 API = dict(mount='/v1', app=api.create_app())
 ACCOUNTS = dict(mount='/v1/accounts', app=accounts.create_app())
-FEEDBACK = dict(mount='/feedback', app=feedback.create_app())
+FEEDBACK = dict(mount='/v1/feedback', app=feedback.create_app())
 
 resources = get_resources(API, ACCOUNTS, FEEDBACK)
 

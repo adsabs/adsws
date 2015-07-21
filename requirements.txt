@@ -25,6 +25,8 @@ requests
 alembic
 six
 redis
+netifaces
+dnspython
 ConcurrentLogHandler
 git+https://github.com/adsabs/flask-consulate@95506c5b1641f38a02b426de7a36cdd68f6f16d1#egg=flask-consulate
 .

@@ -8,6 +8,50 @@ from urlparse import urljoin
 import traceback
 from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, scope_func, limit_func
+import netifaces
+from dns.resolver import Resolver
+
+
+class ConsulService:
+    """
+    Container for a consul service record
+    """
+
+    resolver = Resolver()
+    resolver.nameservers = [
+        netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
+    ]
+
+    def __init__(self, service_uri):
+        """
+        :param service_uri: string formatted service identifier
+            (consul://production.solr_service.consul)
+        """
+        assert service_uri.startswith('consul://'), "Invalid consul service URI"
+        self.service_uri = service_uri
+        self.service = service_uri.replace('consul://', '')
+        self.endpoints = None
+
+    def resolve(self):
+        """
+        Query the consul DNS server for the service IP and port
+        """
+        endpoints = {}
+        r = self.resolver.query(self.service, 'SRV')
+        for rec in r.response.additional:
+            name = rec.name.to_text()
+            addr = rec.items[0].address
+            endpoints[name] = {'addr': addr}
+        for rec in r.response.answer[0].items:
+            name = '.'.join(rec.target.labels)
+            endpoints[name]['port'] = rec.port
+
+        self.endpoints = [
+            "{ip}:{port}".format(
+                ip=v['addr'], port=v['port']
+            ) for v in endpoints.values()
+        ]
+        return self.endpoints
 
 
 def bootstrap_local_module(service_uri, deploy_path, app):
@@ -59,7 +103,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
         # Add cache-control headers
         if app.config.get('API_PROXYVIEW_HEADERS'):
-          view = headers(app.config['API_PROXYVIEW_HEADERS'])(view)
+            view = headers(app.config['API_PROXYVIEW_HEADERS'])(view)
 
         # Let flask handle OPTIONS, which it will not do if we explicitly
         # add it to the url_map
@@ -87,7 +131,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     )
 
     try:
-        r = requests.get(url,timeout=5)
+        r = requests.get(url, timeout=5)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         app.logger.info('Could not discover {0}'.format(service_uri))
         return
@@ -162,7 +206,10 @@ def discover(app):
         webservices = {}
     for service_uri, deploy_path in webservices.iteritems():
         try:
-            if service_uri.startswith('http'):
+            if any([
+                    service_uri.startswith(prefix) for prefix in
+                    ['http://', 'https://', 'consul://']
+                    ]):
                 bootstrap_remote_service(service_uri, deploy_path, app)
             else:
                 bootstrap_local_module(service_uri, deploy_path, app)

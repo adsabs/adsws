@@ -17,11 +17,6 @@ class ConsulService:
     Container for a consul service record
     """
 
-    resolver = Resolver()
-    resolver.nameservers = [
-        netifaces.ifaddresses('docker0')[netifaces.AF_INET][0]['addr']
-    ]
-
     def __init__(self, service_uri):
         """
         :param service_uri: string formatted service identifier
@@ -31,6 +26,23 @@ class ConsulService:
         self.service_uri = service_uri
         self.service = service_uri.replace('consul://', '')
         self.endpoints = None
+        self.resolver = Resolver()
+        self.set_ns()
+
+    def set_ns(self, iface='docker0', ip=None):
+        """
+        set the nameserver ip address from the network interface ip addr. If
+        kwarg `ip` is specified, use that instead
+        :param iface: network inferace
+        :param ip: ip to return
+        """
+        if ip is not None:
+            self.resolver.nameservers = ip
+        assert iface in netifaces.interfaces(), 'Uknown iface {}'.format(iface)
+
+        self.resolver.nameservers = [
+            netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+        ]
 
     def resolve(self):
         """
@@ -47,7 +59,7 @@ class ConsulService:
             endpoints[name]['port'] = rec.port
 
         self.endpoints = [
-            "{ip}:{port}".format(
+            "http://{ip}:{port}".format(
                 ip=v['addr'], port=v['port']
             ) for v in endpoints.values()
         ]

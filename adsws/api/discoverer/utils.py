@@ -17,33 +17,31 @@ class ConsulService:
     Container for a consul service record
     """
 
-    def __init__(self, service_uri):
+    def __init__(self, service_uri, discover_ns=True):
         """
         :param service_uri: string formatted service identifier
             (consul://production.solr_service.consul)
+        :param discover_ns: Attempt to auto-discover DNS nameservers
         """
         assert service_uri.startswith('consul://'), "Invalid consul service URI"
         self.service_uri = service_uri
         self.service = service_uri.replace('consul://', '')
         self.endpoints = None
         self.resolver = Resolver()
-        self.set_ns()
+        if discover_ns:
+            self.set_ns()
 
-    def set_ns(self, iface='docker0', ip=None):
+    def set_ns(self, iface='docker0'):
         """
         set the nameserver ip address from the network interface ip addr. If
         kwarg `ip` is specified, use that instead
         :param iface: network inferace
-        :param ip: ip to return
         """
-        if ip is not None:
-            self.resolver.nameservers = ip
-        else:
-            assert iface in netifaces.interfaces(), \
-                'Uknown iface {}'.format(iface)
-            self.resolver.nameservers = [
-                netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
-            ]
+        assert iface in netifaces.interfaces(), \
+            'Unknown iface {}'.format(iface)
+        self.resolver.nameservers = [
+            netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+        ]
 
     def resolve(self):
         """

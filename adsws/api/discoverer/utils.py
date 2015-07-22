@@ -38,11 +38,12 @@ class ConsulService:
         """
         if ip is not None:
             self.resolver.nameservers = ip
-        assert iface in netifaces.interfaces(), 'Uknown iface {}'.format(iface)
-
-        self.resolver.nameservers = [
-            netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
-        ]
+        else:
+            assert iface in netifaces.interfaces(), \
+                'Uknown iface {}'.format(iface)
+            self.resolver.nameservers = [
+                netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr']
+            ]
 
     def resolve(self):
         """

@@ -8,6 +8,7 @@ from flask import jsonify
 from views import StatusView, ProtectedView, UserResolver
 from discoverer import discover
 
+
 def create_app(**kwargs_config):
     app = factory.create_app(
         app_name=__name__.replace('.app', ''),

@@ -1,11 +1,12 @@
 from adsws.testsuite import make_test_suite, run_test_suite
 from adsws.core import user_manipulator, db
-from api_base import ApiTestCase
+from api_base import ApiTestCase as _APITestCase
 from adsws import api
 from flask import url_for
 import time
 
-class ApiTestCase(ApiTestCase):
+
+class ApiTestCase(_APITestCase):
     """
     Tests adsws-API specific endpoints
     """

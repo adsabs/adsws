@@ -1,5 +1,4 @@
 from flask import current_app, g
-from adsws.testsuite import make_test_suite, run_test_suite
 from adsws.core import user_manipulator
 from api_base import ApiTestCase
 from adsws import api
@@ -7,6 +6,7 @@ import subprocess
 import os
 import time
 from sample_microservice import Stubdata
+import mock
 
 LIVESERVER_WAIT_SECONDS = 2.5
 
@@ -17,7 +17,8 @@ class DiscovererTestCase:
     Responsible for testing the bootstrapped sample application's behavior
     """
 
-    def setupRemoteServer(self):
+    @classmethod
+    def setupRemoteServer(cls):
         """
         Sets up a remote server using subprocess.Popen. The port is hardcoded
         as 5005
@@ -27,14 +28,15 @@ class DiscovererTestCase:
             'sample_microservice',
             'app.py'
         )
-        self.liveserver = subprocess.Popen(['python', path])
+        cls.liveserver = subprocess.Popen(['python', path])
         time.sleep(LIVESERVER_WAIT_SECONDS)
 
-    def tearDownRemoteServer(self):
+    @classmethod
+    def tearDownRemoteServer(cls):
         """
         Kills the subprocess running the liveserver
         """
-        self.liveserver.kill()
+        cls.liveserver.kill()
         time.sleep(LIVESERVER_WAIT_SECONDS)
 
     def open(self, method, url, **kwargs):
@@ -253,7 +255,6 @@ class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
     """
 
     def create_app(self):
-        self.setupRemoteServer()
         app = api.create_app(
             WEBSERVICES={'http://localhost:5005/': '/test_webservice'},
             WEBSERVICES_PUBLISH_ENDPOINT='resources',
@@ -269,16 +270,15 @@ class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
             RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
-        self.tearDownRemoteServer()
         return app
 
-    def setUp(self):
-        self.setupRemoteServer()
-        super(DiscoverRemoteServerTestCase, self).setUp()
+    @classmethod
+    def setUpClass(cls):
+        cls.setupRemoteServer()
 
-    def tearDown(self):
-        self.tearDownRemoteServer()
-        super(DiscoverRemoteServerTestCase, self).tearDown()
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownRemoteServer()
 
     def test_app_config(self):
         """
@@ -294,10 +294,46 @@ class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
         self.assertNotIn('TEST_SPECIFIC_CONFIG', current_app.config)
 
 
-TESTSUITE = make_test_suite(
-    DiscoverRemoteServerTestCase,
-    #DiscoverLocalModuleTestCase
-)
+class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
+    """
+    Identifing a service using the 'consul://' prefix should result in that
+    service being discovered and bootstrapped into the api
+    """
 
-if __name__ == '__main__':
-    run_test_suite(TESTSUITE)
+    @classmethod
+    def setUpClass(cls):
+        cls.patcher_resolve = mock.patch(
+            'flask.ext.consulate.ConsulService._resolve'
+        )
+        mocked_resolve = cls.patcher_resolve.start()
+        mocked_resolve.return_value = ["http://localhost:5005"]
+        cls.patcher_set_ns = mock.patch(
+            'flask.ext.consulate.ConsulService.set_ns'
+        )
+        mocked_set_ns = cls.patcher_set_ns.start()
+        mocked_set_ns.return_value = ["10.1.1.1"]
+        cls.setupRemoteServer()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.patcher_resolve.stop()
+        cls.patcher_set_ns.stop()
+        cls.tearDownRemoteServer()
+
+    def create_app(self):
+        app = api.create_app(
+            WEBSERVICES={'consul://test_webservice.service': '/test_webservice'},
+            WEBSERVICES_PUBLISH_ENDPOINT='resources',
+            SQLALCHEMY_BINDS=None,
+            SQLALCHEMY_DATABASE_URI='sqlite://',
+            WTF_CSRF_ENABLED=False,
+            TESTING=False,
+            DEBUG=False,
+            SITE_SECURE_URL='http://localhost',
+            SECURITY_POST_LOGIN_VIEW='/postlogin',
+            SECURITY_REGISTER_BLUEPRINT=True,
+            SHOULD_NOT_OVERRIDE='parent',
+            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+                time.time()),
+        )
+        return app

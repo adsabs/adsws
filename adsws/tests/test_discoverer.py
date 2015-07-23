@@ -302,14 +302,22 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.patcher = mock.patch('flask.ext.consulate.ConsulService._resolve')
-        mocked = cls.patcher.start()
-        mocked.return_value = ["http://localhost:5005"]
+        cls.patcher_resolve = mock.patch(
+            'flask.ext.consulate.ConsulService._resolve'
+        )
+        mocked_resolve = cls.patcher_resolve.start()
+        mocked_resolve.return_value = ["http://localhost:5005"]
+        cls.patcher_set_ns = mock.patch(
+            'flask.ext.consulate.ConsulService.set_ns'
+        )
+        mocked_set_ns = cls.patcher_set_ns.start()
+        mocked_set_ns.return_value = ["10.1.1.1"]
         cls.setupRemoteServer()
 
     @classmethod
     def tearDownClass(cls):
-        cls.patcher.stop()
+        cls.patcher_resolve.stop()
+        cls.patcher_set_ns.stop()
         cls.tearDownRemoteServer()
 
     def create_app(self):

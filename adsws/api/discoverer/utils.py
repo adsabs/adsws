@@ -8,6 +8,7 @@ from urlparse import urljoin
 import traceback
 from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, scope_func, limit_func
+from flask.ext.consulate import ConsulService
 
 
 def bootstrap_local_module(service_uri, deploy_path, app):
@@ -81,10 +82,19 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     app.logger.debug(
         'Attempting bootstrap_remote_service [{0}]'.format(service_uri)
     )
-    url = urljoin(
-        service_uri,
-        app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
-    )
+
+    if service_uri.startswith('consul://'):
+        cs = ConsulService(service_uri, discover_ns='docker0')
+        url = urljoin(
+            cs.base_url,
+            app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
+        )
+        print "base url", cs.base_url
+    else:
+        url = urljoin(
+            service_uri,
+            app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
+        )
 
     try:
         r = requests.get(url, timeout=5)

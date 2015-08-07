@@ -22,7 +22,7 @@ Flask-Mail
 SQLAlchemy
 sqlalchemy-utils==0.27.7
 Werkzeug
-requests
+requests>=2.7.0
 alembic
 six
 redis

@@ -84,7 +84,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     )
 
     if service_uri.startswith('consul://'):
-        cs = ConsulService(service_uri, discover_ns='docker0')
+        cs = ConsulService(service_uri)
         url = urljoin(
             cs.base_url,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')

@@ -140,7 +140,7 @@ class DiscovererTestCase:
         """
         test that a Cache-Control header is returned
         """
-        r = self.open('GET','/test_webservice/GET')
+        r = self.open('GET', '/test_webservice/GET')
         self.assertIn('Cache-Control', r.headers)
 
     def test_LOW_RATE_LIMIT(self):
@@ -156,7 +156,7 @@ class DiscovererTestCase:
         self.assertStatus(r, 200)
         self.assertEqual(g._rate_limit_info.remaining, 1)
         r = go()
-        time.sleep(0.1)  # Make sure cache is caught up
+        time.sleep(0.2)  # Make sure cache is caught up
         self.assertStatus(r, 429)
         self.assertEqual(g._rate_limit_info.remaining, 0)
 
@@ -306,18 +306,12 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
             'flask.ext.consulate.ConsulService._resolve'
         )
         mocked_resolve = cls.patcher_resolve.start()
-        mocked_resolve.return_value = ["http://localhost:5005"]
-        cls.patcher_set_ns = mock.patch(
-            'flask.ext.consulate.ConsulService.set_ns'
-        )
-        mocked_set_ns = cls.patcher_set_ns.start()
-        mocked_set_ns.return_value = ["10.1.1.1"]
+        mocked_resolve.side_effect = lambda: ["http://localhost:5005"]
         cls.setupRemoteServer()
 
     @classmethod
     def tearDownClass(cls):
         cls.patcher_resolve.stop()
-        cls.patcher_set_ns.stop()
         cls.tearDownRemoteServer()
 
     def create_app(self):

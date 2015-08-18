@@ -84,7 +84,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     )
 
     if service_uri.startswith('consul://'):
-        cs = ConsulService(service_uri)
+        cs = ConsulService(
+            service_uri,
+            nameservers=[app.config.get("CONSUL_DNS", "172.17.42.1")]
+        )
         url = urljoin(
             cs.base_url,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')

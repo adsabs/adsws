@@ -5,7 +5,6 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 
 
 class StatusView(Resource):
-    decorators = [ratelimit(100, 24*60*60, scope_func=scope_func)]
 
     def get(self):
         return {'app': current_app.name, 'status': 'online'}, 200

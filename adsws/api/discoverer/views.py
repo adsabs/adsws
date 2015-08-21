@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, current_app
 from flask.ext.restful import Resource
 from flask.ext.consulate import ConsulService
 from urlparse import urljoin
@@ -15,7 +15,10 @@ class ProxyView(Resource):
         self.deploy_path = deploy_path
         self.cs = None
         if service_uri.startswith('consul://'):
-            self.cs = ConsulService(service_uri)
+            self.cs = ConsulService(
+                service_uri,
+                nameservers=[current_app.config.get("CONSUL_DNS", "172.17.42.1")]
+            )
             self.session = self.cs
         else:
             self.session = requests.Session()

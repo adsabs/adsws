@@ -120,7 +120,9 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
         # Make an instance of the ProxyView. We need to instantiate the class
         # to save instance attributes, which will be necessary to re-construct
         # the location to the third party resource (ProxyView.endpoint)
-        proxyview = ProxyView(remote_route, service_uri, deploy_path)
+        with app.app_context():
+            # app_context to allow config lookup via current_app in __init__
+            proxyview = ProxyView(remote_route, service_uri, deploy_path)
 
         for method in properties['methods']:
             if method not in proxyview.methods:

@@ -23,6 +23,13 @@ class ProxyView(Resource):
         else:
             self.session = requests.Session()
 
+    @staticmethod
+    def get_body_data(request):
+        """
+        Returns the correct payload data coming from the flask.Request object
+        """
+        return request.get_json(silent=True) or request.form or request.data
+
     def dispatcher(self, **kwargs):
         """
         Having a dispatch based on request.method solves being able to set up
@@ -42,8 +49,7 @@ class ProxyView(Resource):
         """
         Proxy to remote GET endpoint, should be invoked via self.dispatcher()
         """
-        r = self.session.get(ep, headers=request.headers)
-        return r
+        return self.session.get(ep, headers=request.headers)
 
     def post(self, ep, request):
         """
@@ -51,8 +57,9 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        r = self.session.post(ep, data=request.data, headers=request.headers)
-        return r
+        return self.session.post(
+            ep, data=ProxyView.get_body_data(request), headers=request.headers
+        )
 
     def put(self, ep, request):
         """
@@ -60,8 +67,9 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        r = self.session.put(ep, data=request.data, headers=request.headers)
-        return r
+        return self.session.put(
+            ep, data=ProxyView.get_body_data(request), headers=request.headers
+        )
 
     def delete(self, ep, request):
         """
@@ -69,5 +77,6 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        r = self.session.delete(ep, data=request.data, headers=request.headers)
-        return r
+        return self.session.delete(
+            ep, data=ProxyView.get_body_data(request), headers=request.headers
+        )

@@ -28,7 +28,10 @@ class ProxyView(Resource):
         """
         Returns the correct payload data coming from the flask.Request object
         """
-        return request.get_json(silent=True) or request.form or request.data
+        payload = request.get_json(silent=True)
+        if payload:
+            return json.dumps(payload)
+        return request.form or request.data
 
     def dispatcher(self, **kwargs):
         """

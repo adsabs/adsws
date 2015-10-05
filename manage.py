@@ -10,10 +10,12 @@ import os
 import flask
 from flask.ext.script import Manager
 from adsws.accounts.manage import accounts_manager
+from adsws.consul.manage import consul_manager
 
 manager = Manager(flask.Flask('manager'))
 
 manager.add_command("accounts", accounts_manager)
+manager.add_command("consul", consul_manager)
 
 @manager.command
 def generate_secret_key():

@@ -119,11 +119,13 @@ def save_token(token, request, *args, **kwargs):
     expires_in = token.pop('expires_in')
     expires = datetime.utcnow() + timedelta(seconds=int(expires_in))
 
+    # scopes are sorted alphabetically before writing to a database
+    # this makes administrative tasks easier
     tok = OAuthToken(
         access_token=token['access_token'],
         refresh_token=token.get('refresh_token'),
         token_type=token['token_type'],
-        _scopes=token['scope'],
+        _scopes=' '.join(sorted((token['scope'] or '').split(' '))),
         expires=expires,
         client_id=request.client.client_id,
         user_id=uid,

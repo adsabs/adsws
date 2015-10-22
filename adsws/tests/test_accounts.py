@@ -1,6 +1,6 @@
 from flask.ext.testing import TestCase
 from flask.ext.login import current_user
-from flask import current_app, url_for
+from flask import current_app, url_for, session
 
 from adsws.core import db, user_manipulator
 from adsws.testsuite import make_test_suite, run_test_suite
@@ -43,12 +43,10 @@ class TestUtils(UnitTestCase):
         self.assertRaises(err, func, "invalid@ email")  # whitespace is invalid
         self.assertTrue(func('@'))
 
-
     def test_validate_password(self):
         err, func = utils.ValidationError, utils.validate_password  # shorthand
         self.assertRaises(err, func, "n0")
         self.assertTrue(func("123Aabc"))
-
 
 class TestAccounts(TestCase):
     """
@@ -768,6 +766,34 @@ class TestAccounts(TestCase):
             u = user_manipulator.first(email="me@email")
             self.assertIsNotNone(u)
             self.assertIsNone(u.confirmed_at)
+
+    def test_repeated_bootstrap(self):
+        """
+        This should ensure that if bootstrap is repeated it works as expected
+        """
+        with self.client as c:
+            url = url_for('bootstrap')
+            r1 = c.get(url)
+
+            r2 = c.get(url)
+
+            self.assertEqual(r1.json, r2.json)
+
+    def test_utils_logout(self):
+        """
+        Tests that certain values are cleaned up when someone logs out
+        """
+        with self.client as c:
+
+            url = url_for('bootstrap')
+            c.get(url)
+
+            csrf = self.get_csrf()
+            self.login(self.real_user, c, csrf)
+
+            logout()
+
+            self.assertNotIn('oauth_client', session)
 
 
 TESTSUITE = make_test_suite(TestAccounts, TestUtils)

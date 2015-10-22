@@ -33,7 +33,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
      vb.cpus = 2
   end
 
-  config.vm.provider :docker do |docker|
+  config.vm.provision :docker do |docker|
     docker.pull_images "redis"
     docker.run "redis",
       args: "-d -p 6379:6379"

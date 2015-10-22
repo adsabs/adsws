@@ -28,4 +28,3 @@ six
 redis
 ConcurrentLogHandler
 flask-consulate
-.

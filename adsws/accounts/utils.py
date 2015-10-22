@@ -2,13 +2,21 @@ import datetime
 import requests
 from functools import wraps
 
-from flask import current_app
+from flask import current_app, session
 from flask.ext.mail import Message
 from flask.ext.login import current_user as cu
+from flask.ext.login import logout_user
 
 from .exceptions import ValidationError
 from .emails import Email
 
+
+def logout():
+
+    expunge_list = ['oauth_client']
+
+    logout_user()
+    [session.pop(item) for item in expunge_list]
 
 def get_post_data(request):
     """

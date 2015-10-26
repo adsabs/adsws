@@ -7,6 +7,7 @@ Flask>=0.9
 gunicorn
 psycopg2
 Flask-SQLAlchemy
+Flask-login==0.2.11
 Flask-Security
 Flask-Menu
 Flask-Script
@@ -28,4 +29,3 @@ six
 redis
 ConcurrentLogHandler
 flask-consulate
-.

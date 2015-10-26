@@ -7,13 +7,13 @@ from adsws.modules.oauth2server.provider import oauth2
 from adsws.core import db, user_manipulator
 
 from adsws.ext.ratelimiter import ratelimit, scope_func
-from flask.ext.login import current_user, login_user, logout_user
+from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource, abort
 from flask.ext.wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
-    print_token
+    print_token, logout_user
 from .exceptions import ValidationError, NoClientError, NoTokenError
 from .emails import PasswordResetEmail, VerificationEmail, \
     EmailChangedNotification
@@ -552,11 +552,17 @@ class Bootstrap(Resource):
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             try:
-                client, token = Bootstrap.load_client(
-                    session.get('oauth_client', '')
-                )
-                if client.user_id != current_user.get_id():
+
+                if 'oauth_client' in session:
+                    client, token = Bootstrap.load_client(
+                        session['oauth_client']
+                    )
+                else:
+                    raise NoClientError('client/user mismatch')
+
+                if client.user_id != int(current_user.get_id()):
                     raise NoClientError("client/user mistmatch")
+
             except (NoTokenError, NoClientError):
                 client, token = Bootstrap.bootstrap_bumblebee()
                 session['oauth_client'] = client.client_id

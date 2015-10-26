@@ -8,13 +8,16 @@ from adsws import accounts
 from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
 
-import httpretty
-import requests
-import datetime
-import json
 from unittest import TestCase as UnitTestCase
 
+import mock
+import json
+import requests
+import datetime
+import httpretty
+
 RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
+
 
 class TestUtils(UnitTestCase):
     """Test account validation utilities"""
@@ -47,6 +50,7 @@ class TestUtils(UnitTestCase):
         err, func = utils.ValidationError, utils.validate_password  # shorthand
         self.assertRaises(err, func, "n0")
         self.assertTrue(func("123Aabc"))
+
 
 class TestAccounts(TestCase):
     """
@@ -791,9 +795,28 @@ class TestAccounts(TestCase):
             csrf = self.get_csrf()
             self.login(self.real_user, c, csrf)
 
-            logout()
+            utils.logout_user()
 
             self.assertNotIn('oauth_client', session)
+
+    @mock.patch('adsws.accounts.views.Bootstrap.load_client')
+    def test_when_no_session(self, mocked):
+        """
+        When there is no OAuth client within the session cookie, we do not need to access the database.
+
+        Fresh session should have no OAuth client, and so should not call load_client
+        Second bootstrap should have a BB client token, and so should call load_client
+        """
+        with self.client as c:
+
+            url = url_for('bootstrap')
+            c.get(url)
+            self.assertFalse(mocked.called)
+
+        with self.client as c:
+            url = url_for('bootstrap')
+            c.get(url)
+            self.assertTrue(mocked.called)
 
 
 TESTSUITE = make_test_suite(TestAccounts, TestUtils)

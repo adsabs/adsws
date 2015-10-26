@@ -5,18 +5,27 @@ from functools import wraps
 from flask import current_app, session
 from flask.ext.mail import Message
 from flask.ext.login import current_user as cu
-from flask.ext.login import logout_user
+from flask.ext.login import logout_user as flask_logout_user
 
 from .exceptions import ValidationError
 from .emails import Email
 
 
-def logout():
+def logout_user():
+    """
+    Logs out the user from a Flask session, and does some extra functionality on top of it, that is not
+    done normally by Flask-login
+
+    :return: message from Flask-login logout_user
+    """
 
     expunge_list = ['oauth_client']
 
-    logout_user()
-    [session.pop(item) for item in expunge_list]
+    message = flask_logout_user()
+    [session.pop(item, None) for item in expunge_list]
+
+    return message
+
 
 def get_post_data(request):
     """
@@ -112,7 +121,7 @@ def validate_password(password):
 
 
 def login_required(func):
-    '''
+    """
     If you decorate a view with this, it will ensure that the current user is
     logged in and authenticated before calling the actual view. (If they are
     not, it calls the :attr:`LoginManager.unauthorized` callback.) For
@@ -136,7 +145,7 @@ def login_required(func):
 
     :param func: The view function to decorate.
     :type func: function
-    '''
+    """
 
     @wraps(func)
     def decorated_view(*args, **kwargs):

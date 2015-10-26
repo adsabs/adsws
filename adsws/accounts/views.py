@@ -7,13 +7,13 @@ from adsws.modules.oauth2server.provider import oauth2
 from adsws.core import db, user_manipulator
 
 from adsws.ext.ratelimiter import ratelimit, scope_func
-from flask.ext.login import current_user, login_user, logout_user
+from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource, abort
 from flask.ext.wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
-    print_token
+    print_token, logout_user
 from .exceptions import ValidationError, NoClientError, NoTokenError
 from .emails import PasswordResetEmail, VerificationEmail, \
     EmailChangedNotification
@@ -398,7 +398,7 @@ class UserAuthView(Resource):
             return {"error": "account has not been verified"}, 403
 
         # Logout of previous user (may have been bumblebee)
-        if current_user.is_authenticated:
+        if current_user.is_authenticated():
             logout_user()
         login_user(u)  # Login to real user
         user_manipulator.update(
@@ -545,18 +545,24 @@ class Bootstrap(Resource):
 
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
-        if not current_user.is_authenticated:
+        if not current_user.is_authenticated():
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             try:
-                client, token = Bootstrap.load_client(
-                    session.get('oauth_client', '')
-                )
+
+                if 'oauth_client' in session:
+                    client, token = Bootstrap.load_client(
+                        session['oauth_client']
+                    )
+                else:
+                    raise NoClientError('client/user mismatch')
+
                 if client.user_id != int(current_user.get_id()):
                     raise NoClientError("client/user mistmatch")
+
             except (NoTokenError, NoClientError):
                 client, token = Bootstrap.bootstrap_bumblebee()
                 session['oauth_client'] = client.client_id

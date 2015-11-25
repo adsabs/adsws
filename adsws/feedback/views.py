@@ -44,34 +44,24 @@ class SlackFeedback(Resource):
         channel = post_data.get('channel', '#feedback')
         username = post_data.get('username', 'TownCrier')
 
+        name = post_data.get('name', 'TownCrier')
+        reply_to = post_data.get('_replyto', 'TownCrier@lonelyvilla.ge')
+
         try:
-            name = post_data['name']
-            reply_to = post_data['_replyto']
             comments = post_data['comments']
-            subject = post_data['_subject']
-            feedback_type = post_data['feedback-type']
         except BadRequestKeyError:
             raise
 
-        if feedback_type == 'bug':
-            icon_emoji = ':goberserk:'
-        elif feedback_type == 'comment':
-            icon_emoji = ':neckbeard:'
-        else:
-            icon_emoji = ':see_no_evil:'
+        icon_emoji = ':goberserk:'
 
         prettified_data = {
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: {commenter}\n'
                     '*e-mail*: {email}\n'
-                    '*Type*: {feedback_type}\n'
-                    '*Subject*: {subject}\n'
                     '*Feedback*: {feedback}'.format(
                         commenter=name,
                         email=reply_to,
-                        feedback_type=feedback_type,
-                        feedback=comments,
-                        subject=subject
+                        feedback=comments
                     ),
             'username': username,
             'channel': channel,

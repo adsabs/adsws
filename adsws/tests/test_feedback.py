@@ -151,14 +151,12 @@ class TestFunctionals(TestBase):
         end point
         """
         # User fills the user feedback form
-        form_data = dict(
-            name='Commmenter',
-            comments='Why are my citations missing?',
-        )
-        form_data['_subject'] = 'Bumblebee Feedback'
-        form_data['feedback-type'] = 'bug'
-        form_data['_replyto'] = 'commenter@email.com'
-        form_data['g-recaptcha-response'] = 'correct_response'
+        form_data = {
+            'name': 'Commenter',
+            'comments': 'Why are my citations missing?',
+            '_replyto': 'commenter@email.com',
+            'g-recaptcha-response': 'correct_response'
+        }
 
         # User presses submit on the feedback form
         url = url_for('slackfeedback')
@@ -169,13 +167,36 @@ class TestFunctionals(TestBase):
             )
         self.assertEqual(response.status_code, 200)
 
-    def test_400_if_not_right_data(self):
+    def test_submitting_feedback_with_minimal_information(self):
         """
-        Checks the passed data, at the moment we accept specific fields
+        Check they can send minimal information to the end point
         """
         # User fills the user feedback form
-        form_data = dict(random='random')
-        form_data['g-recaptcha-response'] = 'correct_response'
+        form_data = {
+            'comments': 'Why are my citations missing?',
+            'g-recaptcha-response': 'correct_response'
+        }
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=form_data
+            )
+        self.assertEqual(response.status_code, 200)
+
+    def test_404_if_not_right_data(self):
+        """
+        Checks the passed data, at the moment we accept specific fields, and so it will not work if the user does not
+        supply any comments
+        """
+        # User fills the user feedback form
+        form_data = {
+            'name': 'Commenter',
+            '_replyto': 'commenter@email.com',
+            'g-recaptcha-response': 'correct_response'
+        }
 
         # User presses submit on the feedback form
         url = url_for('slackfeedback')
@@ -235,8 +256,6 @@ class TestUnits(TestBase):
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
-                    '*Type*: bug\n'
-                    '*Subject*: Bumblebee Feedback\n'
                     '*Feedback*: Why are my citations missing?',
             'username': 'TownCrier',
             'channel': '#feedback',
@@ -246,7 +265,6 @@ class TestUnits(TestBase):
         form_data = {
             'name': 'Commenter',
             'comments': 'Why are my citations missing?',
-            'feedback-type': 'bug',
             '_subject': 'Bumblebee Feedback',
             '_replyto': 'commenter@email.com'
         }

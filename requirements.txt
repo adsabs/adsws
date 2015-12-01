@@ -28,4 +28,4 @@ alembic
 six
 redis
 ConcurrentLogHandler
-flask-consulate
+flask-consulate==0.1.1

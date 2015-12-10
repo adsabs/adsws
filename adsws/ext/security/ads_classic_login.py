@@ -19,7 +19,7 @@ class AdsClassicFallBackLoginForm(LoginForm):
         except HTTPError:
             return False  # if we can't contact ADS Classic, make it non-fatal
 
-        if cu.is_authenticated: # Classic did let them in....
+        if cu.is_authenticated(): # Classic did let them in....
             
             if not hasattr(self, 'user') or self.user is None:  # User does not exist yet
                 user_manipulator.create(email=self.email.data, 

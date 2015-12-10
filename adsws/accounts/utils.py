@@ -151,7 +151,7 @@ def login_required(func):
     def decorated_view(*args, **kwargs):
         if current_app.login_manager._login_disabled:
             return func(*args, **kwargs)
-        elif not cu.is_authenticated or \
+        elif not cu.is_authenticated() or \
                 cu.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             return current_app.login_manager.unauthorized()
         return func(*args, **kwargs)

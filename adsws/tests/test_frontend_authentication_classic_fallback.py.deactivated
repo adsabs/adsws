@@ -21,7 +21,7 @@ class LoginTestCase(FlaskAppTestCase):
         
         @app.route('/username')
         def username():
-            if current_user.is_authenticated:
+            if current_user.is_authenticated():
                 return current_user.email
             return u'Anonymous'
 

@@ -54,7 +54,7 @@ class TestClassicUser(FlaskAppTestCase):
     ))    
     def test_load_user(self):
         user = ClassicUserInfo('test@adslabs.org')
-        self.assertFalse(user.is_authenticated())
+        self.assertFalse(user.is_authenticated)
         self.assertTrue(user.is_real_user())
         self.assertEqual(352401271, user.get_id())
         self.assertEqual(user.passwd_info(), 0)
@@ -86,7 +86,7 @@ class TestClassicUser(FlaskAppTestCase):
     ))
     def test_load_user_using_wrong_password(self):
         user = ClassicUserInfo('test@adslabs.org', 'foo')
-        self.assertFalse(user.is_authenticated())
+        self.assertFalse(user.is_authenticated)
         self.assertTrue(user.is_real_user())
         self.assertEqual(352401271, user.get_id())
         self.assertEqual(user.passwd_info(), -1)
@@ -119,7 +119,7 @@ class TestClassicUser(FlaskAppTestCase):
     ))
     def test_load_nonexisting_user(self):
         user = ClassicUserInfo('testx@adslabs.org', 'foo')
-        self.assertFalse(user.is_authenticated())
+        self.assertFalse(user.is_authenticated)
         self.assertFalse(user.is_real_user())
         self.assertEqual(0, user.get_id())
         self.assertEqual(user.passwd_info(), -1)
@@ -152,7 +152,7 @@ class TestClassicUser(FlaskAppTestCase):
     ))    
     def test_update_passwd(self):
         user = ClassicUser('test@adslabs.org', 'foo')
-        self.assertTrue(user.is_authenticated())
+        self.assertTrue(user.is_authenticated)
         self.assertTrue(user.is_real_user())
         self.assertEqual(352401271, user.get_id())
         self.assertEqual(user.passwd_info(), 1)

@@ -134,7 +134,7 @@ class ClassicUser(ClassicUserInfo):
     def update_passwd(self, username, passwd, new_passwd):
         self.update(username, passwd, man_npasswd=new_passwd, 
                            man_vpasswd=new_passwd)
-        if self.is_authenticated():
+        if self.is_authenticated:
             return True
         return False 
         

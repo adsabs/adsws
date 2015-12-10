@@ -398,7 +398,7 @@ class UserAuthView(Resource):
             return {"error": "account has not been verified"}, 403
 
         # Logout of previous user (may have been bumblebee)
-        if current_user.is_authenticated():
+        if current_user.is_authenticated:
             logout_user()
         login_user(u)  # Login to real user
         user_manipulator.update(
@@ -545,7 +545,7 @@ class Bootstrap(Resource):
 
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
-        if not current_user.is_authenticated():
+        if not current_user.is_authenticated:
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))

@@ -33,7 +33,7 @@ class ApiTestCase(FlaskAppTestCase):
     def setUp(self):
         @self.app.route('/postlogin')
         def username():
-            if current_user.is_authenticated():
+            if current_user.is_authenticated:
                 return current_user.email
             return u'Anonymous'
         

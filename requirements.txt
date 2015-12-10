@@ -7,8 +7,8 @@ Flask>=0.9
 gunicorn
 psycopg2
 Flask-SQLAlchemy
-Flask-login==0.2.11
-Flask-Security
+Flask-login==0.3.2
+Flask-Security==1.7.5
 Flask-Menu
 Flask-Script
 Flask-Breadcrumbs

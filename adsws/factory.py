@@ -121,7 +121,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         If the user is authenticated, inject the header "X-adsws-uid" into
         the incoming request header
         """
-        if current_user.is_authenticated():
+        if current_user.is_authenticated:
             h = Headers(request.headers.items())
             h.add_header("X-Adsws-Uid", current_user.id)
             if current_user.ratelimit_level is not None:

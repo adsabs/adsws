@@ -5,15 +5,13 @@ from flask import current_app, url_for
 from adsws.core import db, user_manipulator
 from adsws.testsuite import make_test_suite, run_test_suite
 from adsws import accounts
-from adsws.accounts import utils, manage
+from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
-from adsws.modules.oauth2server.models import OAuthClient, Scope, OAuthToken
 
 import httpretty
 import requests
 import datetime
 import json
-import random
 from unittest import TestCase as UnitTestCase
 
 RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
@@ -775,81 +773,9 @@ class TestAccounts(AccountsSetup):
             self.assertIsNotNone(u)
             self.assertIsNone(u.confirmed_at)
 
-class TestManage(AccountsSetup):
-    
-    def _create_client(self, client_id='test', user_id=0, scopes='adsws:internal'):
-        # create a client in the database
-        c1 = OAuthClient(
-            client_id=client_id,
-            client_secret='client secret %s' % random.random(),
-            name='bumblebee',
-            description='',
-            is_confidential=False,
-            user_id=user_id,
-            _redirect_uris='%s/client/authorized' % self.app.config.get('SITE_SECURE_URL'),
-            _default_scopes=scopes
-        )
-        db.session.add(c1)
-        db.session.commit()
-        return OAuthClient.query.filter_by(client_secret=c1.client_secret).one()
-    
-    def _create_token(self, client_id='test', user_id=0, scopes='adsws:internal'):
-        token = OAuthToken(
-                client_id=client_id,
-                user_id=user_id,
-                access_token='access token %s' % random.random(),
-                refresh_token='refresh token %s' % random.random(),
-                expires=datetime.datetime(2500, 1, 1),
-                _scopes=scopes,
-                is_personal=False,
-                is_internal=True,
-            )
-        db.session.add(token)
-        db.session.commit()
-        return OAuthToken.query.filter_by(id=token.id).one()
-    
-    def test_update_scopes(self):
-        """Verify that scopes are updated properly"""
-        
-        self._create_client('test0', 0, scopes='adsws:foo')
-        self._create_client('test1', 1, scopes='adsws:foo one two')
-        self._create_client('test2', 2, scopes='adsws:foo two one')
-        self._create_client('test3', 3, scopes='adsws:foo')
-        self._create_client('test4', 4, scopes='adsws:foo')
-        
-        self._create_token('test0', 0, scopes='adsws:foo one')
-        self._create_token('test1', 1, scopes='adsws:foo one two')
-        self._create_token('test1', 1, scopes='adsws:foo two one')
-        self._create_token('test1', 1, scopes='foo bar')
-
-        # normally, scopes will be sorted alphabetically (but we fake it here)
-        self.assertIsNotNone(OAuthClient.query.filter_by(_default_scopes= 'adsws:foo one two').one())
-        self.assertIsNotNone(OAuthClient.query.filter_by(_default_scopes= 'adsws:foo two one').one())
-        
-        manage.update_scopes(self.app, 'adsws:foo one two', 'foo bar')
-        
-        # manager will save tokens alphab sorted
-        self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='bar foo').all()) == 2)
-        self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='adsws:foo').all()) == 3)
-        
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='bar foo').all()) == 2)
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='adsws:foo one').all()) == 1)
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='foo bar').all()) == 1)
-        
-        manage.update_scopes(self.app, 'foo bar', 'xxx')
-        
-        self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='bar foo').all()) == 0)
-        self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='xxx').all()) == 2)
-        self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='adsws:foo').all()) == 3)
-        
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='bar foo').all()) == 0)
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='adsws:foo one').all()) == 1)
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='foo bar').all()) == 0)
-        self.assertTrue(len(OAuthToken.query.filter_by(_scopes='xxx').all()) == 3)
 
 
-#TESTSUITE = make_test_suite(TestAccounts, TestUtils, TestManage)
-TESTSUITE = make_test_suite(TestManage)
+TESTSUITE = make_test_suite(TestAccounts, TestUtils)
 
 if __name__ == '__main__':
     run_test_suite(TESTSUITE)

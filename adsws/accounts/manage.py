@@ -8,7 +8,7 @@ from adsws.modules.oauth2server.models import OAuthToken, OAuthClient
 from adsws.core.users import User
 from adsws.core import db
 from adsws.accounts import create_app
-
+from sqlalchemy import or_, exc
 from flask.ext.script import Manager
 
 accounts_manager = Manager(create_app())
@@ -153,12 +153,14 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
 
     app = accounts_manager.app if app_override is None else app_override
 
-    if old_scopes == new_scopes:
+    if set(old_scopes.split()) == set(new_scopes.split()):
         app.logger.warn("Hmmm, useless scope replacement of {0) with {1}"
                         .format(old_scopes, new_scopes))
-
+    
+    orig_old_scopes = old_scopes
     old_scopes = set((old_scopes or '').split(' '))
     new_scopes = ' '.join(sorted((new_scopes or '').split(' ')))
+    
     
     with app.app_context():
         # first find all oauth clients that would be affected by this
@@ -173,36 +175,46 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
             total += 1
             if old_scopes == set((client._default_scopes or '').split(' ')):
                 to_update.add(client.client_id)
+                db.session.begin_nested()
                 try:
                     client._default_scopes = new_scopes
+                    
+                    # now update the existing tokens
+                    total = 0
+                    updated = 0
+                    tokens = db.session.query(OAuthToken).filter_by(client_id=client.client_id).all()
+                    for token in tokens:
+                        if set((token._scopes or '').split(' ')) == old_scopes:
+                            token._scopes = new_scopes
+                            updated += 1
+                        total += 1
                     db.session.commit()
-                except Exception, e:
+                    
+                    app.logger.info("Updated {0} oauth2tokens (out of total: {1}) for {2}"
+                        .format(updated, total, client.client_id))
+                except exc.IntegrityError, e:
                     db.session.rollback()
                     app.logger.error("Could not update scope of oauth2client: {0}. "
                                      "Database error; rolled back: {1}"
                                      .format(client.client_id, e))
         
+        if force_token_update:
+            tokens = db.session.query(OAuthToken).filter(or_(OAuthToken._scopes==orig_old_scopes, 
+                                                                OAuthToken._scopes==' '.join(sorted(list(old_scopes))))).all()
+            for token in tokens:
+                db.session.begin_nested()
+                try:
+                    token._scopes = new_scopes
+                    db.session.commit()
+                except exc.IntegrityError, e:
+                    db.session.rollback()
+                    app.logger.error("Could not update scope of oauth2token: {0}. "
+                                     "Database error; rolled back: {1}"
+                                     .format(token.id, e))
+    
+                 
         app.logger.info("Updated {0} oauth2clients (out of total: {1})"
                         .format(len(to_update), total))
         
-        # now update the existing tokens
-        total = 0
-        updated = 0
-        tokens = db.session.query(OAuthToken).all()
-        for token in tokens:
-            if set((token._scopes or '').split(' ')) == old_scopes and \
-                (force_token_update or token.client_id in to_update):
-                token._scopes = new_scopes
-            
-                try:
-                    db.session.commit()
-                except Exception, e:
-                    db.session.rollback()
-                    app.logger.error("Could not update scope of oauth2token: {0}. "
-                                 "Database error; rolled back: {1}"
-                                 .format(token.id, e))
-                updated += 1
-            total += 1
-        
-        app.logger.info("Updated {0} oauth2tokens (out of total: {1})"
-                        .format(updated, total))
+        # per PEP-0249 a transaction is always in progress    
+        db.session.commit()

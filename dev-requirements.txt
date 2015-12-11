@@ -4,3 +4,4 @@ coveralls
 pytest
 coverage
 pytest-cov
+Flask-Testing==0.4.2

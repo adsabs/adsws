@@ -17,6 +17,7 @@ import datetime
 import httpretty
 
 RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
+    
 
 
 class TestUtils(UnitTestCase):
@@ -52,11 +53,7 @@ class TestUtils(UnitTestCase):
         self.assertTrue(func("123Aabc"))
 
 
-class TestAccounts(TestCase):
-    """
-    Tests for accounts endpoints and workflows
-    """
-
+class AccountsSetup(TestCase):
     def tearDown(self):
         httpretty.disable()
         httpretty.reset()
@@ -95,8 +92,15 @@ class TestAccounts(TestCase):
             MAIL_SUPPRESS_SEND=True,
             RATELIMITER_KEY_PREFIX=RATELIMITER_KEY_PREFIX,
             SECRET_KEY="unittests-secret-key",
+            SQLALCHEMY_ECHO=False
         )
         return app
+
+
+class TestAccounts(AccountsSetup):
+    """
+    Tests for accounts endpoints and workflows
+    """
 
     def setup_google_recaptcha_response(self):
         """Set up a mock google recaptcha api"""
@@ -817,6 +821,7 @@ class TestAccounts(TestCase):
             url = url_for('bootstrap')
             c.get(url)
             self.assertTrue(mocked.called)
+
 
 
 TESTSUITE = make_test_suite(TestAccounts, TestUtils)

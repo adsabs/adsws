@@ -114,7 +114,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         app.errorhandler(401)(on_401)
         app.errorhandler(429)(on_429)
         app.errorhandler(405)(on_405)
-
+        
     @oauth2.after_request
     def set_adsws_uid_header(valid, oauth):
         """

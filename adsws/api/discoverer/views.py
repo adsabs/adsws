@@ -46,7 +46,8 @@ class ProxyView(Resource):
         else:
             ep = path
         resp = self.__getattribute__(request.method.lower())(ep, request)
-        return resp.text, resp.status_code
+
+        return resp.text, resp.status_code, dict(resp.headers)
 
     def get(self, ep, request):
         """

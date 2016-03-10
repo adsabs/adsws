@@ -29,7 +29,7 @@ def parse_timedelta(s):
     return datetime.timedelta(**td)
 
 @accounts_manager.command
-def cleanup_users(app_override=None, timedelta="hours=2"):
+def cleanup_users(app_override=None, timedelta="hours=24"):
     """
     Deletes stale users from the database. Stale users are defined as users
     that have a registered_at value of `now`-`timedelta` but not confirmed_at

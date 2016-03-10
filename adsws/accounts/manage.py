@@ -59,6 +59,7 @@ def cleanup_users(app_override=None, timedelta="hours=24"):
         for user in users:
             db.session.delete(user)
             deletions += 1
+            app.logger.info("Deleted unverified user: {}".format(user.email))
         try:
             db.session.commit()
         except Exception, e:

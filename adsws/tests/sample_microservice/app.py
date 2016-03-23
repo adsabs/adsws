@@ -1,6 +1,6 @@
 from flask import Flask
 from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT, \
-    PUT, EchoHeaders, DELETE, _410Response
+    PUT, EchoHeaders, DELETE, _410Response, RETAIN_HEADERS
 from flask.ext.restful import Api
 
 
@@ -30,6 +30,7 @@ def create_app():
     api.add_resource(SCOPED, '/SCOPED')
     api.add_resource(LOW_RATE_LIMIT, '/LOW_RATE_LIMIT')
     api.add_resource(_410Response, '/410')
+    api.add_resource(RETAIN_HEADERS, '/RETAIN_HEADERS')
 
     return app
 

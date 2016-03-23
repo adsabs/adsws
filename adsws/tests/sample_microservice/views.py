@@ -120,3 +120,20 @@ class LOW_RATE_LIMIT(Resource):
 
     def get(self):
         return {'status':'OK'}
+
+
+class RETAIN_HEADERS(Resource):
+    """Return headers"""
+    scopes = []
+    rate_limit = [3, 5]
+
+    def get(self):
+
+        if 'X-adsws-uid' not in request.headers:
+            return {'error': '"X-adsws-uid" missing from header'}, 500
+        elif 'Authorization' not in request.headers:
+            return {'error': '"Authorization" missing from header'}, 500
+        elif 'Bearer' not in request.headers['Authorization']:
+            return {'error': '"{Bearer}" missing from "Authorization" header'}, 500
+
+        return {'msg': 'success'}, 200, {'micro_service_header': 'custom-header'}

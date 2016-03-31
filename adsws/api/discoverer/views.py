@@ -47,10 +47,14 @@ class ProxyView(Resource):
             ep = path
         resp = self.__getattribute__(request.method.lower())(ep, request)
 
+        headers = {}
         if resp.headers:
-            headers = {key: resp.headers[key] for key in current_app.config['REMOTE_PROXY_ALLOWED_HEADERS'] if key in resp.headers}
+            [headers.update({key: resp.headers[key]}) for key in current_app.config['REMOTE_PROXY_ALLOWED_HEADERS'] if key in resp.headers]
 
-        return resp.text, resp.status_code, headers
+        if headers:
+            return resp.text, resp.status_code, headers
+        else:
+            return resp.text, resp.status_code
 
     def get(self, ep, request):
         """

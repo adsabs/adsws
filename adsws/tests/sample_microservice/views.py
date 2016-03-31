@@ -136,4 +136,4 @@ class RETAIN_HEADERS(Resource):
         elif 'Bearer' not in request.headers['Authorization']:
             return {'error': '"{Bearer}" missing from "Authorization" header'}, 500
 
-        return {'msg': 'success'}, 200, {'micro_service_header': 'custom-header'}
+        return {'msg': 'success'}, 200, {'Content-Disposition': 'attachment'}

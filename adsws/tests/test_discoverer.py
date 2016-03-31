@@ -236,8 +236,20 @@ class DiscovererTestCase:
             r.headers
         )
         self.assertIn(
-            'micro_service_header',
+            'Content-Type',
             r.headers
+        )
+        self.assertEqual(
+            r.headers['Content-Type'],
+            'application/json'
+        )
+        self.assertIn(
+            'Content-Disposition',
+            r.headers
+        )
+        self.assertEqual(
+            r.headers['Content-Disposition'],
+            'attachment'
         )
 
 

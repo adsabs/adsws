@@ -265,7 +265,37 @@ class TestUnits(TestBase):
         form_data = {
             'name': 'Commenter',
             'comments': 'Why are my citations missing?',
-            '_subject': 'Bumblebee Feedback',
+            '_replyto': 'commenter@email.com'
+        }
+
+        prettified_post_data = SlackFeedback().prettify_post(form_data)
+
+        for key in post_data_sent.keys():
+            self.assertEqual(post_data_sent[key], prettified_post_data[key])
+
+    def test_can_send_abritrary_keyword_values(self):
+        """
+        Test the end point is not restrictive on the keyword values it can
+        create content for.
+        """
+
+        post_data_sent = {
+            'text': '```Incoming Feedback```\n'
+                    '*Commenter*: Commenter\n'
+                    '*e-mail*: commenter@email.com\n'
+                    '*Feedback*: Why are my citations missing?\n'
+                    '*IP Address*: 127.0.0.1\n'
+                    '*Browser*: Firefox v42',
+            'username': 'TownCrier',
+            'channel': '#feedback',
+            'icon_emoji': ':goberserk:'
+        }
+
+        form_data = {
+            'name': 'Commenter',
+            'comments': 'Why are my citations missing?',
+            'Browser': 'Firefox v42',
+            'IP Address': '127.0.0.1',
             '_replyto': 'commenter@email.com'
         }
 

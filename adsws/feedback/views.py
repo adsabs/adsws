@@ -54,15 +54,23 @@ class SlackFeedback(Resource):
 
         icon_emoji = ':goberserk:'
 
+        text = [
+            '```Incoming Feedback```',
+            '*Commenter*: {}'.format(name),
+            '*e-mail*: {}'.format(reply_to),
+            '*Feedback*: {}'.format(comments)
+        ]
+
+        used = ['channel', 'username', 'name', '_replyto', 'comments']
+        for key in post_data:
+            if key in used:
+                continue
+            text.append('*{}*: {}'.format(key, post_data[key]))
+
+        text = '\n'.join(text)
+
         prettified_data = {
-            'text': '```Incoming Feedback```\n'
-                    '*Commenter*: {commenter}\n'
-                    '*e-mail*: {email}\n'
-                    '*Feedback*: {feedback}'.format(
-                        commenter=name,
-                        email=reply_to,
-                        feedback=comments
-                    ),
+            'text': text,
             'username': username,
             'channel': channel,
             'icon_emoji': icon_emoji

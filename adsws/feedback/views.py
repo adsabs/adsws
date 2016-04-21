@@ -61,7 +61,7 @@ class SlackFeedback(Resource):
             '*Feedback*: {}'.format(comments)
         ]
 
-        used = ['channel', 'username', 'name', '_replyto', 'comments']
+        used = ['channel', 'username', 'name', '_replyto', 'comments', 'g-recaptcha-response']
         for key in post_data:
             if key in used:
                 continue

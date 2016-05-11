@@ -182,9 +182,6 @@ def load_config(app, kwargs_config):
     try:
         consul = Consul(app)
         consul.apply_remote_config()
-        # Consul stores the hex encoded secret key, but the database
-        # expects the raw bytes
-        app.config['SECRET_KEY'] = app.config['SECRET_KEY'].decode('hex')
     except ConsulConnectionError:
         app.logger.warning(
             "Could not load config from consul at {}".format(
@@ -194,6 +191,18 @@ def load_config(app, kwargs_config):
 
     if kwargs_config:
         app.config.update(kwargs_config)
+
+    # old baggage... Consul used to store keys in hexadecimal form
+    # so the production/staging databases both convert that into raw bytes
+    # but those raw bytes were non-ascii chars (unsafe to pass through
+    # env vars). So we must continue converting hex ...        
+    if app.config.get('SECRET_KEY', None):
+        try:
+            app.config['SECRET_KEY'] = app.config['SECRET_KEY'].decode('hex')
+            app.logger.warning('Converted SECRET_KEY from hex format into bytes')
+        except TypeError:
+            app.logger.warning('Most likely the SECRET_KEY is not in hex format')
+        
 
   
 def set_translations():

@@ -48,10 +48,32 @@ class FactoryTestCustomInstanceDir(FlaskAppTestCase):
         self.assertEqual(self.app.config.get('BAR'), 'baz')
         self.assertEqual(self.app.root_path, rootf, "root_path is not correct")
         self.assertEqual(self.app.instance_path, self.config['instance_path'])
-            
+
+
+class FactoryTestSecretKey(FlaskAppTestCase):
+    @property
+    def config(self):
+        return {
+           'SECRET_KEY' : '73696768'
+        }
         
+    def test_custom_config(self):
+        self.assertEqual(self.app.config.get('SECRET_KEY'), 'sigh')
+
         
-TEST_SUITE = make_test_suite(FactoryTest, FactoryTestCustomInstanceDir)
+class FactoryTestSecretKeyNonHex(FlaskAppTestCase):
+    @property
+    def config(self):
+        return {
+           'SECRET_KEY' : 'X73696768'
+        }
+        
+    def test_custom_config(self):
+        self.assertEqual(self.app.config.get('SECRET_KEY'), 'X73696768')
+
+        
+TEST_SUITE = make_test_suite(FactoryTest, FactoryTestCustomInstanceDir, FactoryTestSecretKey,
+                             FactoryTestSecretKeyNonHex)
 
 
 if __name__ == "__main__":

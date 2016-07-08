@@ -196,7 +196,7 @@ class DiscovererTestCase:
         remote services
         """
         r = self.open('GET', '/test_webservice/ECHO_HEADERS')
-        self.assertNotIn('X-Adsws-Ratelimit-Level', r.json)
+        self.assertEqual('1', r.json['X-Adsws-Ratelimit-Level'])
 
         user_manipulator.update(self.user, ratelimit_level=10)
         r = self.open('GET', '/test_webservice/ECHO_HEADERS')

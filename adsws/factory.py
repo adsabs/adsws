@@ -114,24 +114,35 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         app.errorhandler(401)(on_401)
         app.errorhandler(429)(on_429)
         app.errorhandler(405)(on_405)
-        
-    @oauth2.after_request
-    def set_adsws_uid_header(valid, oauth):
-        """
-        If the user is authenticated, inject the header "X-adsws-uid" into
-        the incoming request header
-        """
-        if current_user.is_authenticated():
-            h = Headers(request.headers.items())
-            h.add_header("X-Adsws-Uid", current_user.id)
-            if current_user.ratelimit_level is not None:
-                h.add_header(
-                    "X-Adsws-Ratelimit-Level",
-                    current_user.ratelimit_level
-                )
-            request.headers = h
-        return valid, oauth
+        app.errorhandler(500)(on_500)
+        app.errorhandler(502)(on_502)
+    
     return app
+    
+@oauth2.after_request
+def set_adsws_uid_header(valid, oauth):
+    """
+    Always set the X-Adsws-Uid for all oauth requests.
+    """
+    h = Headers(request.headers.items())
+
+    if valid and oauth:
+        user = oauth.user
+        h.set("X-Adsws-Uid", user.id)
+        if user.ratelimit_level is not None:
+            h.set(
+                "X-Adsws-Ratelimit-Level",
+                user.ratelimit_level
+            )
+        else:
+            h.set('X-Adsws-Ratelimit-Level', 1)
+    else:
+        h.set("X-Adsws-Uid", -1)
+        h.set('X-Adsws-Ratelimit-Level', 1)
+
+    request.headers = h
+    return valid, oauth
+    
 
 
 def on_404(e):
@@ -148,6 +159,14 @@ def on_429(e):
 
 def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
+
+
+def on_500(e):
+    return jsonify(dict(error='Server error')), 500
+
+
+def on_502(e):
+    return jsonify(dict(error='API error, please retry later.')), 502
 
 
 def load_config(app, kwargs_config):

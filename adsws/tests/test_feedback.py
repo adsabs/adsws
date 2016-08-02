@@ -279,7 +279,7 @@ class TestUnits(TestBase):
         Test the end point is not restrictive on the keyword values it can
         create content for.
         """
-
+        emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
         post_data_sent = {
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: Commenter\n'
@@ -289,7 +289,7 @@ class TestUnits(TestBase):
                     '*Browser*: Firefox v42',
             'username': 'TownCrier',
             'channel': '#feedback',
-            'icon_emoji': ':goberserk:'
+            'icon_emoji': emoji
         }
 
         form_data = {

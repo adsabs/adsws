@@ -52,7 +52,7 @@ class SlackFeedback(Resource):
         except BadRequestKeyError:
             raise
 
-        icon_emoji = ':goberserk:'
+        icon_emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
 
         text = [
             '```Incoming Feedback```',

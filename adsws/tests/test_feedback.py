@@ -252,6 +252,7 @@ class TestUnits(TestBase):
         """
         Tests that the input given is parsed sensibly for slack
         """
+        emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
         post_data_sent = {
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: Commenter\n'
@@ -259,7 +260,7 @@ class TestUnits(TestBase):
                     '*Feedback*: Why are my citations missing?',
             'username': 'TownCrier',
             'channel': '#feedback',
-            'icon_emoji': ':goberserk:'
+            'icon_emoji': emoji
         }
 
         form_data = {

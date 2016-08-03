@@ -54,11 +54,12 @@ class SlackFeedback(Resource):
             raise
 
         if post_data.has_key('_replyto') and post_data.has_key('name'):
-            try:
-                res = send_feedback_email(name, reply_to, comments)
-                post_data['feedback email'] = 'successfully sent to adshelp'
-            except:
-                post_data['feedback email'] = 'failed!!!'
+            if reply_to != 'commenter@email.com':
+                try:
+                    res = send_feedback_email(name, reply_to, comments)
+                    post_data['feedback email'] = 'successfully sent to adshelp'
+                except:
+                    post_data['feedback email'] = 'failed!!!'
 
         icon_emoji = ':goberserk:'
 

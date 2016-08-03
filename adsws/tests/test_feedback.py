@@ -252,14 +252,16 @@ class TestUnits(TestBase):
         """
         Tests that the input given is parsed sensibly for slack
         """
+        emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
         post_data_sent = {
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
-                    '*Feedback*: Why are my citations missing?',
+                    '*Feedback*: Why are my citations missing?\n'
+                    '*sent to adshelp*: failed',
             'username': 'TownCrier',
             'channel': '#feedback',
-            'icon_emoji': ':goberserk:'
+            'icon_emoji': emoji
         }
 
         form_data = {
@@ -278,17 +280,18 @@ class TestUnits(TestBase):
         Test the end point is not restrictive on the keyword values it can
         create content for.
         """
-
+        emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
         post_data_sent = {
             'text': '```Incoming Feedback```\n'
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
                     '*Feedback*: Why are my citations missing?\n'
+                    '*sent to adshelp*: failed\n'
                     '*IP Address*: 127.0.0.1\n'
                     '*Browser*: Firefox v42',
             'username': 'TownCrier',
             'channel': '#feedback',
-            'icon_emoji': ':goberserk:'
+            'icon_emoji': emoji
         }
 
         form_data = {

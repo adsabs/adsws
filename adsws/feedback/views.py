@@ -11,6 +11,7 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 from adsws.feedback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
+from utils import send_feedback_email
 
 API_DOCS = 'https://github.com/adsabs/adsabs-dev-api'
 ERROR_UNVERIFIED_CAPTCHA = dict(
@@ -52,13 +53,23 @@ class SlackFeedback(Resource):
         except BadRequestKeyError:
             raise
 
-        icon_emoji = ':goberserk:'
+        feedback_email = 'no email sent'
+        if post_data.has_key('_replyto') and post_data.has_key('name'):
+            try:
+                res = send_feedback_email(name, reply_to, comments)
+                feedback_email = 'success'
+            except:
+                pass
+                feedback_email = 'failed'
+
+        icon_emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
 
         text = [
             '```Incoming Feedback```',
             '*Commenter*: {}'.format(name),
             '*e-mail*: {}'.format(reply_to),
-            '*Feedback*: {}'.format(comments)
+            '*Feedback*: {}'.format(comments),
+            '*sent to adshelp*: {}'.format(feedback_email)
         ]
 
         used = ['channel', 'username', 'name', '_replyto', 'comments', 'g-recaptcha-response']

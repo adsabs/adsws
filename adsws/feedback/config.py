@@ -3,7 +3,8 @@ Configuration file. Please prefix application specific config values with
 the application name.
 """
 EXTENSIONS = [
-    'adsws.ext.ratelimiter'
+    'adsws.ext.ratelimiter',
+    'adsws.ext.mail'
 ]
 
 FEEDBACK_SLACK_END_POINT = 'https://hooks.slack.com/services/TOKEN/TOKEN'

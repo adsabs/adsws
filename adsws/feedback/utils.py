@@ -3,6 +3,16 @@ Contains useful functions and utilities that are not neccessarily only useful
 for this module. But are also used in differing modules insidide the same
 project, and so do not belong to anything specific.
 """
+from flask import current_app
+from flask.ext.mail import Message
+
+def send_feedback_email(name, sender, feedback):
+    msg = Message(subject="Bumblebee Feedback",
+                  recipients=['ehenneken@cfa.harvard.edu'],
+                  sender=(name, sender),
+                  body=feedback)
+    current_app.extensions['mail'].send(msg)
+    return msg
 
 def err(error_dictionary):
     """

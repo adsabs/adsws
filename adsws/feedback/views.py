@@ -62,7 +62,7 @@ class SlackFeedback(Resource):
                 pass
                 feedback_email = 'failed'
 
-        icon_emoji = ':goberserk:'
+        icon_emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
 
         text = [
             '```Incoming Feedback```',

@@ -53,13 +53,14 @@ class SlackFeedback(Resource):
         except BadRequestKeyError:
             raise
 
+        feedback_email = 'no email sent'
         if post_data.has_key('_replyto') and post_data.has_key('name'):
-            if reply_to != 'commenter@email.com':
-                try:
-                    res = send_feedback_email(name, reply_to, comments)
-                    post_data['feedback email'] = 'successfully sent to adshelp'
-                except:
-                    post_data['feedback email'] = 'failed!!!'
+            try:
+                res = send_feedback_email(name, reply_to, comments)
+                feedback_email = 'success'
+            except:
+                pass
+                feedback_email = 'failed'
 
         icon_emoji = ':goberserk:'
 
@@ -67,7 +68,8 @@ class SlackFeedback(Resource):
             '```Incoming Feedback```',
             '*Commenter*: {}'.format(name),
             '*e-mail*: {}'.format(reply_to),
-            '*Feedback*: {}'.format(comments)
+            '*Feedback*: {}'.format(comments),
+            '*sent to adshelp*: {}'.format(feedback_email)
         ]
 
         used = ['channel', 'username', 'name', '_replyto', 'comments', 'g-recaptcha-response']

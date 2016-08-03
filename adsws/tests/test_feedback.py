@@ -257,7 +257,7 @@ class TestUnits(TestBase):
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
                     '*Feedback*: Why are my citations missing?\n'
-                    '*feedback email*: failed!!!',
+                    '*sent to adshelp*: failed',
             'username': 'TownCrier',
             'channel': '#feedback',
             'icon_emoji': ':goberserk:'
@@ -285,7 +285,7 @@ class TestUnits(TestBase):
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
                     '*Feedback*: Why are my citations missing?\n'
-                    '*feedback email*: failed!!!\n'
+                    '*sent to adshelp*: failed\n'
                     '*IP Address*: 127.0.0.1\n'
                     '*Browser*: Firefox v42',
             'username': 'TownCrier',

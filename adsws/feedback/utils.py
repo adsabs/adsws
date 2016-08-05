@@ -10,7 +10,8 @@ def send_feedback_email(name, sender, feedback):
     help_email = current_app.config['FEEDBACK_EMAIL']
     msg = Message(subject="Bumblebee Feedback",
                   recipients=[help_email],
-                  sender=(name, sender),
+                  sender=("adshelp", help_email),
+                  reply_to=(name, sender),
                   body=feedback)
     current_app.extensions['mail'].send(msg)
     return msg

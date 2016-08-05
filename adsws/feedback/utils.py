@@ -7,8 +7,9 @@ from flask import current_app
 from flask.ext.mail import Message
 
 def send_feedback_email(name, sender, feedback):
+    help_email = current_app.config['FEEDBACK_EMAIL']
     msg = Message(subject="Bumblebee Feedback",
-                  recipients=['ehenneken@cfa.harvard.edu'],
+                  recipients=[help_email],
                   sender=(name, sender),
                   body=feedback)
     current_app.extensions['mail'].send(msg)

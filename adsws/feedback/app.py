@@ -6,6 +6,7 @@ from .. import factory
 from flask.ext.restful import Api
 from flask.ext.cors import CORS
 from adsws.feedback.views import SlackFeedback
+from flask.ext.mail import Mail
 
 
 def create_app(**kwargs_config):
@@ -24,6 +25,7 @@ def create_app(**kwargs_config):
 
     # Register extensions
     api = Api(app)
+    mail = Mail(app)
     CORS(
         app,
         origins=app.config.get('CORS_DOMAINS'),

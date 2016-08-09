@@ -53,7 +53,6 @@ class SlackFeedback(Resource):
         except BadRequestKeyError:
             raise
 
-        print current_app.extensions
         feedback_email = 'no email sent'
         if post_data.has_key('_replyto') and post_data.has_key('name'):
             try:
@@ -101,7 +100,7 @@ class SlackFeedback(Resource):
         if not post_data.get('g-recaptcha-response', False) or \
                 not verify_recaptcha(request):
             current_app.logger.info('The captcha was not verified!')
-#            return err(ERROR_UNVERIFIED_CAPTCHA)
+            return err(ERROR_UNVERIFIED_CAPTCHA)
         else:
             current_app.logger.info('Skipped captcha!')
 

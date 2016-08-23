@@ -699,7 +699,6 @@ class Bootstrap(Resource):
                 is_internal=True,
             )
             db.session.add(token)
-            db.session.commit()
             current_app.logger.info(
                 "Created BB client for {email}".format(email=current_user.email)
             )
@@ -708,6 +707,7 @@ class Bootstrap(Resource):
                 client_id=client.client_id,
                 user_id=current_user.get_id(),
             ).first()
-
+        
+        db.session.commit()
         return client, token
 

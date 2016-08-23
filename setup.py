@@ -73,7 +73,7 @@ setup(
 ADS Web Services
 -------------------------------------
 
-Astrophysics Data System (http://adslabs.org) provides the search and 
+Astrophysics Data System (http://adslabs.org) provides the search and
 discovery of scientific papers for astrophysics, astronomy and related fields
 
 Our services are accessible through the API. And this is the software

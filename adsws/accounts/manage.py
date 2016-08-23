@@ -63,6 +63,7 @@ def cleanup_users(app_override=None, timedelta="hours=24"):
         try:
             db.session.commit()
         except Exception, e:
+            db.session.rollback()
             app.logger.error("Could not cleanup stale users. "
                              "Database error; rolled back: {0}".format(e))
         app.logger.info("Deleted {0} stale users".format(deletions))

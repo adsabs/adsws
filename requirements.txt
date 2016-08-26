@@ -3,10 +3,9 @@ git+https://github.com/inveniosoftware/flask-ratelimiter@3b2f84e8b12c2eb3d0f90e7
 flask-cors==1.9.0
 flask-RESTful==0.3.4
 flask-sslify==0.1.5
-Flask>=0.9
-gunicorn==19.3.0
+Flask==0.11.1
 psycopg2==2.6.1
-Flask-SQLAlchemy==2.0
+Flask-SQLAlchemy==2.1
 Flask-login==0.2.11
 Flask-Security==1.7.4
 Flask-Menu==0.4.0
@@ -20,7 +19,7 @@ WTForms-Alchemy==0.13.3
 Flask-Registry==0.2.0
 Flask-Email==1.4.4
 Flask-Mail==0.9.1
-SQLAlchemy==1.0.8
+SQLAlchemy==1.0.14
 sqlalchemy-utils==0.27.7
 Werkzeug==0.10.4
 requests>=2.7.0

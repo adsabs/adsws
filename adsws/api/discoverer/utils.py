@@ -1,5 +1,6 @@
 import os
 import requests
+import json
 from flask.ext.headers import headers
 from flask import request
 from views import ProxyView
@@ -98,20 +99,38 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             service_uri,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
         )
-
+        
+    cache_key = service_uri.replace('/', '').replace('\\', '').replace('.', '')
+    cache_dir = app.config.get('WEBSERVICES_DISCOVERY_CACHE_DIR', '')
+    cache_path = os.path.join(cache_dir, cache_key)
+    resource_json = {}
+    
+    # discover the ratelimits/urls/permissions from the service itself;
+    # if not available, use a cached values (if any)
     try:
         r = requests.get(url, timeout=5)
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-        app.logger.info('Could not discover {0}'.format(service_uri))
-        return
+        resource_json = r.json()
+        if cache_dir:
+            try:
+                with open(cache_path, 'w') as cf:
+                    cf.write(json.dumps(resource_json))
+            except IOError:
+                app.logger.error('Cant write cached resource {0}'.format(cache_path))
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):        
+        if cache_dir and os.path.exists(cache_path):
+            with open(cache_path, 'r') as cf:
+                resource_json = json.loads(cf.read())
+        else:
+            app.logger.info('Could not discover {0}'.format(service_uri))
+            return
+        
 
-    # validate(r.json()) # TODO validate the incoming json
 
     # Start constructing the ProxyViews based on what we got when querying
     # the /resources route.
     # If any part of this procedure fails, log that we couldn't produce this
     # ProxyView, but otherwise continue.
-    for resource, properties in r.json().iteritems():
+    for resource, properties in resource_json.iteritems():
         if resource.startswith('/'):
             resource = resource[1:]
         route = os.path.join(deploy_path, resource)

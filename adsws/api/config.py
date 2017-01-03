@@ -36,6 +36,9 @@ WEBSERVICES = {
     'adsws.solr.app': '/solr',
     'adsws.graphics.app': '/graphics',
 }
+# when defined, the remote resources will be cached (to be reused)
+# in case when the service is temporarily down during a worker startup
+# WEBSERVICES_DISCOVERY_CACHE_DIR='/tmp'
 
 API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}
 REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition']

@@ -9,6 +9,8 @@ import time
 from sample_microservice import Stubdata
 import mock
 from datetime import datetime
+from unittest import TestCase
+from requests.exceptions import ConnectionError
 
 LIVESERVER_WAIT_SECONDS = 2.5
 
@@ -383,3 +385,62 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
                 time.time()),
         )
         return app
+
+
+import adsws.api.discoverer.utils as discovery_utils
+class TestUnitTests(TestCase):
+    
+    @mock.patch.object(discovery_utils, 'requests')
+    def test_bootstrap_remote_caching(self, requests):
+        requests.get.return_value = mock.Mock()
+        requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
+        
+        app = mock.Mock()
+        app.app_context = mock.mock_open()
+        app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : '/tmp'}
+        
+        with mock.patch("__builtin__.open", mock.mock_open()) as mock_file:
+            
+            discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
+            requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
+            mock_file.assert_called_with('/tmp/http:foobar-us-east-1com:8980tee', 'w')
+            file_handle = mock_file.return_value.__enter__.return_value
+            file_handle.write.assert_called_with('{"hey": {"methods": ["IGNORE"]}}')
+            
+    
+    @mock.patch.object(discovery_utils, 'requests')
+    def test_bootstrap_ignore_remote_caching(self, requests):
+        requests.get.return_value = mock.Mock()
+        requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
+        
+        app = mock.Mock()
+        app.app_context = mock.mock_open()
+        app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : ''}
+        
+        with mock.patch("__builtin__.open", mock.mock_open()) as mock_file:
+            
+            discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
+            requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
+            try:
+                mock_file.assert_called_with('/tmp/http:foobar-us-east-1com:8980tee', 'w')
+                raise Exception('The file was opened!')
+            except AssertionError:
+                pass
+            
+    @mock.patch.object(discovery_utils, 'os')
+    @mock.patch.object(discovery_utils, 'requests')
+    @mock.patch.object(discovery_utils, 'json')
+    def test_bootstrap_from_cache(self, m_json, requests, m_os):
+        requests.get.side_effect = ConnectionError()
+        requests.exceptions.ConnectionError = ConnectionError
+        app = mock.Mock()
+        app.app_context = mock.mock_open()
+        app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : '/tmp'}
+        m_os.path.join = os.path.join
+        m_os.path.exists.return_value = True
+        with mock.patch("__builtin__.open", mock.mock_open(read_data='{"hey": {"methods": ["IGNORE"]}}')) as mock_file:
+            
+            discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
+            requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
+            m_os.path.exists.called_with('/tmp/http:foobar-us-east-1com:8980tee')
+            m_json.loads.assert_called_with('{"hey": {"methods": ["IGNORE"]}}')

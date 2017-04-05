@@ -1,0 +1,264 @@
+---
+swagger: '2.0'
+info:
+  version: 1.0.0
+  title: API for Astrophysics Data System (ADS)
+  description: |
+    #### API for the ADS project.
+host: api.adsabs.harvard.edu
+basePath: /v1
+externalDocs: 
+  description: Complete documentation describing how to use this API
+  url: https://github.com/adsabs/adsabs-dev-api
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  ApiKeySecurity:
+    type: apiKey
+    in: header
+    name: Authorization
+  OauthSecurity:
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: 'https://api.adsabs.harvard.edu/oauth/authorization'
+    tokenUrl: 'https://api.adsabs.harvard.edu/oauth/token'
+    scopes:
+      user: User scopes
+      api: Api user scopes
+security:
+  - OauthSecurity: []
+paths:
+  /resources:
+    get:
+      produces:
+        - application/json
+      responses:
+        200:
+          description: List of API endpoints
+  '/search/query':
+    get:
+      description: | 
+        Main endpoint for search. Results look like this:
+        ```JSON
+        {
+            "bibcode": "2012A&A...542A..16R",
+            "author": [
+              "Ranalli, P.",
+              "Comastri, A.",
+              ...
+            ],
+            "pub": "Astronomy and Astrophysics",
+            "identifier": [
+              "2012arXiv1204.4485R",
+              "arXiv:1204.4485",
+              "2012A&A...542A..16R"
+            ],
+            "title": "X-ray properties of radio-selected star forming galaxies in the Chandra-COSMOS survey",
+            "property": [
+              "REFEREED",
+              "ARTICLE"
+            ],
+            "abstract": "X-ray surveys contain sizable numbers of star forming galaxies, ...",
+            "keyword": [
+              "astronomy x rays",
+              "astronomy radio",
+              "galaxies fundamental parameters",
+              "galaxies star clusters",
+              "galaxies active"
+            ],
+            "aff": [
+              "Università di Bologna, Dipartimento di Astronomia, via Ranzani 1, 40127, Bologna, Italy ; Institute of Astronomy and Astrophysics, National Observatory of Athens, Palaia Penteli, 15236, Athens, Greece; INAF - Osservatorio Astronomico di Bologna, via Ranzani 1, 40127, Bologna, Italy",
+              "INAF - Osservatorio Astronomico di Bologna, via Ranzani 1, 40127, Bologna, Italy",
+            ],
+          }
+        ```
+      
+      security:
+        - OauthSecurity: 
+          - user
+      parameters:
+        - $ref: "#/parameters/q"
+        - $ref: "#/parameters/fq"
+        - $ref: "#/parameters/fl"
+        - $ref: "#/parameters/start"
+        - $ref: "#/parameters/rows"
+        - $ref: "#/parameters/sort"
+      responses:
+        200:
+          $ref: "#/responses/SearchResults"
+        404:
+          $ref: "#/responses/SearchResults"
+        499:
+          description: Server too busy
+        500:
+          description: Server error
+      tags:
+        - documents
+  '/search/bigquery':
+    post:
+      description: Search endpoint which accepts list of many IDs (bibcodes). Supports paging.
+      parameters:
+        - name: filestream
+          in: formData
+          required: true
+          type: string
+          description: List of bibcodes (separated by newlines)
+        - $ref: "#/parameters/q"
+        - $ref: "#/parameters/fq"
+        - $ref: "#/parameters/fl"
+        - $ref: "#/parameters/start"
+        - $ref: "#/parameters/rows"
+        - $ref: "#/parameters/sort"
+      responses:
+        200:
+          $ref: "#/responses/SearchResults"
+        404:
+          $ref: "#/responses/SearchResults"
+        499:
+          description: Server too busy
+        500:
+          description: Server error
+      tags:
+        - documents
+
+definitions:
+  results:
+    type: object
+    properties:
+      header:
+        type: object
+        properties:
+          responseHeader:
+            type: object
+            properties:
+              status:
+                description: Status code as returned by the search engine
+                type: integer
+              QTime:
+                type: integer
+                description: search time in millisecs (only search, without faceting, latency and all other steps)    
+      docs:
+        type: array
+        items:
+          $ref: "#/definitions/doc"
+  doc:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+      bibcode:
+        type: string
+      title:
+        type: string
+      
+responses:
+  SearchResults:
+    description: Results returned by the search engine
+    schema:
+      $ref: "#/definitions/results"
+  Headers:
+    description: foo
+    schema:
+      type: object
+      properties:
+        'X-RateLimit-Limit':
+          type: string
+          description: Maximum allowed reqs for the given endpoint
+      
+parameters:
+  q:
+    name: q
+    description: Query string; for detailed documentation go to http://ui.adsabs.harvard.edu/help
+    in: query
+    required: true
+    type: string
+  rows:
+    name: rows
+    description: How many records to return for this request (default=10, maximum=200)
+    in: query
+    required: false
+    type: integer
+    default: 10
+    maximum: 200
+  fq:
+    name: fq
+    description: Additional filters applied on top of the results of the main query.
+    in: query
+    required: false
+    type: array
+    maxItems: 10
+    collectionFormat: multi
+    items:
+      type: string
+  fl:
+    name: fl
+    description: Comma delimited set of fields to return; default is 'id'
+    in: query
+    default: 
+      - id
+    type: array
+    uniqueItems: true
+    collectionFormat: csv
+    items:
+      type: string
+      enum:
+        - abstract
+        - ack
+        - aff
+        - alternate_bibcode
+        - alternate_title
+        - arxiv_class
+        - author
+        - bibcode
+        - bibgroup
+        - bibstem
+        - body
+        - citation_count
+        - copyright
+        - data
+        - database
+        - doi
+        - doctype
+        - first_author
+        - grant
+        - id
+        - identifier
+        - indexstamp
+        - issue
+        - keyword
+        - lang
+        - orcid_pub
+        - orcid_use
+        - orcid_other
+        - page
+        - property
+        - pub
+        - pubdate
+        - read_count
+        - title
+        - vizier
+        - volume
+        - year
+  start:
+    name: start
+    description: For pagination, offset of the first returned result (default=0)
+    in: query
+    required: false
+    type: integer
+    default: 0
+  sort:
+    name: sort
+    description: | 
+      The format is 'field direction' where direction is one of 'asc' or 'desc' and field is any of the valid indexes. The default sorting is by relevance (computed by our search engine). Example\: 'sort=read_count+desc' Some useful fields to sort by may be pubdate, citation_count, or num_readers.
+    in: query
+    required: false
+    type: string
+ 
+
+  

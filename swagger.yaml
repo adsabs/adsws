@@ -7,7 +7,7 @@ info:
     #### API for the ADS project.
 host: api.adsabs.harvard.edu
 basePath: /v1
-externalDocs: 
+externalDocs:
   description: Complete documentation describing how to use this API
   url: https://github.com/adsabs/adsabs-dev-api
 schemes:
@@ -41,8 +41,11 @@ paths:
           description: List of API endpoints
   '/search/query':
     get:
-      description: | 
-        Main endpoint for search. Results look like this:
+      description: |
+
+        Query the search engine and return results. All parameters have to be properly url-encoded UTF-8. The response body will always be json encoded.
+
+        ## Example result
         ```JSON
         {
             "bibcode": "2012A&A...542A..16R",
@@ -76,9 +79,21 @@ paths:
             ],
           }
         ```
-      
+        ### Example Search Requests
+
+
+        Query | Explanation
+        ------|-------------------------------------------------
+         `q=bibcode:2011ApJ...737..103S` |  Search by bibcode
+         `q=black+holes&fq=database:astronomy` |  Search for "black holes", restricted to astronomy content
+         `q=dark+energy&fq=author:"Civano,+F"&sort=citation_count+desc` |  Search for "dark energy", filter by author, sort by citation count
+        `q=dark+energy&sort=citation_count+desc&fl=bibcode,property` |   Return *bibcode* and *property* values
+        `q=author:"Kurtz,+M"&fq=property:refereed`|   Limit a search to only refereed articles
+        `q=transiting+exoplanets&rows=200`|  Search for "transiting exoplanets", get 200 rows
+        `q=transiting+exoplanets&rows=200&start=201`|   Same search but get the next 200 rows
+
       security:
-        - OauthSecurity: 
+        - OauthSecurity:
           - user
       parameters:
         - $ref: "#/parameters/q"
@@ -98,6 +113,35 @@ paths:
           description: Server error
       tags:
         - documents
+
+  '/search/qtree':
+    get:
+      description: |
+        Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our query parser. The structure can be used by external applications to rewrite the query or check its syntactic correctnes.
+
+        ## Example result
+        ```JSON
+        {
+             "qtree": "\n{\"name\":\"OPERATOR\", \"label\":\"DEFOP\", \"children\": [\n    {\"name\":\"MODIFIER\", \"label\":\"MODIFIER\", \"children\": [\n        {\"name\":\"TMODIFIER\", \"label\":\"TMODIFIER\", \"children\": [\n            {\"name\":\"FIELD\", \"label\":\"FIELD\", \"children\": [\n                {\"name\":\"QNORMAL\", \"label\":\"QNORMAL\", \"children\": [\n                    {\"name\":\"TERM_NORMAL\", \"input\":\"star\", \"start\":0, \"end\":3}]\n                }]\n            }]\n        }]\n    }]\n}",
+             "responseHeader": {
+              "status": 0,
+              "QTime": 6,
+              "params": {
+               "q": "star",
+               "wt": "json",
+               "fl": "id"
+              }
+             }
+            }
+        ```
+      security:
+        - OauthSecurity:
+          - user
+      parameters:
+        - $ref: "#/parameters/q"
+      responses:
+        200:
+          $ref: "#/responses/QTree"
   '/search/bigquery':
     post:
       description: Search endpoint which accepts list of many IDs (bibcodes). Supports paging.
@@ -126,21 +170,19 @@ paths:
         - documents
 
 definitions:
+  qtree:
+    type: object
+    properties:
+      responseHeader:
+        $ref: "#/definitions/responseHeader"
+      qtree:
+        type: string
+        description: "serialized JSON"
   results:
     type: object
     properties:
       header:
-        type: object
-        properties:
-          responseHeader:
-            type: object
-            properties:
-              status:
-                description: Status code as returned by the search engine
-                type: integer
-              QTime:
-                type: integer
-                description: search time in millisecs (only search, without faceting, latency and all other steps)    
+        $ref: "#/definitions/responseHeader"
       docs:
         type: array
         items:
@@ -156,8 +198,21 @@ definitions:
         type: string
       title:
         type: string
-      
+  responseHeader:
+    type: object
+    properties:
+      status:
+        description: Status code as returned by the search engine
+        type: integer
+      QTime:
+        type: integer
+        description: search time in millisecs (only search, without faceting, latency and all other steps)
+
 responses:
+  QTree:
+    description: Abstract Syntax Tree of a Parsed query
+    schema:
+      $ref: "#/definitions/qtree"
   SearchResults:
     description: Results returned by the search engine
     schema:
@@ -170,7 +225,7 @@ responses:
         'X-RateLimit-Limit':
           type: string
           description: Maximum allowed reqs for the given endpoint
-      
+
 parameters:
   q:
     name: q
@@ -200,7 +255,7 @@ parameters:
     name: fl
     description: Comma delimited set of fields to return; default is 'id'
     in: query
-    default: 
+    default:
       - id
     type: array
     uniqueItems: true
@@ -254,11 +309,11 @@ parameters:
     default: 0
   sort:
     name: sort
-    description: | 
+    description: |
       The format is 'field direction' where direction is one of 'asc' or 'desc' and field is any of the valid indexes. The default sorting is by relevance (computed by our search engine). Example\: 'sort=read_count+desc' Some useful fields to sort by may be pubdate, citation_count, or num_readers.
     in: query
     required: false
     type: string
- 
+
 
   

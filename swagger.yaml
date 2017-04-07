@@ -37,6 +37,7 @@ securityDefinitions:
       api: Api user scopes
       'store-query': Save into RDB
       'execute-query': Run saved query
+      'store-preferences': Acces or save user preferences
 security:
   - OauthSecurity: []
 paths:
@@ -112,7 +113,7 @@ paths:
         500:
           description: Server error
       tags:
-        - documents
+        - search
 
   '/search/qtree':
     get:
@@ -227,7 +228,7 @@ paths:
           schema:
             $ref: "#/definitions/vaultObject"
       tags:
-        - myads
+        - search
       security:
         - OauthSecurity:
           - store-query
@@ -257,7 +258,7 @@ paths:
           in: path
           type: string
       tags:
-        - myads
+        - search
       security:
         - OauthSecurity:
           - store-query
@@ -272,6 +273,54 @@ paths:
       description: |
         Search using the stored query and return the same data as Search API endpoint.
 
+        ## Example response
+
+        ```JSON
+          {
+            "response": {
+                "docs": [
+                    {
+                        "id": "10690723"
+                    },
+                    {
+                        "id": "11057363"
+                    },
+                    {
+                        "id": "10564749"
+                    },
+                    {
+                        "id": "10796089"
+                    },
+                    {
+                        "id": "10867252"
+                    },
+                    {
+                        "id": "10867221"
+                    },
+                    {
+                        "id": "10867251"
+                    },
+                    {
+                        "id": "10867277"
+                    },
+                    {
+                        "id": "11057812"
+                    }
+                ],
+                "numFound": 9,
+                "start": 0
+            },
+            "responseHeader": {
+                "QTime": 6,
+                "params": {
+                    "fl": "id",
+                    "fq": "{!bitset}",
+                    "q": "*:*",
+                    "wt": "json"
+                },
+                "status": 0
+            }
+          }
         ```
       parameters:
         - name: queryId
@@ -286,7 +335,7 @@ paths:
           schema:
             $ref: "#/definitions/vaultObject"
       tags:
-        - myads
+        - search
       security:
         - OauthSecurity:
           - execute-query
@@ -295,6 +344,58 @@ paths:
           $ref: "#/responses/SearchResults"
         404:
           description: QID object not found
+
+  '/vault/user-data':
+    get:
+      description: |
+        Retrive stored preferences. No parameter is passed besides the `Authorization` header; user
+        is identified based on that.
+      responses:
+        200:
+          description: JSON
+        404:
+          description: User not found
+      security:
+        - OauthSecurity:
+          - store-preferences
+      x-ratelimit:
+        period: day
+        limit: 1000
+      tags:
+        - user
+        - store
+    post:
+      description: |
+        Endpoint for saving user preferences. Used mostly by BumbleBee client.
+
+        ## Example request
+
+        ```bash
+          $ curl -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" "https://api.adsabs.harvard.edu/v1/vault/user-data" -X POST -d $'{"foo": "bar"}'
+          > {"foo": "bar"}
+        ```
+      parameters:
+        - name: jsonpayload
+          in: body
+          description: |
+            JSON object, to be stored for the user. **WARNING**: the JSON will replace the existing one.
+            If you send an empty POST request, the stored data will be replaced with `{}`.
+          schema:
+            type: object
+      responses:
+        200:
+          description: JSON
+        404:
+          description: User not found
+      security:
+        - OauthSecurity:
+          - store-preferences
+      x-ratelimit:
+        period: day
+        limit: 100
+      tags:
+        - user
+        - store
 
 
 definitions:
@@ -376,6 +477,7 @@ responses:
     description: Response from myads service
     schema:
       $ref: "#/definitions/vaultObject"
+
 
 
 

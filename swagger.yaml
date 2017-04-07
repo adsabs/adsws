@@ -4,7 +4,13 @@ info:
   version: 1.0.0
   title: API for Astrophysics Data System (ADS)
   description: |
-    #### API for the ADS project.
+    ## API for the ADS project.
+
+    The source code for individual components can be found at:
+
+      - search: https://github.com/adsabs/solr-service
+      - server side store: https://github.com/adsabs/myads
+
 host: api.adsabs.harvard.edu
 basePath: /v1
 externalDocs:
@@ -29,16 +35,11 @@ securityDefinitions:
     scopes:
       user: User scopes
       api: Api user scopes
+      'store-query': Save into RDB
+      'execute-query': Run saved query
 security:
   - OauthSecurity: []
 paths:
-  /resources:
-    get:
-      produces:
-        - application/json
-      responses:
-        200:
-          description: List of API endpoints
   '/search/query':
     get:
       description: |
@@ -93,8 +94,7 @@ paths:
         `q=transiting+exoplanets&rows=200&start=201`|   Same search but get the next 200 rows
 
       security:
-        - OauthSecurity:
-          - user
+        - OauthSecurity: []
       parameters:
         - $ref: "#/parameters/q"
         - $ref: "#/parameters/fq"
@@ -135,8 +135,7 @@ paths:
             }
         ```
       security:
-        - OauthSecurity:
-          - user
+        - OauthSecurity: []
       parameters:
         - $ref: "#/parameters/q"
       responses:
@@ -144,14 +143,51 @@ paths:
           $ref: "#/responses/QTree"
   '/search/bigquery':
     post:
-      description: Search endpoint which accepts list of many IDs (bibcodes). Supports paging.
+      description: |
+        Search endpoint which accepts list of many IDs (bibcodes). Supports paging.
+
+        Returns standard search results, but accepts as input very large query (i.e. a query that can be expressed only as a list of search
+        criteria, typically IDs). There is currently no limit to the size of the submitted data (besides buffer/time limits imposed by our API
+        frontend), however there are severe limits on how often you can call this enpoint. Typically, only 100 requests per day are allowed.
+
+        The `bigquery` is always executed as a filter **after** the main query (to filter out unwanted results and keep only the results
+        specified by the `bigquery`). You may want to use `q=*:*` to filter contents of the whole database, however it is advisable to make
+        the `q` as specific as possible. Broad queries have higher `qTime` (execution time) and that will be counted towards your rate-limit
+        (in the future).
+
+
+        The bigquery filter is *applied only after* the main search (ie: it limits results of the main search).
+
+        ## Example request
+
+        ```python
+          import requests
+          bibcodes="bibcode\n1907AN....174...59.\n1908PA.....16..445.\n1989LNP...334..242S"
+          r = requests.post('https://api.adsabs.harvard.edu/v1/search/bigquery',
+               params={'q':'*:*', 'wt':'json', 'fq':'{!bitset}', 'fl':'bibcode'},
+               headers={'Authorization': 'Bearer:TOKEN'},
+               data=bibcodes)
+        ```
+      security:
+        - OauthSecurity:
+          - api
       parameters:
+        - $ref: "#/parameters/q"
         - name: filestream
           in: formData
           required: true
           type: string
-          description: List of bibcodes (separated by newlines)
-        - $ref: "#/parameters/q"
+          description:  |
+            Newline separated list of values, the first line specifies the index field, the rest are the search values. <br/> Currently, we
+            allow to search in `bibcode` index only. You can submit `canonical` as well as `alternate` bibcodes - the search will automatically
+            match both. In the future, the list of available indexes may be extended).
+        - name: 'Content-Type'
+          in: header
+          required: false
+          description: |
+            Default is `big-query/csv`, it influences the way how the values from the `filestream` parameter are parsed. In the future ADS may support `json` and some other formats. The header can also be used to pass additional information to the query parser.
+          default: big-query/csv
+          type: string
         - $ref: "#/parameters/fq"
         - $ref: "#/parameters/fl"
         - $ref: "#/parameters/start"
@@ -167,7 +203,99 @@ paths:
         500:
           description: Server error
       tags:
-        - documents
+        - search
+
+  '/vault/query':
+    post:
+      description: |
+        Save a query for later execution.
+
+        ## Example request
+
+        ```bash
+          $ curl 'https://api.adsabs.harvard.edu/v1/vault/query' -H 'Authorization: Bearer:TOKEN' \
+            -X POST -d $'{"q":"*:*, "bigquery": "bibcode\\n15IAUGA..2257982A\\n2015IAUGA..2257768A\\n2015IAUGA..2257639R\\n2015ASPC..492..208G\\n2015ASPC..492..204F\\n2015ASPC..492..189A\\n2015ASPC..492..150T\\n2015ASPC..492...85E\\n2015ASPC..492...80H\\n2015AAS...22533656H"}' \
+            -H 'Content-Type: application/json'
+
+          > {"qid": "dcd173130bbbbb957eafd866baf38b2c", "numFound": 9}
+        ```
+      parameters:
+        - name: jsonobj
+          description: JSON object holding the values to submit.
+          required: true
+          in: body
+          schema:
+            $ref: "#/definitions/vaultObject"
+      tags:
+        - myads
+      security:
+        - OauthSecurity:
+          - store-query
+      responses:
+        200:
+          $ref: "#/responses/VaultResponse"
+        404:
+          description: QID object not found
+  '/vault/query/{queryId}':
+    get:
+      description: |
+        Retrive information about the previously stored query.
+
+        ## Example output
+
+        ```JSON
+        {
+            "numfound": 9,
+            "qid": "dcd173130bbbbb957eafd866baf38b2c",
+            "query": "{\"query\": \"fq=%7B%21bitset%7D&q=%2A%3A%2A\", \"bigquery\": \"bibcode\\n15ASPC..495..40015IAUGA..2257982A\\n2015IAUGA..2257768A\\n2015IAUGA..2257639R\\n2015ASPC..492..208G\\n2015ASPC..492..204F\\n2015ASPC..492..189A\\n2015ASPC..492..150T\\n2015ASPC..492...85E\\n2015ASPC..492...80H\\n2015AAS...22533656H\"}"
+        }
+        ```
+      parameters:
+        - name: queryId
+          description: QID returned from the POST operation
+          required: true
+          in: path
+          type: string
+      tags:
+        - myads
+      security:
+        - OauthSecurity:
+          - store-query
+      responses:
+        200:
+          $ref: "#/responses/VaultResponse"
+        404:
+          description: QID object not found
+
+  '/vault/execute_query/{queryId}':
+    get:
+      description: |
+        Search using the stored query and return the same data as Search API endpoint.
+
+        ```
+      parameters:
+        - name: queryId
+          description: QID returned from the POST operation
+          required: true
+          in: path
+          type: string
+        - name: jsonobj
+          description: You can submit query parameters that override parts of the saved query.
+          required: false
+          in: body
+          schema:
+            $ref: "#/definitions/vaultObject"
+      tags:
+        - myads
+      security:
+        - OauthSecurity:
+          - execute-query
+      responses:
+        200:
+          $ref: "#/responses/SearchResults"
+        404:
+          description: QID object not found
+
 
 definitions:
   qtree:
@@ -181,7 +309,7 @@ definitions:
   results:
     type: object
     properties:
-      header:
+      responseHeader:
         $ref: "#/definitions/responseHeader"
       docs:
         type: array
@@ -207,6 +335,32 @@ definitions:
       QTime:
         type: integer
         description: search time in millisecs (only search, without faceting, latency and all other steps)
+  vaultObject:
+    type: object
+    properties:
+      numfound:
+        readOnly: true
+        type: integer
+        description: |
+          Number of docs this query found (the last time it was executed; this number is up to
+          date only when the query is stored). But if you see number higher than 0 then you can be sure that
+          the query was executed.
+
+      qid:
+        readOnly: true
+        type: string
+        description: |
+          Query ID (unique hash identifying all the parameters; it is computed from the supplied query
+          parameters)
+
+      query:
+        type: string
+        description: JSON serialized query parameters
+      bigquery:
+        type: string
+        description: |
+          new line separated list of bibcodes, the first line is the name of the index that will be
+          searched, right now we only support search in `bibcode` index
 
 responses:
   QTree:
@@ -217,14 +371,14 @@ responses:
     description: Results returned by the search engine
     schema:
       $ref: "#/definitions/results"
-  Headers:
-    description: foo
+
+  VaultResponse:
+    description: Response from myads service
     schema:
-      type: object
-      properties:
-        'X-RateLimit-Limit':
-          type: string
-          description: Maximum allowed reqs for the given endpoint
+      $ref: "#/definitions/vaultObject"
+
+
+
 
 parameters:
   q:
@@ -314,6 +468,3 @@ parameters:
     in: query
     required: false
     type: string
-
-
-  

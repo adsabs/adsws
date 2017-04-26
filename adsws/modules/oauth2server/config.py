@@ -23,6 +23,7 @@ OAUTH2_TOKEN_PERSONAL_SALT_LEN = 60
 
 OAUTH2_DEFAULT_SCOPES = {
     'user:email': 'Read access to user email only.',
+    'user': 'Any user operation'
 }
 
 OAUTH2_ALLOWED_GRANT_TYPES = [

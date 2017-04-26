@@ -1,4 +1,5 @@
 from flask import current_app
+from flask_login import current_user
 
 from flask.ext.restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
@@ -7,7 +8,10 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 class StatusView(Resource):
 
     def get(self):
-        return {'app': current_app.name, 'status': 'online'}, 200
+        return {'app': current_app.name, 
+                'status': 'online',
+                'user': current_user.is_authenticated() and current_user.email or 'anonymous'
+                }, 200
 
 
 class GlobalResourcesView(Resource):

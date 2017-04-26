@@ -169,13 +169,22 @@ def load_config(app, kwargs_config):
 
     try:
         f = os.path.join(app.instance_path, 'config.py')
-        app.config.from_pyfile(f)
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
     except IOError:
         app.logger.warning("Could not load {}".format(f))
 
     try:
         f = os.path.join(app.instance_path, 'local_config.py')
-        app.config.from_pyfile(f)
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+        
+    try:
+        f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
     except IOError:
         app.logger.warning("Could not load {}".format(f))
 

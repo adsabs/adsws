@@ -10,6 +10,7 @@ info:
 
       - search: https://github.com/adsabs/solr-service
       - server side store: https://github.com/adsabs/myads
+      - orcid: https://github.com/adsabs/orcid-service
 
 host: api.adsabs.harvard.edu
 basePath: /v1
@@ -38,6 +39,8 @@ securityDefinitions:
       'store-query': Save into RDB
       'execute-query': Run saved query
       'store-preferences': Acces or save user preferences
+      'ads-consumer:orcid': Access to the privileged operations
+
 security:
   - OauthSecurity: []
 paths:
@@ -375,13 +378,7 @@ paths:
           > {"foo": "bar"}
         ```
       parameters:
-        - name: jsonpayload
-          in: body
-          description: |
-            JSON object, to be stored for the user. **WARNING**: the JSON will replace the existing one.
-            If you send an empty POST request, the stored data will be replaced with `{}`.
-          schema:
-            type: object
+        - $ref: "#/parameters/jsonpayload"
       responses:
         200:
           description: JSON
@@ -396,6 +393,324 @@ paths:
       tags:
         - user
         - store
+
+
+  '/vault/configuration/{key}':
+    get:
+      description: |
+        Retrive various configuration options for the Bumblebee client. This config is static and controlled by ADS;
+        there is no way to update it from outside.
+
+        ## Example Response
+
+        ```JSON
+        {
+            "link_servers": [
+                {
+                    "gif": "http://sfx.brown.edu:8888/sfx_local/sfx.gif",
+                    "link": "http://sfx.brown.edu:8888/sfx_local",
+                    "name": "Brown University Library"
+                },
+                {
+                    "gif": "http://sfx.caltech.edu:8088/images/sfx.gif",
+                    "link": "http://sfx.caltech.edu:8088/caltech",
+                    "name": "California Institute of Technology"
+                },
+                {
+                    "gif": "http://elibrary.cf.ac.uk/sfx/img/azlist_ver3/cardiffsfx.gif",
+                    "link": "http://elibrary.cf.ac.uk/sfx",
+                    "name": "Cardiff University"
+                }]
+        }
+        ```
+      parameters:
+        - name: key
+          in: path
+          description: Optional. Denotes the key that should be returned from the configuration. When empty, default is to return everything.
+          type: string
+          required: true
+      responses:
+        200:
+          description: JSON
+        404:
+          description: Key not found
+      security:
+        - OauthSecurity: []
+      x-ratelimit:
+        period: day
+        limit: 100
+      tags:
+        - user
+
+
+  '/orcid/get-profile/{orcidId}':
+    get:
+      description: |
+        Check with ORCiD and downloads the fresh profile from the ORCiD API. We can return the orcid profile only if a user ever logged in with
+        ADS (and also the OAuth access_token is stil valid).
+
+        ## Example Response
+
+        ```JSON
+          {
+          "error-desc": null,
+          "message-version": "1.2",
+          "orcid-profile": {
+              "client-type": null,
+              "group-type": null,
+              "orcid": null,
+              "orcid-activities": {
+                  "affiliations": null,
+                  "funding-list": null,
+                  "orcid-works": {
+                      "orcid-work": [
+                          {
+                              "country": null,
+                              "created-date": {
+                                  "value": 1446830582917
+                              },
+                              "journal-title": null,
+                              "language-code": null,
+                              "last-modified-date": {
+                                  "value": 1446830582917
+                              },
+                              "publication-date": {
+                                  "day": null,
+                                  "media-type": null,
+                                  "month": {
+                                      "value": "08"
+                                  },
+                                  "year": {
+                                      "value": "2015"
+                                  }
+                              },
+                              "put-code": "20054210",
+                              "short-description": "Whether or not scholarly publications are going through an evolution or revolution, one comforting certainty remains: the NASA Astrophysics Data System (ADS) is here to help the working astronomer and librarian navigate through the increasingly complex communication environment we find ourselves in. Born as a bibliographic database, today's ADS is best described as a an \"aggregator\" of scholarly resources relevant to the needs of researchers in astronomy and physics. In addition to indexing content from a variety of publishers, data and software archives, the ADS enriches its records by text-mining and indexing the full-text articles, enriching its metadata through the extraction of citations and acknowledgments and the ingest of bibliographies and data links maintained by astronomy institutions and data archives. In addition, ADS generates and maintains citation and co-readership networks to support discovery and bibliometric analysis.In this talk I will summarize new and ongoing curation activities and technology developments of the ADS in the face of the ever-changing world of scholarly publishing and the trends in information-sharing behavior of astronomers. Recent curation efforts include the indexing of non-standard scholarly content (such as software packages, IVOA documents and standards, and NASA award proposals); the indexing of additional content (full-text of articles, acknowledgments, affiliations, ORCID ids); and enhanced support for bibliographic groups and data links. Recent technology developments include a new Application Programming Interface which provides access to a variety of ADS microservices, a new user interface featuring a variety of visualizations and bibliometric analysis, and integration with ORCID services to support paper claiming.",
+                              "source": {
+                                  "source-client-id": {
+                                      "host": "orcid.org",
+                                      "path": "APP-BA5POB6F5D7CTHX2",
+                                      "uri": "http://orcid.org/client/APP-BA5POB6F5D7CTHX2",
+                                      "value": null
+                                  },
+                                  "source-date": {
+                                      "value": 1446830582917
+                                  },
+                                  "source-name": {
+                                      "value": "NASA ADS"
+                                  },
+                                  "source-orcid": null
+                              },
+            # output truncated ....
+        ```
+
+      parameters:
+        - $ref: "#/parameters/orcidId"
+      responses:
+        200:
+          description: JSON
+        404:
+          description: |
+            JSON
+
+            When the user revoked their OAuth ORCiD token
+
+            ```JSON
+            {
+             "error" : "We do not have access_token for: 0000-0000-0000-0000"
+            }
+            ```
+
+            If the ORCiD ID is not known to us
+
+            ```JSON
+            {
+             "error" : "We do not have a record for: 0000-0000-0000-0000"
+            }
+            ```
+
+      security:
+        - OauthSecurity:
+          - ads-consumer:orcid
+      x-ratelimit:
+        period: day
+        limit: 100
+      tags:
+        - user
+        - orcid
+
+
+  '/orcid/export/{iso_date}':
+    get:
+      description: |
+        Return information about users who recently updated their ORCiD information through Bumblebee (ADS UI). This includes also
+        users who just accessed their ORCiD profiles, even if they didn't make new claims. This enpoint always returns maximum of 10
+        records created since (inclusive) the requested date. To access the next records, use the `updated` date + 1 additional microsecond.
+
+
+        ## Example Response
+
+        ```JSON
+        [
+            {
+                "created": "2015-11-15T17:46:28.657982",
+                "orcid_id": "0000-0002-9384-846X",
+                "updated": "2015-11-15T20:58:27.656195",
+                "info": {},
+                "profile": {
+                    "error-desc": null,
+                    "message-version": "1.2",
+                    "orcid-profile": {
+                        "client-type": null,
+                        "group-type": null,
+                        "orcid": null,
+                        "orcid-activities": {
+                            "affiliations": {
+                                "affiliation": [
+                                    {
+                                        "created-date": {
+                                            "value": 1438088550409
+                                        },
+                                        "department-name": null,
+                                        "end-date": null,
+                                        "last-modified-date": {
+                                            "value": 1438088550409
+                                        },
+                                        "organization": {
+                                            "address": {
+                                                "city": "Firenze",
+                                                "country": "IT",
+                                                "region": "Toscana"
+                                            },
+                                            "disambiguated-organization": {
+                                                "disambiguated-organization-identifier": "56860",
+                                                "disambiguation-source": "RINGGOLD"
+                                            },
+                                            "name": "Osservatorio Astrofisico di Arcetri"
+                                        },
+                                        "put-code": "1060794",
+                                        "role-title": "Researcher",
+                                        "source": {
+                                            "source-client-id": null,
+                                            "source-date": {
+                                                "value": 1438088550409
+                                            },
+                                            "source-name": {
+                                                "value": "Simone Bianchi"
+                                            },
+                                            "source-orcid": {
+                                                "host": "orcid.org",
+                                                "path": "0000-0002-9384-846X",
+                                                "uri": "http://orcid.org/0000-0002-9384-846X",
+                                                "value": null
+                                            }
+                                        },
+                           # output truncated
+            },
+            {
+             ...
+            }
+        ]
+        ```
+
+      parameters:
+        - name: iso_date
+          in: path
+          description: |
+            Date in ISO format (RFC3339, UTC time zone, ie. '2008-09-03T20:56:35.450686Z')
+          type: string
+          required: true
+        - name: fields
+          in: query
+          description: 'List of fields to return in response, allowed values are: `orcid_id`, `created`, `updated`, `profile`, `info`'
+          type: array
+          uniqueItems: true
+          collectionFormat: csv
+          items:
+            type: string
+            enum:
+              - orcid_id
+              - created
+              - updated
+              - profile
+              - info
+
+      responses:
+        200:
+          description: JSON
+      security:
+        - OauthSecurity:
+          - ads-consumer:orcid
+      x-ratelimit:
+        period: day
+        limit: 1000
+      tags:
+        - orcid
+
+
+  '/orcid/preferences/{orcidId}':
+    get:
+      description: |
+        Clients can store various data about the user (ie: Bumblebee saves here alternative names
+        and user preferences associated to the ORCiD display).
+
+
+        ## Example Response
+
+        ```json
+        {
+          "alternativeNames" : ["Doe, J", "Doe X, J"]
+        }
+        ```
+
+      parameters:
+        - $ref: "#/parameters/orcidId"
+        - $ref: "#/parameters/OrcidAuthorization"
+      responses:
+        200:
+          description: JSON
+      security:
+        - OauthSecurity: []
+      x-ratelimit:
+        period: day
+        limit: 1000
+      tags:
+        - orcid
+    post:
+      description: |
+        Post a JSON payload to **replace** the existing stored values.
+
+        ## Example Request
+
+        ```command-line
+
+        $ curl 'https://api.adsabs.harvard.edu/v1/preferences/0000-00002-9384-846X' -H 'Authorization: Bearer:TOKEN' -H 'Orcid-Authorization: Bearer:ea12a66a-2a07-49fc-b0cb-9d0967c484c8' -X POST -d $'{"foo":"bar"}' -H 'Content-Type: application/json'
+
+        > {"foo": "bar"}
+        ```
+
+        ## Example Response
+
+        ```json
+        {
+          "alternativeNames" : ["Doe, J", "Doe X, J"]
+        }
+        ```
+
+      parameters:
+        - $ref: "#/parameters/orcidId"
+        - $ref: "#/parameters/OrcidAuthorization"
+        - $ref: "#/parameters/jsonpayload"
+      responses:
+        200:
+          description: JSON
+      security:
+        - OauthSecurity: []
+      x-ratelimit:
+        period: day
+        limit: 1000
+      tags:
+        - orcid
 
 
 definitions:
@@ -570,3 +885,22 @@ parameters:
     in: query
     required: false
     type: string
+  orcidId:
+    name: orcidId
+    in: path
+    description: ORCiD ID, i.e. '0000-0000-00000-00000'
+    type: string
+    required: true
+  OrcidAuthorization:
+    name: 'Orcid-Authorization'
+    in: header
+    description: '`access_token` of the orcid user (will be passed on to the ORCiD API)'
+    type: string
+  jsonpayload:
+    name: jsonpayload
+    in: body
+    description: |
+      JSON object, to be stored for the user. **WARNING**: the JSON will replace the existing one.
+      If you send an empty POST request, the stored data will be replaced with `{}`.
+    schema:
+      type: object

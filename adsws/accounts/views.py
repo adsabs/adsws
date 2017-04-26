@@ -8,7 +8,7 @@ from adsws.core import db, user_manipulator
 
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask.ext.login import current_user, login_user
-from flask.ext.restful import Resource, abort
+from flask.ext.restful import Resource, abort, reqparse
 from flask.ext.wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
@@ -542,13 +542,31 @@ class Bootstrap(Resource):
         a "BB Client" OAuthClient and token depending if that user already has
         one in the database
         """
-
+        
+        # rca: I'd like to register here my distaste for Flask-Restful and
+        # how it divorces parameters; it was a big mistake to go with that framework
+        # and the decision shouldn't have been left to inexperienced developers
+        # this is not recommended solution, but even the recommended solution
+        # is just awful: http://stackoverflow.com/questions/30779584/flask-restful-passing-parameters-to-get-request
+        parser = reqparse.RequestParser()
+        parser.add_argument('redirect_uri', type=str)
+        parser.add_argument('scopes', type=str)
+        parser.add_argument('client_name', type=str)
+        kwargs = parser.parse_args()
+        
+        scopes = kwargs.get('scopes', None)
+        client_name = kwargs.get('client_name', None)
+        redirect_uri = kwargs.get('redirect_uri', None)
+        
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
         if not current_user.is_authenticated():
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))
+            
+            if scopes or client_name or redirect_uri:
+                abort("Sorry, you cant change scopes/name/redirect_uri of this user")
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             try:
@@ -568,10 +586,22 @@ class Bootstrap(Resource):
                 session['oauth_client'] = client.client_id
         else:
             client, token = Bootstrap.bootstrap_user()
+            
+            if scopes:
+                client._default_scopes = scopes
+            if redirect_uri:
+                client.redirect_uri = redirect_uri
+            if client_name:
+                client.client_name = client_name
 
         client.last_activity = datetime.datetime.now()
         db.session.commit()
-        return print_token(token)
+        output = print_token(token)
+        
+        output['client_id'] = client.client_id
+        output['client_secret'] = client.client_secret
+        
+        return output
 
     @staticmethod
     def load_client(clientid):

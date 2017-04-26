@@ -93,7 +93,7 @@ def authorize(*args, **kwargs):
     return confirm == 'yes'
 
 
-@blueprint.route('/token', methods=['POST', ])
+@blueprint.route('/token', methods=['POST', 'GET'])
 @oauth2.token_handler
 def access_token():
     """

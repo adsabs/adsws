@@ -550,11 +550,11 @@ class Bootstrap(Resource):
         # is just awful: http://stackoverflow.com/questions/30779584/flask-restful-passing-parameters-to-get-request
         parser = reqparse.RequestParser()
         parser.add_argument('redirect_uri', type=str)
-        parser.add_argument('scopes', type=str)
+        parser.add_argument('scope', type=str)
         parser.add_argument('client_name', type=str)
         kwargs = parser.parse_args()
         
-        scopes = kwargs.get('scopes', None)
+        scopes = kwargs.get('scope', None)
         client_name = kwargs.get('client_name', None)
         redirect_uri = kwargs.get('redirect_uri', None)
         
@@ -566,7 +566,7 @@ class Bootstrap(Resource):
             ))
             
             if scopes or client_name or redirect_uri:
-                abort("Sorry, you cant change scopes/name/redirect_uri of this user")
+                abort(401, "Sorry, you cant change scopes/name/redirect_uri of this user")
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             try:

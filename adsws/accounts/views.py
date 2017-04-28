@@ -590,7 +590,7 @@ class Bootstrap(Resource):
             if scopes:
                 client._default_scopes = scopes
             if redirect_uri:
-                client.redirect_uri = redirect_uri
+                client._redirect_uris = redirect_uri
             if client_name:
                 client.client_name = client_name
 

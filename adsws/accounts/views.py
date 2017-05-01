@@ -565,7 +565,7 @@ class Bootstrap(Resource):
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))
             
-            if scopes or client_name or redirect_uri:
+            if scopes or client_name:
                 abort(401, "Sorry, you cant change scopes/name/redirect_uri of this user")
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:

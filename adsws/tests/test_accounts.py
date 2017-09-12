@@ -17,7 +17,7 @@ import datetime
 import httpretty
 
 RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
-    
+
 
 
 class TestUtils(UnitTestCase):

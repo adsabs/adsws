@@ -2,10 +2,11 @@
 Centralized location for configuring ratelimiting for the adsws
 """
 
-from flask.ext.ratelimiter import RateLimiter, ratelimit
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from .utils import scope_func, limit_func
 
-_ratelimiter = RateLimiter()
+ratelimit = Limiter()
 
 
 def setup_app(app):
@@ -14,5 +15,5 @@ def setup_app(app):
     :param app: flask application instance
     :return: extension-registered app instance
     """
-    _ratelimiter.init_app(app)
+    ratelimit.init_app(app)
     return app

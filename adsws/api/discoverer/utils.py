@@ -48,11 +48,10 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
             d = attr_base.rate_limit[0]
-            view = ratelimit(
-                limit=lambda default=d, **kwargs: limit_func(default),
-                per=attr_base.rate_limit[1],
-                scope_func=lambda: scope_func(),
-                key_func=lambda: request.endpoint
+            view = ratelimit.shared_limit(
+                limit=lambda default=d, **kwargs: limit_func(default, attr_base.rate_limit[1]),
+                scope=lambda: scope_func(),
+                key=lambda: request.endpoint
             )(view)
 
         # Decorate the view with require_oauth
@@ -99,12 +98,12 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             service_uri,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
         )
-        
+
     cache_key = service_uri.replace('/', '').replace('\\', '').replace('.', '')
     cache_dir = app.config.get('WEBSERVICES_DISCOVERY_CACHE_DIR', '')
     cache_path = os.path.join(cache_dir, cache_key)
     resource_json = {}
-    
+
     # discover the ratelimits/urls/permissions from the service itself;
     # if not available, use a cached values (if any)
     try:
@@ -116,14 +115,14 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                     cf.write(json.dumps(resource_json))
             except IOError:
                 app.logger.error('Cant write cached resource {0}'.format(cache_path))
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):        
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         if cache_dir and os.path.exists(cache_path):
             with open(cache_path, 'r') as cf:
                 resource_json = json.loads(cf.read())
         else:
             app.logger.info('Could not discover {0}'.format(service_uri))
             return
-        
+
 
 
     # Start constructing the ProxyViews based on what we got when querying
@@ -157,10 +156,9 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]
             view = ratelimit(
-                limit=lambda default=d, **kwargs: limit_func(default),
-                per=properties['rate_limit'][1],
-                scope_func=lambda: scope_func(),
-                key_func=lambda: request.endpoint,
+                limit=lambda default=d, **kwargs: limit_func(default, properties['rate_limit'][1]),
+                scope=lambda: scope_func(),
+                key=lambda: request.endpoint,
             )(view)
 
             # Decorate with the advertised oauth2 scopes

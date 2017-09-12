@@ -207,7 +207,7 @@ class PersonalTokenView(Resource):
     Implements getting/setting a personal API token
     """
     decorators = [
-        ratelimit(500, 43200, scope_func=scope_func),
+        ratelimit.shared_limit("1000/43200 second", scope=scope_func),
         login_required,
     ]
 
@@ -322,7 +322,7 @@ class ChangeEmailView(Resource):
     """
 
     decorators = [
-        ratelimit(5, 600, scope_func=scope_func),
+        ratelimit.shared_limit("15/600 second", scope=scope_func),
         login_required,
     ]
 
@@ -377,7 +377,7 @@ class UserAuthView(Resource):
     """
     Implements login and logout functionality
     """
-    decorators = [ratelimit(30, 120, scope_func=scope_func)]
+    decorators = [ratelimit.shared_limit("100/300 second", scope=scope_func)]
 
     def post(self):
         """
@@ -416,7 +416,7 @@ class VerifyEmailView(Resource):
 
     If the token is decoded, set User.confirm_at to datetime.now()
     """
-    decorators = [ratelimit(20, 600, scope_func=scope_func)]
+    decorators = [ratelimit.shared_limit("50/600 second", scope=scope_func)]
 
     def get(self, token):
         try:
@@ -464,7 +464,7 @@ class CSRFView(Resource):
     Returns a csrf token
     """
 
-    decorators = [ratelimit(50, 600, scope_func=scope_func)]
+    decorators = [ratelimit.shared_limit("100/600 second", scope=scope_func)]
 
     def get(self):
         """
@@ -478,7 +478,7 @@ class UserRegistrationView(Resource):
     Implements new user registration
     """
 
-    decorators = [ratelimit(50, 600, scope_func=scope_func)]
+    decorators = [ratelimit.shared_limit("50/600 second", scope=scope_func)]
 
     def post(self):
         """
@@ -542,7 +542,7 @@ class Bootstrap(Resource):
         a "BB Client" OAuthClient and token depending if that user already has
         one in the database
         """
-        
+
         # rca: I'd like to register here my distaste for Flask-Restful and
         # how it divorces parameters; it was a big mistake to go with that framework
         # and the decision shouldn't have been left to inexperienced developers
@@ -553,18 +553,18 @@ class Bootstrap(Resource):
         parser.add_argument('scope', type=str)
         parser.add_argument('client_name', type=str)
         kwargs = parser.parse_args()
-        
+
         scopes = kwargs.get('scope', None)
         client_name = kwargs.get('client_name', None)
         redirect_uri = kwargs.get('redirect_uri', None)
-        
+
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
         if not current_user.is_authenticated():
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))
-            
+
             if scopes or client_name:
                 abort(401, "Sorry, you cant change scopes/name/redirect_uri of this user")
 
@@ -586,7 +586,7 @@ class Bootstrap(Resource):
                 session['oauth_client'] = client.client_id
         else:
             client, token = Bootstrap.bootstrap_user()
-            
+
             if scopes:
                 client._default_scopes = scopes
             if redirect_uri:
@@ -597,10 +597,10 @@ class Bootstrap(Resource):
         client.last_activity = datetime.datetime.now()
         db.session.commit()
         output = print_token(token)
-        
+
         output['client_id'] = client.client_id
         output['client_secret'] = client.client_secret
-        
+
         return output
 
     @staticmethod
@@ -632,7 +632,7 @@ class Bootstrap(Resource):
         return client, token
 
     @staticmethod
-    @ratelimit(400, 60*60*24, scope_func=scope_func)
+    @ratelimit.shared_limit("50/86400 second", scope=scope_func)
     def bootstrap_bumblebee():
         """
         Return or create a OAuthClient owned by the "bumblebee" user.
@@ -683,7 +683,7 @@ class Bootstrap(Resource):
         return client, token
 
     @staticmethod
-    @ratelimit(100, 600, scope_func=scope_func)
+    @ratelimit.shared_limit("100/600 second", scope=scope_func)
     def bootstrap_user():
         """
         Return or create a OAuthClient owned by the authenticated real user.
@@ -703,7 +703,7 @@ class Bootstrap(Resource):
             user_id=uid,
             name=client_name,
         ).first()
-        
+
         scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
         salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
 
@@ -754,8 +754,8 @@ class Bootstrap(Resource):
                 db.session.add(token)
                 current_app.logger.info(
                     "Created BB client for {email}".format(email=current_user.email)
-                )   
-        
+                )
+
         db.session.commit()
         return client, token
 

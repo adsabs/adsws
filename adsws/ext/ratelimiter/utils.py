@@ -6,7 +6,7 @@ from flask import request, current_app
 from flask.ext.login import current_user
 
 
-def scope_func():
+def scope_func(endpoint_name):
     """
     Returns the key with which to track the user's requests
     for the purposes of ratelimiting
@@ -28,12 +28,14 @@ def scope_func():
         return request.remote_addr
 
 
-def limit_func(default):
+def limit_func(counts, per_second):
     """
     Returns the default limit multiplied by user's ratelimit_level attribute,
     if it exists.
-    :param default: default rate limit
-    :type default: int
+    :param counts: default rate limit
+    :type counts: int
+    :param per_second: time span in seconds
+    :type counts: int
     :return user's ratelimit
     :rtype int
     """
@@ -42,4 +44,4 @@ def limit_func(default):
         factor = request.oauth.user.ratelimit_level or 1
     except AttributeError:
         pass
-    return default * factor
+    return "{0}/{1} second".format(counts * factor, per_second)

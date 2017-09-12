@@ -20,14 +20,9 @@ CORS_DOMAINS = [
 ]
 CORS_METHODS = ['GET', 'OPTIONS', 'POST']
 
-CACHE = {
-    'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_HOST': 'localhost',
-    'CACHE_REDIS_PORT': 6379,
-    'CACHE_REDIS_DB': 0,
-    'CACHE_KEY_PREFIX': 'api_',
-}
-RATELIMITER_BACKEND = 'flaskcacheredis'
+RATELIMIT_STORAGE_URL = "redis://localhost:6379"
+RATELIMIT_HEADERS_ENABLED = True
+RATELIMIT_KEY_PREFIX = "limiter"
 
 WEBSERVICES_PUBLISH_ENDPOINT = 'resources'
 WEBSERVICES = {

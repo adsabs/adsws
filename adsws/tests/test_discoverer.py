@@ -152,36 +152,47 @@ class DiscovererTestCase:
         test sample application ratelimited resource, including hitting the
         the limit and waiting until the limit is expired
         """
-        go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT')
+        go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT') # 3 per 5 second
         r = go()
         self.assertStatus(r, 200)
-        self.assertEqual(g._rate_limit_info.remaining, 2)
         r = go()
         self.assertStatus(r, 200)
-        self.assertEqual(g._rate_limit_info.remaining, 1)
+        r = go()
+        self.assertStatus(r, 200)
         r = go()
         time.sleep(0.2)  # Make sure cache is caught up
         self.assertStatus(r, 429)
-        self.assertEqual(g._rate_limit_info.remaining, 0)
 
         # Wait until the ratelimit has expired, then try again.
         time.sleep(5)
         r = go()
         self.assertStatus(r, 200)
-        self.assertEqual(g._rate_limit_info.remaining, 2)
 
     def test_user_ratelimit(self):
         """
         Set the user's ratelimit_level to a value and confirm that
         """
-        user_manipulator.update(self.user, ratelimit_level=10)
+        go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT') # 3 per 5 second
+        user_manipulator.update(self.user, ratelimit_level=2) # 2*3 per 5 second
 
-        r = self.open('GET', '/test_webservice/LOW_RATE_LIMIT')
+        r = go()
         self.assertStatus(r, 200)
-        self.assertEqual(
-            g._rate_limit_info.remaining,
-            self.user.ratelimit_level*3 - 1,
-        )
+        r = go()
+        self.assertStatus(r, 200)
+        r = go()
+        self.assertStatus(r, 200)
+        r = go()
+        self.assertStatus(r, 200)
+        r = go()
+        self.assertStatus(r, 200)
+        r = go()
+        time.sleep(0.2)  # Make sure cache is caught up
+        self.assertStatus(r, 429)
+
+        # Wait until the ratelimit has expired, then try again.
+        time.sleep(5)
+        r = go()
+        self.assertStatus(r, 200)
 
     def test_adsws_user_header(self):
         """
@@ -279,7 +290,7 @@ class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE="parent",
-            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
         return app
@@ -321,7 +332,7 @@ class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE='parent',
-            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
         return app
@@ -381,7 +392,7 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE='parent',
-            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
         return app
@@ -389,36 +400,36 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
 
 import adsws.api.discoverer.utils as discovery_utils
 class TestUnitTests(TestCase):
-    
+
     @mock.patch.object(discovery_utils, 'requests')
     def test_bootstrap_remote_caching(self, requests):
         requests.get.return_value = mock.Mock()
         requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
-        
+
         app = mock.Mock()
         app.app_context = mock.mock_open()
         app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : '/tmp'}
-        
+
         with mock.patch("__builtin__.open", mock.mock_open()) as mock_file:
-            
+
             discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
             requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
             mock_file.assert_called_with('/tmp/http:foobar-us-east-1com:8980tee', 'w')
             file_handle = mock_file.return_value.__enter__.return_value
             file_handle.write.assert_called_with('{"hey": {"methods": ["IGNORE"]}}')
-            
-    
+
+
     @mock.patch.object(discovery_utils, 'requests')
     def test_bootstrap_ignore_remote_caching(self, requests):
         requests.get.return_value = mock.Mock()
         requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
-        
+
         app = mock.Mock()
         app.app_context = mock.mock_open()
         app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : ''}
-        
+
         with mock.patch("__builtin__.open", mock.mock_open()) as mock_file:
-            
+
             discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
             requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
             try:
@@ -426,7 +437,7 @@ class TestUnitTests(TestCase):
                 raise Exception('The file was opened!')
             except AssertionError:
                 pass
-            
+
     @mock.patch.object(discovery_utils, 'os')
     @mock.patch.object(discovery_utils, 'requests')
     @mock.patch.object(discovery_utils, 'json')
@@ -439,7 +450,7 @@ class TestUnitTests(TestCase):
         m_os.path.join = os.path.join
         m_os.path.exists.return_value = True
         with mock.patch("__builtin__.open", mock.mock_open(read_data='{"hey": {"methods": ["IGNORE"]}}')) as mock_file:
-            
+
             discovery_utils.bootstrap_remote_service('http://foo.bar-us-east-1.com:8980/tee', '/foo', app)
             requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
             m_os.path.exists.called_with('/tmp/http:foobar-us-east-1com:8980tee')

@@ -19,6 +19,7 @@ from .emails import PasswordResetEmail, VerificationEmail, \
     EmailChangedNotification
 
 
+
 class StatusView(Resource):
     """
     Health check resource

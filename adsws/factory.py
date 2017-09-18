@@ -38,12 +38,12 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     """
     # Flask application name
     app_name = app_name or '.'.join(__name__.split('.')[0:-1])
-    
+
     # Force instance folder to always be located one level above adsws
     instance_path = instance_path or os.path.realpath(os.path.join(
         os.path.dirname(__file__), '../instance'
     ))
-    
+
     # Create instance path
     try:
         if not os.path.exists(instance_path):
@@ -58,7 +58,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         static_path=static_path,
         static_folder=static_folder
     )
-    
+
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
 
@@ -88,7 +88,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # Extend application config with configuration from packages (app config
     # takes precedence)
     ConfigurationRegistry(app)
-    
+
     configure_logging(app)
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
@@ -114,7 +114,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         app.errorhandler(401)(on_401)
         app.errorhandler(429)(on_429)
         app.errorhandler(405)(on_405)
-        
+
     @oauth2.after_request
     def set_adsws_uid_header(valid, oauth):
         """
@@ -180,7 +180,7 @@ def load_config(app, kwargs_config):
             app.config.from_pyfile(f)
     except IOError:
         app.logger.warning("Could not load {}".format(f))
-        
+
     try:
         f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
         if os.path.exists(f):
@@ -204,16 +204,16 @@ def load_config(app, kwargs_config):
     # old baggage... Consul used to store keys in hexadecimal form
     # so the production/staging databases both convert that into raw bytes
     # but those raw bytes were non-ascii chars (unsafe to pass through
-    # env vars). So we must continue converting hex ...        
+    # env vars). So we must continue converting hex ...
     if app.config.get('SECRET_KEY', None):
         try:
             app.config['SECRET_KEY'] = app.config['SECRET_KEY'].decode('hex')
             app.logger.warning('Converted SECRET_KEY from hex format into bytes')
         except TypeError:
             app.logger.warning('Most likely the SECRET_KEY is not in hex format')
-        
 
-  
+
+
 def set_translations():
     """Add under ``g._`` an already configured internationalization function.
 
@@ -241,7 +241,7 @@ def configure_logging(app):
     try:
         from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHandler
     except ImportError:
-        RotatingFileHandler = logging.handlers.RotatingFileHandler 
+        RotatingFileHandler = logging.handlers.RotatingFileHandler
 
     def log_exception(exc_info):
         """

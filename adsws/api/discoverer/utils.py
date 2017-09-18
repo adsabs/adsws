@@ -8,7 +8,7 @@ from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
 from importlib import import_module
-from adsws.ext.ratelimiter import ratelimit, scope_func, limit_func
+from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
 from flask.ext.consulate import ConsulService
 
 
@@ -49,9 +49,9 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         if hasattr(attr_base, 'rate_limit'):
             d = attr_base.rate_limit[0]
             view = ratelimit.shared_limit(
-                limit=lambda default=d, **kwargs: limit_func(default, attr_base.rate_limit[1]),
-                scope=lambda: scope_func(),
-                key=lambda: request.endpoint
+                lambda counts=d, per_second=attr_base.rate_limit[1]: limit_func(counts, per_second),
+                scope=scope_func,
+                key_func=key_func,
             )(view)
 
         # Decorate the view with require_oauth
@@ -78,7 +78,6 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
-
     app.logger.debug(
         'Attempting bootstrap_remote_service [{0}]'.format(service_uri)
     )
@@ -155,10 +154,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]
-            view = ratelimit(
-                limit=lambda default=d, **kwargs: limit_func(default, properties['rate_limit'][1]),
-                scope=lambda: scope_func(),
-                key=lambda: request.endpoint,
+            view = ratelimit.shared_limit(
+                lambda counts=d, per_second=properties['rate_limit'][1]: limit_func(counts, per_second),
+                scope=scope_func,
+                key_func=key_func,
             )(view)
 
             # Decorate with the advertised oauth2 scopes

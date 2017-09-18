@@ -16,7 +16,7 @@ import requests
 import datetime
 import httpretty
 
-RATELIMITER_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
+RATELIMIT_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
 
 
 
@@ -90,7 +90,7 @@ class AccountsSetup(TestCase):
             SECURITY_REGISTER_BLUEPRINT=False,
             BOOTSTRAP_USER_EMAIL='bootstrap_user@unittests',
             MAIL_SUPPRESS_SEND=True,
-            RATELIMITER_KEY_PREFIX=RATELIMITER_KEY_PREFIX,
+            RATELIMIT_KEY_PREFIX=RATELIMIT_KEY_PREFIX,
             SECRET_KEY="unittests-secret-key",
             SQLALCHEMY_ECHO=False
         )

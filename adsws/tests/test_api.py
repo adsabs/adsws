@@ -22,7 +22,7 @@ class ApiTestCase(_APITestCase):
             SECURITY_POST_LOGIN_VIEW='/postlogin',
             SECURITY_REGISTER_BLUEPRINT=True,
             SHOULD_NOT_OVERRIDE="parent",
-            RATELIMITER_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
         return app

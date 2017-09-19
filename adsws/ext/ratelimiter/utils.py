@@ -5,16 +5,14 @@ Utility functions for adsws.ext.ratelimiter
 from flask import request, current_app
 from flask.ext.login import current_user
 from flask_limiter.util import get_remote_address
-from flask_limiter.util import get_ipaddr
+
 
 def key_func():
     """
     Returns the key with which to track the endpoint's requests
     for the purposes of ratelimiting
     """
-    return get_ipaddr() # uses the last ip address in the X-Forwarded-For header, else falls back to the remote_address of the request
-    #return get_remote_address()
-    #return request.endpoint
+    return request.endpoint
 
 def scope_func(endpoint_name):
     """
@@ -36,7 +34,7 @@ def scope_func(endpoint_name):
     # If request doesn't have oauth-identifying information, fall back to
     # the request's IP address.
     else:
-        return request.remote_addr
+        return get_remote_address()
 
 
 def limit_func(counts, per_second):

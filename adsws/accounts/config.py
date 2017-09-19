@@ -32,6 +32,7 @@ CORS_METHODS = ['GET', 'OPTIONS', 'POST', 'PUT']
 
 RATELIMIT_STORAGE_URL = "redis://localhost:6379"
 RATELIMIT_HEADERS_ENABLED = True
+RATELIMIT_SWALLOW_ERRORS = True
 RATELIMIT_KEY_PREFIX = "limiter"
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'

@@ -153,6 +153,7 @@ class DiscovererTestCase:
         the limit and waiting until the limit is expired
         """
         go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT') # 3 per 5 second
+
         r = go()
         self.assertStatus(r, 200)
         r = go()
@@ -175,6 +176,8 @@ class DiscovererTestCase:
         go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT') # 3 per 5 second
         user_manipulator.update(self.user, ratelimit_level=2) # 2*3 per 5 second
 
+        r = go()
+        self.assertStatus(r, 200)
         r = go()
         self.assertStatus(r, 200)
         r = go()

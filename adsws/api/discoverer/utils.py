@@ -20,6 +20,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
+
     app.logger.debug(
         'Attempting bootstrap_local_module [{0}]'.format(service_uri)
     )
@@ -48,10 +49,11 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
             d = attr_base.rate_limit[0]
-            view = ratelimit.shared_limit(
+            view = ratelimit.shared_limit_and_check(
                 lambda counts=d, per_second=attr_base.rate_limit[1]: limit_func(counts, per_second),
                 scope=scope_func,
                 key_func=key_func,
+                methods=rule.methods,
             )(view)
 
         # Decorate the view with require_oauth
@@ -139,7 +141,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
         # the location to the third party resource (ProxyView.endpoint)
         with app.app_context():
             # app_context to allow config lookup via current_app in __init__
-            proxyview = ProxyView(remote_route, service_uri, deploy_path)
+            proxyview = ProxyView(remote_route, service_uri, deploy_path, route)
 
         for method in properties['methods']:
             if method not in proxyview.methods:
@@ -154,10 +156,11 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]
-            view = ratelimit.shared_limit(
+            view = ratelimit.shared_limit_and_check(
                 lambda counts=d, per_second=properties['rate_limit'][1]: limit_func(counts, per_second),
                 scope=scope_func,
                 key_func=key_func,
+                methods=[method],
             )(view)
 
             # Decorate with the advertised oauth2 scopes

@@ -208,7 +208,7 @@ class PersonalTokenView(Resource):
     Implements getting/setting a personal API token
     """
     decorators = [
-        ratelimit.shared_limit("1000/43200 second", scope=scope_func),
+        ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func),
         login_required,
     ]
 
@@ -323,7 +323,7 @@ class ChangeEmailView(Resource):
     """
 
     decorators = [
-        ratelimit.shared_limit("15/600 second", scope=scope_func),
+        ratelimit.shared_limit_and_check("5/600 second", scope=scope_func),
         login_required,
     ]
 
@@ -378,7 +378,7 @@ class UserAuthView(Resource):
     """
     Implements login and logout functionality
     """
-    decorators = [ratelimit.shared_limit("100/300 second", scope=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("30/120 second", scope=scope_func)]
 
     def post(self):
         """
@@ -417,7 +417,7 @@ class VerifyEmailView(Resource):
 
     If the token is decoded, set User.confirm_at to datetime.now()
     """
-    decorators = [ratelimit.shared_limit("50/600 second", scope=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("20/600 second", scope=scope_func)]
 
     def get(self, token):
         try:
@@ -465,7 +465,7 @@ class CSRFView(Resource):
     Returns a csrf token
     """
 
-    decorators = [ratelimit.shared_limit("100/600 second", scope=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("50/600 second", scope=scope_func)]
 
     def get(self):
         """
@@ -479,7 +479,7 @@ class UserRegistrationView(Resource):
     Implements new user registration
     """
 
-    decorators = [ratelimit.shared_limit("50/600 second", scope=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("50/600 second", scope=scope_func)]
 
     def post(self):
         """
@@ -633,7 +633,7 @@ class Bootstrap(Resource):
         return client, token
 
     @staticmethod
-    @ratelimit.shared_limit("50/86400 second", scope=scope_func)
+    @ratelimit.shared_limit_and_check("400/86400 second", scope=scope_func)
     def bootstrap_bumblebee():
         """
         Return or create a OAuthClient owned by the "bumblebee" user.
@@ -684,7 +684,7 @@ class Bootstrap(Resource):
         return client, token
 
     @staticmethod
-    @ratelimit.shared_limit("100/600 second", scope=scope_func)
+    @ratelimit.shared_limit_and_check("100/600 second", scope=scope_func)
     def bootstrap_user():
         """
         Return or create a OAuthClient owned by the authenticated real user.

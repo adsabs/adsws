@@ -19,7 +19,7 @@ class GlobalResourcesView(Resource):
     Endpoint that exposes all of the resources that the adsws knows about.
     This endpoint, while public, is useful mostly for developers/debugging
     """
-    decorators = [ratelimit.shared_limit("100/86400 second", scope=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("100/86400 second", scope=scope_func)]
 
     def get(self):
         return current_app.config['resources']

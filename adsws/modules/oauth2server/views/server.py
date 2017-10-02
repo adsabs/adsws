@@ -20,6 +20,8 @@ from ..provider import oauth2
 from ..models import OAuthClient, OAuthUserProxy, Scope
 from ..registry import scopes
 
+import logging
+
 
 blueprint = Blueprint(
     'oauth2server',
@@ -50,7 +52,15 @@ def setup_app():
     # Configures an OAuth2Provider instance to use configured caching system
     # to get and set the grant token.
     bind_cache_grant(current_app, oauth2, OAuthUserProxy.get_current_user)
-
+    
+    for x in ['oauthlib', 'flask_oauthlib']:
+        logger = logging.getLogger('flask_oauthlib')
+        logger.setLevel(current_app.logger.getEffectiveLevel())
+        for h in current_app.logger.handlers:
+            if h not in logger.handlers:
+                logger.addHandler(h)
+    
+    
 
 @oauth2.after_request
 def login_oauth2_user(valid, oauth):

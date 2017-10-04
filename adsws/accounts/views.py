@@ -737,6 +737,23 @@ class Bootstrap(Resource):
                 client_id=client.client_id,
                 user_id=current_user.get_id(),
             ).first()
+
+            if token is None:
+                # the token was not created yet
+                token = OAuthToken(
+                    client_id=client.client_id,
+                    user_id=uid,
+                    access_token=gen_salt(salt_length),
+                    refresh_token=gen_salt(salt_length),
+                    expires=datetime.datetime(2500, 1, 1),
+                    _scopes=scopes,
+                    is_personal=False,
+                    is_internal=True,
+                )
+                db.session.add(token)
+                current_app.logger.info(
+                    "Created BB client for {email}".format(email=current_user.email)
+                )   
         
         db.session.commit()
         return client, token

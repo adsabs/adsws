@@ -703,10 +703,11 @@ class Bootstrap(Resource):
             user_id=uid,
             name=client_name,
         ).first()
+        
+        scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
+        salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
 
         if client is None:
-            scopes = ' '.join(current_app.config['USER_DEFAULT_SCOPES'])
-            salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
             client = OAuthClient(
                 user_id=current_user.get_id(),
                 name=client_name,

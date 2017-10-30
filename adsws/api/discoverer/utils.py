@@ -8,7 +8,7 @@ from adsws.modules.oauth2server.provider import oauth2
 from urlparse import urljoin
 import traceback
 from importlib import import_module
-from adsws.ext.ratelimiter import ratelimit, scope_func, limit_func
+from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
 from flask.ext.consulate import ConsulService
 
 
@@ -20,6 +20,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
+
     app.logger.debug(
         'Attempting bootstrap_local_module [{0}]'.format(service_uri)
     )
@@ -48,11 +49,11 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
             d = attr_base.rate_limit[0]
-            view = ratelimit(
-                limit=lambda default=d, **kwargs: limit_func(default),
-                per=attr_base.rate_limit[1],
-                scope_func=lambda: scope_func(),
-                key_func=lambda: request.endpoint
+            view = ratelimit.shared_limit_and_check(
+                lambda counts=d, per_second=attr_base.rate_limit[1]: limit_func(counts, per_second),
+                scope=scope_func,
+                key_func=key_func,
+                methods=rule.methods,
             )(view)
 
         # Decorate the view with require_oauth
@@ -79,7 +80,6 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
-
     app.logger.debug(
         'Attempting bootstrap_remote_service [{0}]'.format(service_uri)
     )
@@ -99,12 +99,12 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             service_uri,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
         )
-        
+
     cache_key = service_uri.replace('/', '').replace('\\', '').replace('.', '')
     cache_dir = app.config.get('WEBSERVICES_DISCOVERY_CACHE_DIR', '')
     cache_path = os.path.join(cache_dir, cache_key)
     resource_json = {}
-    
+
     # discover the ratelimits/urls/permissions from the service itself;
     # if not available, use a cached values (if any)
     try:
@@ -116,14 +116,14 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                     cf.write(json.dumps(resource_json))
             except IOError:
                 app.logger.error('Cant write cached resource {0}'.format(cache_path))
-    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):        
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         if cache_dir and os.path.exists(cache_path):
             with open(cache_path, 'r') as cf:
                 resource_json = json.loads(cf.read())
         else:
             app.logger.info('Could not discover {0}'.format(service_uri))
             return
-        
+
 
 
     # Start constructing the ProxyViews based on what we got when querying
@@ -141,7 +141,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
         # the location to the third party resource (ProxyView.endpoint)
         with app.app_context():
             # app_context to allow config lookup via current_app in __init__
-            proxyview = ProxyView(remote_route, service_uri, deploy_path)
+            proxyview = ProxyView(remote_route, service_uri, deploy_path, route)
 
         for method in properties['methods']:
             if method not in proxyview.methods:
@@ -156,11 +156,11 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]
-            view = ratelimit(
-                limit=lambda default=d, **kwargs: limit_func(default),
-                per=properties['rate_limit'][1],
-                scope_func=lambda: scope_func(),
-                key_func=lambda: request.endpoint,
+            view = ratelimit.shared_limit_and_check(
+                lambda counts=d, per_second=properties['rate_limit'][1]: limit_func(counts, per_second),
+                scope=scope_func,
+                key_func=key_func,
+                methods=[method],
             )(view)
 
             # Decorate with the advertised oauth2 scopes

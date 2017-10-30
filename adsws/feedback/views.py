@@ -33,7 +33,7 @@ class SlackFeedback(Resource):
     """
     Forwards a user's feedback to slack chat using a web end
     """
-    decorators = [ratelimit(50, 600, scope_func=scope_func)]
+    decorators = [ratelimit.shared_limit_and_check("500/600 second", scope=scope_func)]
 
     @staticmethod
     def prettify_post(post_data):

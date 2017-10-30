@@ -1,5 +1,5 @@
 flask-headers==1.0
-git+https://github.com/inveniosoftware/flask-ratelimiter@3b2f84e8b12c2eb3d0f90e760e2a43f17de81c2b#egg=flask-ratelimiter
+git+https://github.com/adsabs/flask-limiter.git@968a0faaa6fce47bf3fb7928ca2b10a00917d6eb#egg=flask-limiter
 flask-cors==1.9.0
 flask-RESTful==0.3.4
 flask-sslify==0.1.5

@@ -9,10 +9,11 @@ import json
 class ProxyView(Resource):
     """Proxies a request to a remote webservice"""
 
-    def __init__(self, endpoint, service_uri, deploy_path):
+    def __init__(self, endpoint, service_uri, deploy_path, route):
         self.endpoint = endpoint
         self.service_uri = service_uri
         self.deploy_path = deploy_path
+        self.route = route
         self.cs = None
         if service_uri.startswith('consul://'):
             self.cs = ConsulService(

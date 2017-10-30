@@ -38,7 +38,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
     user that initialized the request.
     """
     uid = request.user.id if request.user else current_user.get_id()
-    
+
     expires = datetime.utcnow() + timedelta(
                 seconds=int(current_app.config.get(
                     'OAUTH2_PROVIDER_GRANT_EXPIRES_IN',
@@ -60,10 +60,10 @@ def save_grant(client_id, code, request, *args, **kwargs):
 def load_user(username, password, *args, **kwargs):
     """
     Loads the user (resource owner)
-    
-    User getter is optional. It is only required if you need password 
+
+    User getter is optional. It is only required if you need password
     credential authorization:
-    
+
     Needed for grant type 'password'. Note, grant type password is by default
     disabled.
     """

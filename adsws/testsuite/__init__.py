@@ -23,7 +23,7 @@ except ImportError:
 
 from six import iteritems
 from adsws.factory import create_app
-    
+
 from unittest import TestCase
 from .utils import FlaskTestCaseMixin
 from flask.ext.testing import TestCase as FlaskTestCase
@@ -53,14 +53,14 @@ class FlaskAppTestCase(FlaskTestCase):
 
     @property
     def config(self):
-        return self._config 
-    
+        return self._config
+
     def __init__(self, *args, **kwargs):
         self._config = {
             'SQLALCHEMY_DATABASE_URI' : 'sqlite://'
         }
         super(FlaskTestCase, self).__init__(*args, **kwargs)
-        
+
 
     def create_app(self):
         """Create the Flask application for testing."""
@@ -92,7 +92,7 @@ class FlaskAppTestCase(FlaskTestCase):
     def shortDescription(self):
         """Return a short description of the test case."""
         return
-    
+
 class AdsWSTestCase(TestCase):
     pass
 

@@ -30,14 +30,10 @@ CORS_DOMAINS = [
 
 CORS_METHODS = ['GET', 'OPTIONS', 'POST', 'PUT']
 
-CACHE = {
-    'CACHE_TYPE': 'redis',
-    'CACHE_REDIS_HOST': 'localhost',
-    'CACHE_REDIS_PORT': 6379,
-    'CACHE_REDIS_DB': 0,
-    'CACHE_KEY_PREFIX': 'accounts_',
-}
-RATELIMITER_BACKEND = 'flaskcacheredis'
+RATELIMIT_STORAGE_URL = "redis://localhost:6379"
+RATELIMIT_HEADERS_ENABLED = True
+RATELIMIT_SWALLOW_ERRORS = True
+RATELIMIT_KEY_PREFIX = "limiter"
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'
 MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'

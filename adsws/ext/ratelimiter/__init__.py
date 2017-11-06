@@ -75,13 +75,6 @@ def setup_app(app):
     :param app: flask application instance
     :return: extension-registered app instance
     """
-    # [hack]
-    # When testing, an app is created for every single test but the limiter is
-    # always the same. We make sure that the new app forgets about routes and
-    # limits set with the previous app instance (or limit registration will be
-    # triggered more than once)
-    ratelimit.forget()
-    # [/hack]
     # [hack] until this Flask-Ratelimit 0.9.5.1 bug is fixed:
     #   https://github.com/alisaifee/flask-limiter/issues/88
     if 'RATELIMIT_KEY_PREFIX' in app.config:

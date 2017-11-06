@@ -55,6 +55,13 @@ class TestUtils(UnitTestCase):
 
 class AccountsSetup(TestCase):
     def tearDown(self):
+        # [hack]
+        # When testing, an app is created for every single test but the limiter is
+        # always the same. We make sure that the new app forgets about routes and
+        # limits set with the previous app instance (or limit registration will be
+        # triggered more than once)
+        self.app.extensions['limiter'].forget()
+        # [/hack]
         httpretty.disable()
         httpretty.reset()
         self.bootstrap_user = None

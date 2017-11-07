@@ -93,7 +93,7 @@ class ApiDoubleRedirectView(Resource):
         if 'sleep' not in post_data:
             post_data['sleep'] = 0
 
-        store_in_db(post_data) # INSERT in PostgreSQL without forced sleep
+        sql = text("SELECT pg_sleep({});".format(post_data['sleep']))
 
         # Post to the next point
         r = requests.post(

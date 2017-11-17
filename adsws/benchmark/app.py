@@ -10,6 +10,7 @@ from views import BenchmarkTimeoutEndView, BenchmarkTimeoutRedirectView
 
 """
 curl -d '{"sent_from": ["client"] }' -H "Content-Type: application/json" -X POST http://localhost:5000/benchmark/end
+curl -i -X GET "https://devapi.adsabs.harvard.edu/benchmark/timeout_redirect?sleep=10&timeout=1"
 """
 
 

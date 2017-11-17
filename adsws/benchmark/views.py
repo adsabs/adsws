@@ -127,7 +127,7 @@ class BenchmarkTimeoutEndView(Resource):
             sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(one_second))
             result = db.session.execute(sql)
 
-        return {'msg': "Slept during {} seconds!"}, 200
+        return {'msg': "Slept during {} seconds!".format(sleep)}, 200
 
 class BenchmarkTimeoutRedirectView(Resource):
     """

@@ -1,3 +1,4 @@
+DEFAULT_REQUEST_TIMEOUT = 60 # seconds
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',

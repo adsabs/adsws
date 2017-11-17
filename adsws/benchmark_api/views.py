@@ -31,19 +31,18 @@ class ApiEndView(Resource):
         """
         POST response
         """
-        post_data = get_post_data(request)
-        sleep = post_data.get('sleep', 0)
         start_time = time.gmtime().tm_sec
-        time.sleep(sleep)
-
+        post_data = get_post_data(request)
         post_data['last_sent'] = 'benchmark/api/end'
         post_data['sent_from'].append('benchmark/api/end')
         post_data['service'] = {
             'received_time': start_time,
-            'sleep': sleep
         }
 
-        sql = text("SELECT pg_sleep({});".format(sleep))
+        if 'sleep' not in post_data:
+            post_data['sleep'] = 0
+
+        sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(post_data['sleep']))
         result = db.session.execute(sql)
 
         return post_data, 200
@@ -93,7 +92,8 @@ class ApiDoubleRedirectView(Resource):
         if 'sleep' not in post_data:
             post_data['sleep'] = 0
 
-        sql = text("SELECT pg_sleep({});".format(post_data['sleep']))
+        #sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(post_data['sleep']))
+        #result = db.session.execute(sql)
 
         # Post to the next point
         r = requests.post(

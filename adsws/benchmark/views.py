@@ -21,7 +21,7 @@ def get_post_data(request):
     post_data = dict(post_data)
     return post_data
 
-class ApiEndView(Resource):
+class BenchmarkEndView(Resource):
     """
     View that returns a response.
     """
@@ -33,8 +33,8 @@ class ApiEndView(Resource):
         """
         start_time = time.gmtime().tm_sec
         post_data = get_post_data(request)
-        post_data['last_sent'] = 'benchmark/api/end'
-        post_data['sent_from'].append('benchmark/api/end')
+        post_data['last_sent'] = 'benchmark/end'
+        post_data['sent_from'].append('benchmark/end')
         post_data['service'] = {
             'received_time': start_time,
         }
@@ -47,7 +47,7 @@ class ApiEndView(Resource):
 
         return post_data, 200
 
-class ApiRedirectView(Resource):
+class BenchmarkRedirectView(Resource):
     """
     View that contacts a second service which will return a response.
     """
@@ -56,15 +56,15 @@ class ApiRedirectView(Resource):
     def post(self):
 
         post_data = get_post_data(request)
-        post_data['last_sent'] = 'benchmark/api/redirect'
-        post_data['sent_from'].append('benchmark/api/redirect')
+        post_data['last_sent'] = 'benchmark/redirect'
+        post_data['sent_from'].append('benchmark/redirect')
 
         if 'sleep' not in post_data:
             post_data['sleep'] = 0
 
         # Post to the end point
         r = requests.post(
-            'http://localhost/benchmark/api/end',
+            'http://localhost/benchmark/end',
             data=json.dumps(post_data)
         )
 
@@ -76,7 +76,7 @@ class ApiRedirectView(Resource):
 
         return _json, r.status_code
 
-class ApiDoubleRedirectView(Resource):
+class BenchmarkDoubleRedirectView(Resource):
     """
     View that contacts a second service that will contact the API and
     return a response.
@@ -86,8 +86,8 @@ class ApiDoubleRedirectView(Resource):
     def post(self):
 
         post_data = get_post_data(request)
-        post_data['last_sent'] = 'benchmark/api/double_redirect'
-        post_data['sent_from'].append('benchmark/api/double_redirect')
+        post_data['last_sent'] = 'benchmark/double_redirect'
+        post_data['sent_from'].append('benchmark/double_redirect')
 
         if 'sleep' not in post_data:
             post_data['sleep'] = 0
@@ -97,7 +97,7 @@ class ApiDoubleRedirectView(Resource):
 
         # Post to the next point
         r = requests.post(
-            'http://localhost/benchmark/api/redirect',
+            'http://localhost/benchmark/redirect',
             data=json.dumps(post_data)
         )
 

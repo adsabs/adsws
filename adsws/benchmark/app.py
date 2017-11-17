@@ -5,10 +5,10 @@ from flask.ext.restful import Api
 from flask.ext.cors import CORS
 from flask import jsonify
 
-from views import ApiEndView, ApiRedirectView, ApiDoubleRedirectView
+from views import BenchmarkEndView, BenchmarkRedirectView, BenchmarkDoubleRedirectView
 
 """
-curl -d '{"sent_from": ["client"] }' -H "Content-Type: application/json" -X POST http://localhost:5000/benchmark/api/end
+curl -d '{"sent_from": ["client"] }' -H "Content-Type: application/json" -X POST http://localhost:5000/benchmark/end
 """
 
 
@@ -31,9 +31,9 @@ def create_app(**kwargs_config):
     )
 
     app.json_encoder = JSONEncoder
-    api.add_resource(ApiEndView, '/end')
-    api.add_resource(ApiRedirectView, '/redirect')
-    api.add_resource(ApiDoubleRedirectView, '/double_redirect')
+    api.add_resource(BenchmarkEndView, '/end')
+    api.add_resource(BenchmarkRedirectView, '/redirect')
+    api.add_resource(BenchmarkDoubleRedirectView, '/double_redirect')
 
     # Register custom error handlers
     if not app.config.get('DEBUG'):

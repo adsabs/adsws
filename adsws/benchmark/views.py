@@ -4,7 +4,7 @@ import requests
 from flask.ext.restful import Resource
 from adsws.core import db
 from adsws.ext.ratelimiter import ratelimit, scope_func
-from flask import request
+from flask import current_app, request
 from sqlalchemy import text
 
 def get_post_data(request):
@@ -108,3 +108,49 @@ class BenchmarkDoubleRedirectView(Resource):
             _json = {'msg': r.text}
 
         return _json, r.status_code
+
+class BenchmarkTimeoutEndView(Resource):
+    """
+    View that returns a response.
+    """
+    decorators = [ratelimit.shared_limit_and_check("1000/1 second", scope=scope_func)] # Flask Limiter
+
+    def get(self):
+        """
+        GET response
+        """
+        sleep = request.args.get('sleep', default = 0, type = int)
+
+        one_second = 1
+        for i in xrange(sleep):
+            current_app.logger.info('Iteration %s - Waiting %s second(s) for a total of %s seconds', i, one_second, sleep)
+            sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(one_second))
+            result = db.session.execute(sql)
+
+        return {'msg': "Slept during {} seconds!"}, 200
+
+class BenchmarkTimeoutRedirectView(Resource):
+    """
+    View that contacts a second service which will return a response.
+    """
+    decorators = [ratelimit.shared_limit_and_check("1000/1 second", scope=scope_func)] # Flask Limiter
+
+    def get(self):
+        sleep = request.args.get('sleep', default = 0, type = int)
+        timeout = request.args.get('timeout', default = 60, type = int)
+
+        current_app.logger.info('Sending request to timeout_end with a sleep order of %s seconds and a timeout of %s seconds', sleep, timeout)
+        # Get the end point
+        r = requests.get(
+            'http://localhost/benchmark/timeout_end?sleep={}'.format(sleep),
+            timeout=timeout,
+        )
+
+        # Get the response content if there was no failure
+        try:
+            _json = r.json()
+        except:
+            _json = {'msg': r.text}
+
+        return _json, r.status_code
+

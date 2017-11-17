@@ -6,6 +6,7 @@ from flask.ext.cors import CORS
 from flask import jsonify
 
 from views import BenchmarkEndView, BenchmarkRedirectView, BenchmarkDoubleRedirectView
+from views import BenchmarkTimeoutEndView, BenchmarkTimeoutRedirectView
 
 """
 curl -d '{"sent_from": ["client"] }' -H "Content-Type: application/json" -X POST http://localhost:5000/benchmark/end
@@ -34,6 +35,8 @@ def create_app(**kwargs_config):
     api.add_resource(BenchmarkEndView, '/end')
     api.add_resource(BenchmarkRedirectView, '/redirect')
     api.add_resource(BenchmarkDoubleRedirectView, '/double_redirect')
+    api.add_resource(BenchmarkTimeoutEndView, '/timeout_end')
+    api.add_resource(BenchmarkTimeoutRedirectView, '/timeout_redirect')
 
     # Register custom error handlers
     if not app.config.get('DEBUG'):

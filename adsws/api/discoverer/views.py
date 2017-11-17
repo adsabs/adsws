@@ -63,7 +63,8 @@ class ProxyView(Resource):
         Proxy to remote GET endpoint, should be invoked via self.dispatcher()
         """
         try:
-            return self.session.get(ep, headers=request.headers, timeout=self.default_request_timeout)
+            #return self.session.get(ep, headers=request.headers, timeout=self.default_request_timeout)
+            return requests.get(ep, headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             return b'504 Gateway Timeout', 504
 
@@ -74,7 +75,8 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         try:
-            return self.session.post(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            #return self.session.post(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            return requests.post(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             return b'504 Gateway Timeout', 504
 
@@ -85,7 +87,8 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         try:
-            return self.session.put(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            #return self.session.put(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            return requests.put(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             return b'504 Gateway Timeout', 504
 
@@ -96,6 +99,7 @@ class ProxyView(Resource):
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
         try:
-            return self.session.delete(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            #return self.session.delete(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+            return requests.delete(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
             return b'504 Gateway Timeout', 504

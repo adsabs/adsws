@@ -32,7 +32,7 @@ ACCOUNTS = dict(mount='/v1/accounts', app=accounts.create_app())
 FEEDBACK = dict(mount='/v1/feedback', app=feedback.create_app())
 BENCHMARK = dict(mount='/benchmark', app=benchmark.create_app())
 
-resources = get_resources(API, ACCOUNTS, FEEDBACK, BENCHMARK)
+resources = get_resources(API, ACCOUNTS, FEEDBACK)
 
 application = DispatcherMiddleware(frontend.create_app(resources=resources), {
     API['mount']: API['app'],

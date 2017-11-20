@@ -30,10 +30,7 @@ class ProxyView(Resource):
             ## requests sessions)
             # http://docs.python-requests.org/en/latest/api/?highlight=max_retries#requests.adapters.HTTPAdapter
             #
-            # Pool size and max size should be coherent with the number of DB connections
-            sql_pool_size = current_app.config.get("SQLALCHEMY_POOL_SIZE", 10)
-            max_sql_pool_size = sql_pool_size + current_app.config.get("SQLALCHEMY_MAX_OVERFLOW", 40)
-            http_adapter = requests.adapters.HTTPAdapter(pool_connections=sql_pool_size, pool_maxsize=max_sql_pool_size, max_retries=3, pool_block=False)
+            http_adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=1000, max_retries=3, pool_block=False)
             self.session.mount('http://', http_adapter)
 
     @staticmethod

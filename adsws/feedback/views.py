@@ -115,10 +115,14 @@ class SlackFeedback(Resource):
                                      .format(error, post_data))
             return err(ERROR_MISSING_KEYWORDS)
 
-        slack_response = requests.post(
-            url=current_app.config['FEEDBACK_SLACK_END_POINT'],
-            data=formatted_post_data
-        )
+        try:
+            slack_response = requests.post(
+                url=current_app.config['FEEDBACK_SLACK_END_POINT'],
+                data=formatted_post_data,
+                timeout=60
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return b'504 Gateway Timeout', 504
         current_app.logger.info('slack response: {0}'
                                 .format(slack_response.status_code))
 

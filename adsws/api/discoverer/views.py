@@ -15,6 +15,11 @@ class ProxyView(Resource):
         self.deploy_path = deploy_path
         self.route = route
         self.cs = None
+        try:
+            self.default_request_timeout = current_app.config.get("DEFAULT_REQUEST_TIMEOUT", 60)
+        except RuntimeError:
+            # Unit testing fails: "RuntimeError: Working outside of application context."
+            self.default_request_timeout = 60
         if service_uri.startswith('consul://'):
             self.cs = ConsulService(
                 service_uri,
@@ -23,6 +28,14 @@ class ProxyView(Resource):
             self.session = self.cs
         else:
             self.session = requests.Session()
+            ## Set retries to 3, otherwise we will generate 502 HTTP errors from
+            ## time to time due to "Resetting dropped connection", connections
+            ## being drop even if the Keep-alive was present (which it is for
+            ## requests sessions)
+            # http://docs.python-requests.org/en/latest/api/?highlight=max_retries#requests.adapters.HTTPAdapter
+            #
+            http_adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=1000, max_retries=3, pool_block=False)
+            self.session.mount('http://', http_adapter)
 
     @staticmethod
     def get_body_data(request):
@@ -61,7 +74,10 @@ class ProxyView(Resource):
         """
         Proxy to remote GET endpoint, should be invoked via self.dispatcher()
         """
-        return self.session.get(ep, headers=request.headers)
+        try:
+            return self.session.get(ep, headers=request.headers, timeout=self.default_request_timeout)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return b'504 Gateway Timeout', 504
 
     def post(self, ep, request):
         """
@@ -69,9 +85,10 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        return self.session.post(
-            ep, data=ProxyView.get_body_data(request), headers=request.headers
-        )
+        try:
+            return self.session.post(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return b'504 Gateway Timeout', 504
 
     def put(self, ep, request):
         """
@@ -79,9 +96,10 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        return self.session.put(
-            ep, data=ProxyView.get_body_data(request), headers=request.headers
-        )
+        try:
+            return self.session.put(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return b'504 Gateway Timeout', 504
 
     def delete(self, ep, request):
         """
@@ -89,6 +107,7 @@ class ProxyView(Resource):
         """
         if not isinstance(request.data, basestring):
             request.data = json.dumps(request.data)
-        return self.session.delete(
-            ep, data=ProxyView.get_body_data(request), headers=request.headers
-        )
+        try:
+            return self.session.delete(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            return b'504 Gateway Timeout', 504

@@ -85,7 +85,10 @@ def verify_recaptcha(request, ep=None):
         'remoteip': request.remote_addr,
         'response': data['g-recaptcha-response']
     }
-    r = requests.post(ep,data=payload)
+    try:
+        r = requests.post(ep,data=payload, timeout=60)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        return False
     r.raise_for_status()
     return True if r.json()['success'] == True else False
 
@@ -108,7 +111,7 @@ def validate_email(email):
 
 
 def validate_password(password):
-    """ 
+    """
     Password must have one lowercase letter, one uppercase letter and one digit.
     Inspired/reused from lingthio/Flask-User.
 

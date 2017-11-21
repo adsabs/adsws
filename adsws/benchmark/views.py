@@ -121,11 +121,12 @@ class BenchmarkTimeoutEndView(Resource):
         """
         sleep = request.args.get('sleep', default = 0, type = int)
 
-        one_second = 1
-        for i in xrange(sleep):
-            current_app.logger.info('Iteration %s - Waiting %s second(s) for a total of %s seconds', i, one_second, sleep)
-            sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(one_second))
-            result = db.session.execute(sql)
+        if sleep > 0:
+            one_second = 1
+            for i in xrange(sleep):
+                current_app.logger.info('Iteration %s - Waiting %s second(s) for a total of %s seconds', i, one_second, sleep)
+                sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(one_second))
+                result = db.session.execute(sql)
 
         return {'msg': "Slept during {} seconds!".format(sleep)}, 200
 

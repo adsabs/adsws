@@ -5,7 +5,6 @@
 
     adsws wsgi module
 """
-import psycogreen.gevent; psycogreen.gevent.patch_psycopg()
 from werkzeug.serving import run_simple
 from werkzeug.wsgi import DispatcherMiddleware
 

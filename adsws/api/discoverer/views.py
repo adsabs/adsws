@@ -15,7 +15,11 @@ class ProxyView(Resource):
         self.deploy_path = deploy_path
         self.route = route
         self.cs = None
-        self.default_request_timeout = current_app.config.get("DEFAULT_REQUEST_TIMEOUT", "60")
+        try:
+            self.default_request_timeout = current_app.config.get("DEFAULT_REQUEST_TIMEOUT", 60)
+        except RuntimeError:
+            # Unit testing fails: "RuntimeError: Working outside of application context."
+            self.default_request_timeout = 60
         if service_uri.startswith('consul://'):
             self.cs = ConsulService(
                 service_uri,

@@ -12,7 +12,7 @@ import logging
 import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
-from flask import Flask, g, request, jsonify, session
+from flask import g, request, jsonify, session
 from flask.ext.login import current_user
 from flask.ext.sslify import SSLify
 from flask.ext.consulate import Consul, ConsulConnectionError
@@ -22,11 +22,13 @@ from werkzeug.datastructures import Headers
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
 
+from adsmutils import ADSFlask
+
 from .middleware import HTTPMethodOverrideMiddleware
 
 
 def create_app(app_name=None, instance_path=None, static_path=None,
-               static_folder=None, **kwargs_config):
+               static_folder=None, **config):
     """Returns a :class:`Flask` application instance configured with common
     functionality for the AdsWS platform.
 
@@ -34,7 +36,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     :param instance_path: application package path
     :param static_path: flask.Flask static_path kwarg
     :param static_folder: flask.Flask static_folder kwarg
-    :param kwargs_config: a dictionary of settings to override
+    :param config: a dictionary of settings to override
     """
     # Flask application name
     app_name = app_name or '.'.join(__name__.split('.')[0:-1])
@@ -51,18 +53,26 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     except:
         pass
 
-    app = Flask(
-        app_name,
-        instance_path=instance_path,
-        instance_relative_config=False,
-        static_path=static_path,
-        static_folder=static_folder
-    )
+    if config:
+        app = ADSFlask(
+            app_name,
+            instance_path=instance_path,
+            instance_relative_config=False,
+            static_path=static_path,
+            static_folder=static_folder,
+            local_config=config
+        )
+    else:
+        app = ADSFlask(
+            app_name,
+            instance_path=instance_path,
+            instance_relative_config=False,
+            static_path=static_path,
+            static_folder=static_folder
+        )
 
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
-
-    load_config(app, kwargs_config)
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
@@ -89,7 +99,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # takes precedence)
     ConfigurationRegistry(app)
 
-    configure_logging(app)
+    configure_a_more_verbose_log_exception(app)
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
@@ -235,13 +245,8 @@ def register_secret_key(app):
         warnings.warn("Using insecure dev SECRET_KEY", UserWarning)
 
 
-def configure_logging(app):
+def configure_a_more_verbose_log_exception(app):
     """Configure logging."""
-
-    try:
-        from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHandler
-    except ImportError:
-        RotatingFileHandler = logging.handlers.RotatingFileHandler
 
     def log_exception(exc_info):
         """
@@ -272,28 +277,6 @@ def configure_logging(app):
                 ), exc_info=exc_info
         )
     app.log_exception = log_exception
-
-    fn = app.config.get('LOG_FILE')
-    if fn is None:
-        fn = os.path.join(app.instance_path, 'logs/adsws.log')
-
-    if not os.path.exists(os.path.dirname(fn)):
-        os.makedirs(os.path.dirname(fn))
-
-    rfh = RotatingFileHandler(fn, maxBytes=1000000, backupCount=10)
-    rfh.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]')
-    )
-    # NOTE:
-    # Setting the level on just the handler seems to have *no* effect;
-    # setting the level on app.logger seems to have the desired effect.
-    # I do not understand this behavior
-    # rfh.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
-    app.logger.setLevel((app.config.get('LOG_LEVEL', logging.INFO)))
-    if rfh not in app.logger.handlers:
-        app.logger.addHandler(rfh)
-    app.logger.debug("Logging initialized")
 
 
 def make_session_permanent():

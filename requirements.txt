@@ -5,7 +5,7 @@ flask-cors==1.9.0
 flask-RESTful==0.3.4
 flask-sslify==0.1.5
 Flask==0.11.1
-psycopg2==2.6.1
+psycopg2==2.7.3.2
 Flask-SQLAlchemy==2.1
 Flask-login==0.2.11
 Flask-Security==1.7.4

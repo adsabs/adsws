@@ -74,9 +74,14 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
 
-    # Load 'adsws/account/config.py'
+    # Load 'adsws/XXXX/config.py' but give preference to values loaded from
+    # main config file as loaded by ADSFlask
+    import flask
     try:
-        app.config.from_object('%s.config' % app.name)
+        config = flask.config.Config(app.config['PROJ_HOME'])
+        config.from_object('%s.config' % app.name)
+        config.update(app.config)
+        app.config = config
     except (IOError, ImportError):
         app.logger.warning("Could not load object {}.config".format(app.name))
 

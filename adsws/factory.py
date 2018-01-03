@@ -74,16 +74,17 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
 
-    # Load 'adsws/XXXX/config.py' but give preference to values loaded from
-    # main config file as loaded by ADSFlask
-    import flask
-    try:
-        config = flask.config.Config(app.config['PROJ_HOME'])
-        config.from_object('%s.config' % app.name)
-        config.update(app.config)
-        app.config = config
-    except (IOError, ImportError):
-        app.logger.warning("Could not load object {}.config".format(app.name))
+    load_config(app, config)
+    ## Load 'adsws/XXXX/config.py' but give preference to values loaded from
+    ## main config file as loaded by ADSFlask
+    #import flask
+    #try:
+        #config = flask.config.Config(app.config['PROJ_HOME'])
+        #config.from_object('%s.config' % app.name)
+        #config.update(app.config)
+        #app.config = config
+    #except (IOError, ImportError):
+        #app.logger.warning("Could not load object {}.config".format(app.name))
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
@@ -169,6 +170,69 @@ def on_429(e):
 
 def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
+
+
+def load_config(app, kwargs_config):
+    """
+    writes to app.config heiracharchly based on files on disk and consul
+    :param app: flask.Flask application instance
+    :param kwargs_config: dictionary to update the config
+    :return: None
+    """
+
+    try:
+        app.config.from_object('adsws.config')
+    except (IOError, ImportError):
+        app.logger.warning("Could not load object adsws.config")
+    try:
+        app.config.from_object('%s.config' % app.name)
+    except (IOError, ImportError):
+        app.logger.warning("Could not load object {}.config".format(app.name))
+
+    try:
+        f = os.path.join(app.instance_path, 'config.py')
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+
+    try:
+        f = os.path.join(app.instance_path, 'local_config.py')
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+
+    try:
+        f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
+        if os.path.exists(f):
+            app.config.from_pyfile(f)
+    except IOError:
+        app.logger.warning("Could not load {}".format(f))
+
+    try:
+        consul = Consul(app)
+        consul.apply_remote_config()
+    except ConsulConnectionError:
+        app.logger.warning(
+            "Could not load config from consul at {}".format(
+                os.environ.get('CONSUL_HOST', 'localhost')
+            )
+        )
+
+    if kwargs_config:
+        app.config.update(kwargs_config)
+
+    # old baggage... Consul used to store keys in hexadecimal form
+    # so the production/staging databases both convert that into raw bytes
+    # but those raw bytes were non-ascii chars (unsafe to pass through
+    # env vars). So we must continue converting hex ...
+    if app.config.get('SECRET_KEY', None):
+        try:
+            app.config['SECRET_KEY'] = app.config['SECRET_KEY'].decode('hex')
+            app.logger.warning('Converted SECRET_KEY from hex format into bytes')
+        except TypeError:
+            app.logger.warning('Most likely the SECRET_KEY is not in hex format')
 
 
 def set_translations():

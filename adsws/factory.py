@@ -75,16 +75,6 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     app.url_map.strict_slashes = False
 
     load_config(app, config)
-    ## Load 'adsws/XXXX/config.py' but give preference to values loaded from
-    ## main config file as loaded by ADSFlask
-    #import flask
-    #try:
-        #config = flask.config.Config(app.config['PROJ_HOME'])
-        #config.from_object('%s.config' % app.name)
-        #config.update(app.config)
-        #app.config = config
-    #except (IOError, ImportError):
-        #app.logger.warning("Could not load object {}.config".format(app.name))
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
@@ -171,54 +161,41 @@ def on_429(e):
 def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
 
+def __load_config(app, method_name, method_argument):
+    # Load config but give preference to values loaded from
+    # main config file as loaded by ADSFlask
+    import flask
+    try:
+        config = flask.config.Config(app.config['PROJ_HOME'])
+        method_to_call = getattr(config, method_name)
+        method_to_call(method_argument)
+        config.update(app.config)
+        app.config = config
+    except (IOError, ImportError):
+        app.logger.warning("Could not load object {}.config".format(app.name))
 
 def load_config(app, kwargs_config):
     """
-    writes to app.config heiracharchly based on files on disk and consul
+    writes to app.config heiracharchly based on files on disk
     :param app: flask.Flask application instance
     :param kwargs_config: dictionary to update the config
     :return: None
     """
 
-    try:
-        app.config.from_object('adsws.config')
-    except (IOError, ImportError):
-        app.logger.warning("Could not load object adsws.config")
-    try:
-        app.config.from_object('%s.config' % app.name)
-    except (IOError, ImportError):
-        app.logger.warning("Could not load object {}.config".format(app.name))
+    __load_config(app, 'from_object', 'adsws.config')
+    __load_config(app, 'from_object', '%s.config' % app.name)
 
-    try:
-        f = os.path.join(app.instance_path, 'config.py')
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
+    f = os.path.join(app.instance_path, 'config.py')
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
-    try:
-        f = os.path.join(app.instance_path, 'local_config.py')
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
+    f = os.path.join(app.instance_path, 'local_config.py')
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
-    try:
-        f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
-
-    try:
-        consul = Consul(app)
-        consul.apply_remote_config()
-    except ConsulConnectionError:
-        app.logger.warning(
-            "Could not load config from consul at {}".format(
-                os.environ.get('CONSUL_HOST', 'localhost')
-            )
-        )
+    f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
     if kwargs_config:
         app.config.update(kwargs_config)

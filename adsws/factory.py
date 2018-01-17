@@ -172,7 +172,7 @@ def __load_config(app, method_name, method_argument):
         config.update(app.config)
         app.config = config
     except (IOError, ImportError):
-        app.logger.warning("Could not load object {}.config".format(app.name))
+        app.logger.warning("Could not load config (%s): %s", method_name, method_argument)
 
 def load_config(app, kwargs_config):
     """
@@ -182,7 +182,6 @@ def load_config(app, kwargs_config):
     :return: None
     """
 
-    __load_config(app, 'from_object', 'adsws.config')
     __load_config(app, 'from_object', '%s.config' % app.name)
 
     f = os.path.join(app.instance_path, 'config.py')

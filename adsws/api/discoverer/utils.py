@@ -10,7 +10,19 @@ import traceback
 from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
 from flask.ext.consulate import ConsulService
+from functools import wraps
 
+def local_app_context(local_app):
+    """
+    Ensure that an imported view is run under the correct application context
+    """
+    def real_local_app_context_decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            with local_app.app_context():
+                return f(*args, **kwargs)
+        return decorated_function
+    return real_local_app_context_decorator
 
 def bootstrap_local_module(service_uri, deploy_path, app):
     """
@@ -45,6 +57,9 @@ def bootstrap_local_module(service_uri, deploy_path, app):
             attr_base = view.view_class
         else:
             attr_base = view
+
+        # ensure the current_app matches local_app and not API app
+        view = local_app_context(local_app)(view)
 
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):

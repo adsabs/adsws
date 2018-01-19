@@ -59,7 +59,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         instance_relative_config=False,
         static_path=static_path,
         static_folder=static_folder,
-        local_config = config or {}
+        local_config=config or {}
     )
 
     # Handle both URLs with and without trailing slashes by Flask.

@@ -1,4 +1,4 @@
-git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.0.1
+git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.0.2
 flask-headers==1.0
 git+https://github.com/adsabs/flask-limiter.git@968a0faaa6fce47bf3fb7928ca2b10a00917d6eb#egg=flask-limiter
 flask-cors==1.9.0

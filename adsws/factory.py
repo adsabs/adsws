@@ -12,7 +12,7 @@ import logging
 import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
-from flask import Flask, g, request, jsonify, session
+from flask import g, request, jsonify, session
 from flask.ext.login import current_user
 from flask.ext.sslify import SSLify
 from flask.ext.consulate import Consul, ConsulConnectionError
@@ -22,11 +22,13 @@ from werkzeug.datastructures import Headers
 from flask_registry import Registry, ExtensionRegistry, \
     PackageRegistry, ConfigurationRegistry, BlueprintAutoDiscoveryRegistry
 
+from adsmutils import ADSFlask
+
 from .middleware import HTTPMethodOverrideMiddleware
 
 
 def create_app(app_name=None, instance_path=None, static_path=None,
-               static_folder=None, **kwargs_config):
+               static_folder=None, **config):
     """Returns a :class:`Flask` application instance configured with common
     functionality for the AdsWS platform.
 
@@ -34,7 +36,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     :param instance_path: application package path
     :param static_path: flask.Flask static_path kwarg
     :param static_folder: flask.Flask static_folder kwarg
-    :param kwargs_config: a dictionary of settings to override
+    :param config: a dictionary of settings to override
     """
     # Flask application name
     app_name = app_name or '.'.join(__name__.split('.')[0:-1])
@@ -51,18 +53,19 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     except:
         pass
 
-    app = Flask(
+    app = ADSFlask(
         app_name,
         instance_path=instance_path,
         instance_relative_config=False,
         static_path=static_path,
-        static_folder=static_folder
+        static_folder=static_folder,
+        local_config=config or {}
     )
 
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
 
-    load_config(app, kwargs_config)
+    load_config(app, config)
 
     # Ensure SECRET_KEY has a value in the application configuration
     register_secret_key(app)
@@ -89,7 +92,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     # takes precedence)
     ConfigurationRegistry(app)
 
-    configure_logging(app)
+    configure_a_more_verbose_log_exception(app)
 
     app.wsgi_app = HTTPMethodOverrideMiddleware(app.wsgi_app)
 
@@ -149,54 +152,47 @@ def on_429(e):
 def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
 
+def __load_config(app, method_name, method_argument):
+    """
+    Load configuration into the application using the method
+    `from_object` or `from_pyfile` with the argument pointing
+    to a python object or a python filename.
+    """
+    if method_name not in ("from_object", "from_pyfile"):
+        raise Exception("Unsupported method: '{}'".format(method_name))
+    # Load config but give preference to values loaded from
+    # main config file as loaded by ADSFlask
+    import flask
+    try:
+        config = flask.config.Config(app.config['PROJ_HOME'])
+        method_to_call = getattr(config, method_name)
+        method_to_call(method_argument)
+        config.update(app.config)
+        app.config = config
+    except (IOError, ImportError):
+        app.logger.warning("Could not load config (%s): %s", method_name, method_argument)
 
 def load_config(app, kwargs_config):
     """
-    writes to app.config heiracharchly based on files on disk and consul
+    writes to app.config heiracharchly based on files on disk
     :param app: flask.Flask application instance
     :param kwargs_config: dictionary to update the config
     :return: None
     """
 
-    try:
-        app.config.from_object('adsws.config')
-    except (IOError, ImportError):
-        app.logger.warning("Could not load object adsws.config")
-    try:
-        app.config.from_object('%s.config' % app.name)
-    except (IOError, ImportError):
-        app.logger.warning("Could not load object {}.config".format(app.name))
+    __load_config(app, 'from_object', '%s.config' % app.name)
 
-    try:
-        f = os.path.join(app.instance_path, 'config.py')
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
+    f = os.path.join(app.instance_path, 'config.py')
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
-    try:
-        f = os.path.join(app.instance_path, 'local_config.py')
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
+    f = os.path.join(app.instance_path, 'local_config.py')
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
-    try:
-        f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
-        if os.path.exists(f):
-            app.config.from_pyfile(f)
-    except IOError:
-        app.logger.warning("Could not load {}".format(f))
-
-    try:
-        consul = Consul(app)
-        consul.apply_remote_config()
-    except ConsulConnectionError:
-        app.logger.warning(
-            "Could not load config from consul at {}".format(
-                os.environ.get('CONSUL_HOST', 'localhost')
-            )
-        )
+    f = os.path.join(app.instance_path, '%s.local_config.py' % app.name)
+    if os.path.exists(f):
+        __load_config(app, 'from_pyfile', f)
 
     if kwargs_config:
         app.config.update(kwargs_config)
@@ -211,7 +207,6 @@ def load_config(app, kwargs_config):
             app.logger.warning('Converted SECRET_KEY from hex format into bytes')
         except TypeError:
             app.logger.warning('Most likely the SECRET_KEY is not in hex format')
-
 
 
 def set_translations():
@@ -235,13 +230,8 @@ def register_secret_key(app):
         warnings.warn("Using insecure dev SECRET_KEY", UserWarning)
 
 
-def configure_logging(app):
+def configure_a_more_verbose_log_exception(app):
     """Configure logging."""
-
-    try:
-        from cloghandler import ConcurrentRotatingFileHandler as RotatingFileHandler
-    except ImportError:
-        RotatingFileHandler = logging.handlers.RotatingFileHandler
 
     def log_exception(exc_info):
         """
@@ -272,28 +262,6 @@ def configure_logging(app):
                 ), exc_info=exc_info
         )
     app.log_exception = log_exception
-
-    fn = app.config.get('LOG_FILE')
-    if fn is None:
-        fn = os.path.join(app.instance_path, 'logs/adsws.log')
-
-    if not os.path.exists(os.path.dirname(fn)):
-        os.makedirs(os.path.dirname(fn))
-
-    rfh = RotatingFileHandler(fn, maxBytes=1000000, backupCount=10)
-    rfh.setFormatter(logging.Formatter(
-        '%(asctime)s %(levelname)s: %(message)s '
-        '[in %(pathname)s:%(lineno)d]')
-    )
-    # NOTE:
-    # Setting the level on just the handler seems to have *no* effect;
-    # setting the level on app.logger seems to have the desired effect.
-    # I do not understand this behavior
-    # rfh.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
-    app.logger.setLevel((app.config.get('LOG_LEVEL', logging.INFO)))
-    if rfh not in app.logger.handlers:
-        app.logger.addHandler(rfh)
-    app.logger.debug("Logging initialized")
 
 
 def make_session_permanent():

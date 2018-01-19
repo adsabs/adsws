@@ -1,11 +1,11 @@
+git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.0.2
 flask-headers==1.0
 git+https://github.com/adsabs/flask-limiter.git@968a0faaa6fce47bf3fb7928ca2b10a00917d6eb#egg=flask-limiter
 flask-cors==1.9.0
 flask-RESTful==0.3.4
 flask-sslify==0.1.5
 Flask==0.11.1
-psycopg2==2.6.1
-Flask-SQLAlchemy==2.1
+psycopg2==2.7.3.2
 Flask-login==0.2.11
 Flask-Security==1.7.4
 Flask-Menu==0.4.0
@@ -19,12 +19,9 @@ WTForms-Alchemy==0.13.3
 Flask-Registry==0.2.0
 Flask-Email==1.4.4
 Flask-Mail==0.9.1
-SQLAlchemy==1.0.14
 sqlalchemy-utils==0.27.7
 Werkzeug==0.10.4
 requests>=2.7.0
 alembic==0.8.1
-six>=1.10.0
 redis==2.10.5
-ConcurrentLogHandler==0.9.1
 flask-consulate==0.1.2

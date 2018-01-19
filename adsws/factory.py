@@ -53,23 +53,14 @@ def create_app(app_name=None, instance_path=None, static_path=None,
     except:
         pass
 
-    if config:
-        app = ADSFlask(
-            app_name,
-            instance_path=instance_path,
-            instance_relative_config=False,
-            static_path=static_path,
-            static_folder=static_folder,
-            local_config=config
-        )
-    else:
-        app = ADSFlask(
-            app_name,
-            instance_path=instance_path,
-            instance_relative_config=False,
-            static_path=static_path,
-            static_folder=static_folder
-        )
+    app = ADSFlask(
+        app_name,
+        instance_path=instance_path,
+        instance_relative_config=False,
+        static_path=static_path,
+        static_folder=static_folder,
+        local_config = config or {}
+    )
 
     # Handle both URLs with and without trailing slashes by Flask.
     app.url_map.strict_slashes = False
@@ -162,6 +153,13 @@ def on_405(e):
     return jsonify(dict(error='Method not allowed')), 405
 
 def __load_config(app, method_name, method_argument):
+    """
+    Load configuration into the application using the method
+    `from_object` or `from_pyfile` with the argument pointing
+    to a python object or a python filename.
+    """
+    if method_name not in ("from_object", "from_pyfile"):
+        raise Exception("Unsupported method: '{}'".format(method_name))
     # Load config but give preference to values loaded from
     # main config file as loaded by ADSFlask
     import flask

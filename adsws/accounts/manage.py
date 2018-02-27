@@ -99,13 +99,13 @@ def cleanup_tokens(app_override=None):
 
 
 @accounts_manager.command
-def cleanup_clients(app_override=None, timedelta="days=31"):
+def cleanup_clients(app_override=None, timedelta="days=365"):
     """
     Cleans expired oauth2clients that are older than a specified date in the
     database defined in app.config['SQLALCHEMY_DATABASE_URI']
     :param app_override: flask.app instance to use instead of manager.app
     :param timedelta: String representing the datetime.timedelta against which
-            to compare client's last_activity ["days=31"].
+            to compare client's last_activity ["days=365"].
     :type timedelta: basestring
     :return: None
     """
@@ -135,7 +135,7 @@ def cleanup_clients(app_override=None, timedelta="days=31"):
 
 
 @accounts_manager.command
-def update_scopes(app_override=None, old_scopes='', new_scopes='', 
+def update_scopes(app_override=None, old_scopes='', new_scopes='',
                   force_token_update=False):
     """
     Updates scopes for both the clients and active tokens in the
@@ -158,12 +158,12 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
     if set(old_scopes.split()) == set(new_scopes.split()):
         app.logger.warn("Hmmm, useless scope replacement of {0) with {1}"
                         .format(old_scopes, new_scopes))
-    
+
     orig_old_scopes = old_scopes
     old_scopes = set((old_scopes or '').split(' '))
     new_scopes = ' '.join(sorted((new_scopes or '').split(' ')))
-    
-    
+
+
     with app.app_context():
         # first find all oauth clients that would be affected by this
         # change (we could search the database to give us the clients,
@@ -180,7 +180,7 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
                 db.session.begin_nested()
                 try:
                     client._default_scopes = new_scopes
-                    
+
                     # now update the existing tokens
                     total = 0
                     updated = 0
@@ -191,7 +191,7 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
                             updated += 1
                         total += 1
                     db.session.commit()
-                    
+
                     app.logger.info("Updated {0} oauth2tokens (out of total: {1}) for {2}"
                         .format(updated, total, client.client_id))
                 except exc.IntegrityError, e:
@@ -199,9 +199,9 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
                     app.logger.error("Could not update scope of oauth2client: {0}. "
                                      "Database error; rolled back: {1}"
                                      .format(client.client_id, e))
-        
+
         if force_token_update:
-            tokens = db.session.query(OAuthToken).filter(or_(OAuthToken._scopes==orig_old_scopes, 
+            tokens = db.session.query(OAuthToken).filter(or_(OAuthToken._scopes==orig_old_scopes,
                                                                 OAuthToken._scopes==' '.join(sorted(list(old_scopes))))).all()
             for token in tokens:
                 db.session.begin_nested()
@@ -213,10 +213,10 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
                     app.logger.error("Could not update scope of oauth2token: {0}. "
                                      "Database error; rolled back: {1}"
                                      .format(token.id, e))
-    
-                 
+
+
         app.logger.info("Updated {0} oauth2clients (out of total: {1})"
                         .format(len(to_update), total))
-        
-        # per PEP-0249 a transaction is always in progress    
+
+        # per PEP-0249 a transaction is always in progress
         db.session.commit()

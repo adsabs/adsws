@@ -14,7 +14,7 @@ from adsws.accounts.manage import cleanup_tokens, cleanup_clients, \
     cleanup_users, parse_timedelta, update_scopes
 
 class TestManageScopes(AccountsSetup):
-    
+
     def _create_client(self, client_id='test', user_id=0, scopes='adsws:internal'):
         # create a client in the database
         c1 = OAuthClient(
@@ -30,7 +30,7 @@ class TestManageScopes(AccountsSetup):
         db.session.add(c1)
         db.session.commit()
         return OAuthClient.query.filter_by(client_secret=c1.client_secret).one()
-    
+
     def _create_token(self, client_id='test', user_id=0, scopes='adsws:internal'):
         token = OAuthToken(
                 client_id=client_id,
@@ -45,28 +45,28 @@ class TestManageScopes(AccountsSetup):
         db.session.add(token)
         db.session.commit()
         return OAuthToken.query.filter_by(id=token.id).one()
-    
+
     def test_update_scopes_forced(self):
         """Verify that scopes are updated without clients"""
-        
+
         self._create_client('test0', 0, scopes='')
         self._create_token('test0', 0, scopes='adsws:foo one')
         self._create_token('test0', 1, scopes='adsws:foo one two')
-        
+
         update_scopes(self.app, 'adsws:foo one', 'foo bar', force_token_update=True)
-        
+
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='bar foo').all()) == 0)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='bar foo').all()) == 1)
-        
+
     def test_update_scopes(self):
         """Verify that scopes are updated properly"""
-        
+
         self._create_client('test0', 0, scopes='adsws:foo')
         self._create_client('test1', 1, scopes='adsws:foo one two')
         self._create_client('test2', 2, scopes='adsws:foo two one')
         self._create_client('test3', 3, scopes='adsws:foo')
         self._create_client('test4', 4, scopes='adsws:foo')
-        
+
         self._create_token('test0', 0, scopes='adsws:foo one')
         self._create_token('test1', 1, scopes='adsws:foo one two')
         self._create_token('test1', 1, scopes='adsws:foo two one')
@@ -75,28 +75,28 @@ class TestManageScopes(AccountsSetup):
         # normally, scopes will be sorted alphabetically (but we fake it here)
         self.assertIsNotNone(OAuthClient.query.filter_by(_default_scopes= 'adsws:foo one two').one())
         self.assertIsNotNone(OAuthClient.query.filter_by(_default_scopes= 'adsws:foo two one').one())
-        
+
         update_scopes(self.app, 'adsws:foo one two', 'foo bar')
-        
+
         # manager will save tokens alphab sorted
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='bar foo').all()) == 2)
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='adsws:foo').all()) == 3)
-        
+
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='bar foo').all()) == 2)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='adsws:foo one').all()) == 1)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='foo bar').all()) == 1)
-        
+
         update_scopes(self.app, 'foo bar', 'xxx')
-        
+
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='bar foo').all()) == 0)
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='xxx').all()) == 2)
         self.assertTrue(len(OAuthClient.query.filter_by(_default_scopes='adsws:foo').all()) == 3)
-        
+
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='bar foo').all()) == 0)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='adsws:foo one').all()) == 1)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='foo bar').all()) == 0)
         self.assertTrue(len(OAuthToken.query.filter_by(_scopes='xxx').all()) == 3)
-        
+
 class TestManage_Accounts(TestCase):
     """
     Tests for manage.py/flask.ext.script commands
@@ -209,9 +209,9 @@ class TestManage_Accounts(TestCase):
         """
         Tests that a string formatted datetime is correctly parsed
         """
-        td = parse_timedelta("days=31")
+        td = parse_timedelta("days=365")
         self.assertIsInstance(td, datetime.timedelta)
-        self.assertEqual(td.total_seconds(), 31*24*60*60)
+        self.assertEqual(td.total_seconds(), 365*24*60*60)
 
         td = parse_timedelta("hours=23")
         self.assertIsInstance(td, datetime.timedelta)
@@ -289,7 +289,7 @@ class TestManage_Accounts(TestCase):
         )
 
         # No clients should be cleaned
-        cleanup_clients(app_override=self.app, timedelta="days=31")
+        cleanup_clients(app_override=self.app, timedelta="days=365")
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(5, len(current_clients))
 

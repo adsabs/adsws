@@ -72,9 +72,9 @@ class ProxyView(Resource):
             [headers.update({key: resp.headers[key]}) for key in current_app.config['REMOTE_PROXY_ALLOWED_HEADERS'] if key in resp.headers]
 
         if headers:
-            return resp.text, resp.status_code, headers
+            return resp.content, resp.status_code, headers
         else:
-            return resp.text, resp.status_code
+            return resp.content, resp.status_code
 
     def get(self, ep, request):
         """

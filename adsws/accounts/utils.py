@@ -63,7 +63,8 @@ def send_email(email_addr='', base_url='', email_template=Email, payload=None):
     endpoint = '{url}/{token}'.format(url=base_url, token=token)
     msg = Message(subject=email_template.subject,
                   recipients=[email_addr],
-                  html=email_template.msg.format(endpoint=endpoint))
+                  body=email_template.msg_plain.format(endpoint=endpoint),
+                  html=email_template.msg_html.format(endpoint=endpoint,email_address=email_addr))
     current_app.extensions['mail'].send(msg)
     return msg, token
 

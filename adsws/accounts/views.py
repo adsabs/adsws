@@ -69,7 +69,7 @@ class ForgotPasswordView(Resource):
         """
         try:
             email = current_app.ts.loads(token,
-                                         max_age=600,
+                                         max_age=86400,
                                          salt=PasswordResetEmail.salt)
         except:
             current_app.logger.warning(
@@ -132,7 +132,7 @@ class ForgotPasswordView(Resource):
         """
         try:
             email = current_app.ts.loads(token,
-                                         max_age=600,
+                                         max_age=86400,
                                          salt=PasswordResetEmail.salt)
         except:
             current_app.logger.critical(

@@ -16,7 +16,7 @@ from .utils import validate_email, validate_password, \
     print_token, logout_user
 from .exceptions import ValidationError, NoClientError, NoTokenError
 from .emails import PasswordResetEmail, VerificationEmail, \
-    EmailChangedNotification
+    EmailChangedNotification, WelcomeVerificationEmail
 
 
 
@@ -512,7 +512,7 @@ class UserRegistrationView(Resource):
         send_email(
             email_addr=email,
             base_url=verify_url,
-            email_template=VerificationEmail,
+            email_template=WelcomeVerificationEmail,
             payload=email
         )
         u = user_manipulator.create(

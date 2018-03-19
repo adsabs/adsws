@@ -39,3 +39,7 @@ WEBSERVICES = {
 
 API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}
 REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition']
+
+SOLR_ROUTE_COOKIE_NAME = "sroute"
+SOLR_ROUTE_REDIS_PREFIX = "token:sroute:"
+SOLR_ROUTE_REDIS_EXPIRATION_TIME = 86400 # 1 day in seconds

@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import Cookie
 from flask.ext.headers import headers
 from flask import request
 from views import ProxyView
@@ -11,6 +12,7 @@ from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
 from flask.ext.consulate import ConsulService
 from functools import wraps
+from .solr_route import solr_route
 
 def local_app_context(local_app):
     """
@@ -60,6 +62,10 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
         # ensure the current_app matches local_app and not API app
         view = local_app_context(local_app)(view)
+
+        if service_uri == 'adsws.solr_service.solr':
+            # Manage solr routes
+            view = solr_route(ratelimit._storage.storage, app.config.get('SOLR_ROUTE_COOKIE_NAME'), app.config.get('SOLR_ROUTE_REDIS_PREFIX'), app.config.get('SOLR_ROUTE_REDIS_EXPIRATION_TIME'))(view)
 
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):

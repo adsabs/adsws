@@ -63,7 +63,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # ensure the current_app matches local_app and not API app
         view = local_app_context(local_app)(view)
 
-        if service_uri == 'adsws.solr_service.solr':
+        if deploy_path == '/search':
             # Manage solr routes
             view = solr_route(ratelimit._storage.storage, app.config.get('SOLR_ROUTE_COOKIE_NAME'), app.config.get('SOLR_ROUTE_REDIS_PREFIX'), app.config.get('SOLR_ROUTE_REDIS_EXPIRATION_TIME'))(view)
 
@@ -174,6 +174,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             view = proxyview.dispatcher
             properties.setdefault('rate_limit', [1000, 86400])
             properties.setdefault('scopes', [])
+
+            if deploy_path == '/search':
+                # Manage solr routes
+                view = solr_route(ratelimit._storage.storage, app.config.get('SOLR_ROUTE_COOKIE_NAME'), app.config.get('SOLR_ROUTE_REDIS_PREFIX'), app.config.get('SOLR_ROUTE_REDIS_EXPIRATION_TIME'))(view)
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]

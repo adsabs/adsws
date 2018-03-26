@@ -12,7 +12,7 @@ from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
 from flask.ext.consulate import ConsulService
 from functools import wraps
-from .solr_route import solr_route
+import affinity
 
 def local_app_context(local_app):
     """
@@ -63,9 +63,10 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         # ensure the current_app matches local_app and not API app
         view = local_app_context(local_app)(view)
 
-        if deploy_path == '/search':
-            # Manage solr routes
-            view = solr_route(ratelimit._storage.storage, app.config.get('SOLR_ROUTE_COOKIE_NAME'), app.config.get('SOLR_ROUTE_REDIS_PREFIX'), app.config.get('SOLR_ROUTE_REDIS_EXPIRATION_TIME'))(view)
+        if deploy_path in local_app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
+            affinity_decorator = getattr(affinity, local_app.config['AFFINITY_ENHANCED_ENDPOINTS'])
+            affinity_parameters = app.config.get('AFFINITY_ENHANCED_ENDPOINTS_PARAMS', {})
+            view = affinity_decorator(ratelimit._storage.storage, **affinity_parameters)(view)
 
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
@@ -175,9 +176,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             properties.setdefault('rate_limit', [1000, 86400])
             properties.setdefault('scopes', [])
 
-            if deploy_path == '/search':
-                # Manage solr routes
-                view = solr_route(ratelimit._storage.storage, app.config.get('SOLR_ROUTE_COOKIE_NAME'), app.config.get('SOLR_ROUTE_REDIS_PREFIX'), app.config.get('SOLR_ROUTE_REDIS_EXPIRATION_TIME'))(view)
+            if deploy_path in app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
+                affinity_decorator = getattr(affinity, app.config['AFFINITY_ENHANCED_ENDPOINTS'])
+                affinity_parameters = app.config.get('AFFINITY_ENHANCED_ENDPOINTS_PARAMS', {})
+                view = affinity_decorator(ratelimit._storage.storage, **affinity_parameters)(view)
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]

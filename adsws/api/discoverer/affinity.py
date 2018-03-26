@@ -61,7 +61,7 @@ def _build_updated_cookies(request, user_token, solr_route, solr_route_cookie_na
     cookies_content = ImmutableTypeConversionDict(cookies)
     return cookies_header_content, cookies_content
 
-def solr_route(storage, solr_route_cookie_name, solr_route_redis_prefix, solr_route_redis_expiration_time):
+def solr_route(storage, solr_route_cookie_name="sroute", solr_route_redis_prefix="token:sroute:", solr_route_redis_expiration_time=86400):
     """
     Assign a cookie that will be used by solr ingress to send request to
     a specific solr instance for the same user, maximizing the use of solr

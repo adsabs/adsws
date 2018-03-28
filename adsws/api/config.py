@@ -39,3 +39,5 @@ WEBSERVICES = {
 
 API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}
 REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition']
+
+AFFINITY_ENHANCED_ENDPOINTS = {"/search": "sroute",} # keys: deploy paths, value: cookie

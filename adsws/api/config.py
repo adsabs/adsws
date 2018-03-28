@@ -40,10 +40,4 @@ WEBSERVICES = {
 API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}
 REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition']
 
-AFFINITY_ENHANCED_ENDPOINTS = {"/search": "solr_route",} # keys: deploy paths, values: decorator in affinity.py
-AFFINITY_ENHANCED_ENDPOINTS_PARAMS = {"/search": { # parameters for the decorator
-                                                    "solr_route_cookie_name": "sroute",
-                                                    "solr_route_redis_prefix": "token:sroute:",
-                                                    "solr_route_redis_expiration_time": 86400, # 1 day in seconds
-                                                  }
-                                       }
+AFFINITY_ENHANCED_ENDPOINTS = {"/search": "sroute",} # keys: deploy paths, value: cookie

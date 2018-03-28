@@ -4,7 +4,7 @@ from functools import wraps
 from werkzeug.datastructures import Headers
 from werkzeug.datastructures import ImmutableTypeConversionDict
 
-def _get_solr_route(storage, solr_route_redis_prefix, user_token):
+def _get_route(storage, route_redis_prefix, user_token):
     """
     Obtains the solr route from redis for a given user token. It piggybacks the
     existing rate limiter extension connection, and if it fails the request
@@ -12,12 +12,12 @@ def _get_solr_route(storage, solr_route_redis_prefix, user_token):
     assigning a solr instance).
     """
     try:
-        solr_route = storage.get(solr_route_redis_prefix+user_token)
+        route = storage.get(route_redis_prefix+user_token)
     except:
-        solr_route = None
-    return solr_route
+        route = None
+    return route
 
-def _set_solr_route(storage, solr_route_redis_prefix, user_token, solr_route, solr_route_redis_expiration_time):
+def _set_route(storage, route_redis_prefix, user_token, route, route_redis_expiration_time):
     """
     Sets the solr route from redis for a given user token. It piggybacks the
     existing rate limiter extension connection, and if it fails the request
@@ -28,11 +28,11 @@ def _set_solr_route(storage, solr_route_redis_prefix, user_token, solr_route, so
     of a particular solr and to automatically clear entries in redis.
     """
     try:
-        storage.setex(solr_route_redis_prefix+user_token, solr_route, solr_route_redis_expiration_time)
+        storage.setex(route_redis_prefix+user_token, route, route_redis_expiration_time)
     except:
         pass
 
-def _build_updated_cookies(request, user_token, solr_route, solr_route_cookie_name):
+def _build_updated_cookies(request, user_token, route, name):
     """
     Based on the current request, create updated headers and cookies content
     attributes.
@@ -48,20 +48,20 @@ def _build_updated_cookies(request, user_token, solr_route, solr_route_cookie_na
     else:
         cookies = {}
     # Update cookie structures
-    if solr_route:
+    if route:
         # Create/update solr route
-        cookies_header[solr_route_cookie_name] = solr_route.encode("utf8")
-        cookies[solr_route_cookie_name] = solr_route
+        cookies_header[name] = route.encode("utf8")
+        cookies[name] = route
     else:
         # Discard non-registered solr route if it is present
-        cookies_header.pop(solr_route_cookie_name, None)
-        cookies.pop(solr_route_cookie_name, None)
+        cookies_header.pop(name, None)
+        cookies.pop(name, None)
     # Transform cookies structures into the format that request requires
     cookies_header_content = cookies_header.output(header="", sep=";")
     cookies_content = ImmutableTypeConversionDict(cookies)
     return cookies_header_content, cookies_content
 
-def solr_route(storage, solr_route_cookie_name="sroute", solr_route_redis_prefix="token:sroute:", solr_route_redis_expiration_time=86400):
+def affinity_decorator(storage, name="sroute"):
     """
     Assign a cookie that will be used by solr ingress to send request to
     a specific solr instance for the same user, maximizing the use of solr
@@ -69,8 +69,10 @@ def solr_route(storage, solr_route_cookie_name="sroute", solr_route_redis_prefix
 
     The storage should be a redis connection.
     """
+    route_redis_prefix="token:{}:".format(name)
+    route_redis_expiration_time=86400 # 1 day
 
-    def real_solr_route_decorator(f):
+    def real_affinity_decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             # Obtain user token, giving priority to forwarded authorization field (used when a microservice uses its own token)
@@ -79,8 +81,8 @@ def solr_route(storage, solr_route_cookie_name="sroute", solr_route_redis_prefix
                 user_token = request.headers.get('Authorization', None)
             if user_token and len(user_token) > 7: # This should be always true
                 user_token = user_token[7:] # Get rid of "Bearer:" or "Bearer "
-                solr_route = _get_solr_route(storage, solr_route_redis_prefix, user_token)
-                cookies_header_content, cookies_content = _build_updated_cookies(request, user_token, solr_route, solr_route_cookie_name)
+                route = _get_route(storage, route_redis_prefix, user_token)
+                cookies_header_content, cookies_content = _build_updated_cookies(request, user_token, route, name)
                 # Update request cookies (header and cookies attributes)
                 request.headers = Headers(request.headers)
                 request.headers.set('cookie', cookies_header_content)
@@ -100,10 +102,10 @@ def solr_route(storage, solr_route_cookie_name="sroute", solr_route_redis_prefix
                     # If solr issued a set cookie, store the value in redis linked to the user token
                     cookie = Cookie.SimpleCookie()
                     cookie.load(set_cookie.encode("utf8"))
-                    solr_route = cookie.get(solr_route_cookie_name, None)
-                    if solr_route:
-                        _set_solr_route(storage, solr_route_redis_prefix, user_token, solr_route.value, solr_route_redis_expiration_time)
+                    route = cookie.get(name, None)
+                    if route:
+                        _set_route(storage, route_redis_prefix, user_token, route.value, route_redis_expiration_time)
             return r
         return decorated_function
-    return real_solr_route_decorator
+    return real_affinity_decorator
 

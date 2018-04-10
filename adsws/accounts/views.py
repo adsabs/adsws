@@ -238,7 +238,10 @@ class PersonalTokenView(Resource):
             )
             return {'message': 'no ADS API token found'}, 500
 
-        return print_token(token)
+        output = print_token(token)
+        output['client_id'] = client.client_id
+        output['user_id'] = current_user.get_id()
+        return output
 
     def put(self):
         """
@@ -305,7 +308,11 @@ class PersonalTokenView(Resource):
             current_app.logger.info(
                 "Updated ADS API token for {0}".format(current_user.email)
             )
-        return print_token(token)
+
+        output = print_token(token)
+        output['client_id'] = client.client_id
+        output['user_id'] = current_user.get_id()
+        return output
 
 
 class LogoutView(Resource):

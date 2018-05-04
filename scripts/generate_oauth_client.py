@@ -105,8 +105,8 @@ def get_token():
 
     try:
       tokens = db.session.query(OAuthToken).filter_by(
-        client_id=client.client_id, 
-        user_id=u.id, 
+        client_id=client.client_id,
+        user_id=u.id,
         is_personal=args.is_personal).all()
       #Iterate through each result and compare scopes
       matching_tokens = []
@@ -124,7 +124,7 @@ def get_token():
         access_token=gen_salt(current_app.config.get('OAUTH2_TOKEN_PERSONAL_SALT_LEN', 40)),
         refresh_token=gen_salt(current_app.config.get('OAUTH2_TOKEN_PERSONAL_SALT_LEN', 40)),
         _scopes=' '.join(args.scopes),
-        expires=datetime.datetime(2050,1,1) if args.is_personal else None,
+        expires=datetime.datetime(2050,1,1),
         is_personal=args.is_personal,
         is_internal=True,)
       db.session.add(token)

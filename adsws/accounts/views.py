@@ -7,6 +7,7 @@ from adsws.modules.oauth2server.provider import oauth2
 from adsws.core import db, user_manipulator
 
 from adsws.ext.ratelimiter import ratelimit, scope_func
+from flask.sessions import SecureCookieSessionInterface
 from flask.ext.login import current_user, login_user
 from flask.ext.restful import Resource, abort, reqparse
 from flask.ext.wtf.csrf import generate_csrf
@@ -201,6 +202,111 @@ class ChangePasswordView(Resource):
         u = user_manipulator.first(email=current_user.email)
         user_manipulator.update(u, password=new_password1)
         return {'message': 'success'}, 200
+
+
+
+class UserInfoView(Resource):
+    """
+    Implements getting user info from session ID or token, it should be limited
+    to internal use only
+    """
+    decorators = [
+        ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func),
+        oauth2.require_oauth('adsws:internal')
+    ]
+
+    def post(self):
+        """
+        This endpoint provides the full identifying data associated to a given
+        token (indicated via POST data 'access_token' parameter). Example:
+
+        curl -H 'authorization: Bearer:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            -H "Content-Type: application/json"
+            -d '{"acess_token":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}'
+            -X POST
+            'https://dev.adsabs.harvard.edu/v1/accounts/session'
+        """
+        data = get_post_data(request)
+        token = None
+        session_id = None
+        if 'access_token' in data:
+            access_token = data['access_token']
+            token = OAuthToken.query.filter_by(access_token=access_token).first()
+            return self._translate(token, session_id)
+        else:
+            return {'message': 'Missing access_token parameter in POST data'}, 500
+
+    def get(self):
+        """
+        This endpoint provides the full identifying data associated to a given
+        session (sent via cookie). Example:
+
+        curl -H 'authorization: Bearer:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+            -H 'cookie: session=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...'
+            'https://dev.adsabs.harvard.edu/v1/accounts/session'
+
+        Notice that sessions are not server side, but client stored and server
+        signed to avoid user manipulation.
+        """
+        if 'session' in request.cookies:
+            # Since an auth token is required, the session variable will contain
+            # the user information linked to that token and the session cookie
+            # is ignored. But we are interested in the session cookie,
+            # so we decode it ourselves:
+            try:
+                session_data = self._decodeFlaskCookie(request.cookies['session'])
+            except Exception:
+                return {'message': 'Invalid session (bad signature, bad data or expired signature)'}, 500
+        else:
+            return {'message': 'Missing session'}, 500
+
+        if '_id' in session_data:
+            session_id = session_data['_id']
+        else:
+            session_id = None
+        token = None
+        if 'oauth_client' in session_data:
+            token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
+            return self._translate(token, session_id)
+        elif 'user_id' in session_data:
+            # There can be more than one token per user, since we don't know which
+            # one was being used originally, we pick just the first in the database
+            token = OAuthToken.query.filter_by(user_id=session_data['user_id']).first()
+            return self._translate(token, session_id)
+        else:
+            # This should not happen, all ADS created session should contain that parameter
+            return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
+
+
+    def _translate(self, token, session_id):
+        if token:
+            client = token.client
+            user = token.user
+            if isinstance(token.expires, datetime.datetime):
+                expiry = token.expires.isoformat()
+            else:
+                expiry = token.expires
+            if user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+                anonymous = True
+            else:
+                anonymous = False
+            return {
+                'access_token': token.access_token, # It can change for a single user upon request
+                'session_id': session_id, # Not mandatory, it can be None and it can change for a single user (e.g., different browsers)
+                'user_id': token.user_id, # Permanent, but all the anonymous users have the same one
+                'username': user.email, # It can change for a single user upon request
+                'client_id': token.client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a single client ID and it can change (e.g., different browsers)
+                'client_name': client.name, # It helps distinguish between external web/API and internal API calls from our services: "BB client", "ADS API client", "biblib@ads", "vis-services", ...
+                'anonymous': anonymous,
+            }, 200
+        else:
+            return {'message': 'no ADS client found'}, 404
+
+    def _decodeFlaskCookie(self, cookie_value):
+        sscsi = SecureCookieSessionInterface()
+        signingSerializer = sscsi.get_signing_serializer(current_app)
+        return signingSerializer.loads(cookie_value)
+
 
 
 class PersonalTokenView(Resource):

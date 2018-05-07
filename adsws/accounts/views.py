@@ -207,78 +207,77 @@ class ChangePasswordView(Resource):
 
 class UserInfoView(Resource):
     """
-    Implements getting user info from session ID or token, it should be limited
-    to internal use only
+    Implements getting user info from session ID, user id, access token or
+    client id. It should be limited to internal use only.
     """
     decorators = [
         ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func),
         oauth2.require_oauth('adsws:internal')
     ]
 
-    def post(self):
+    def get(self, account_data):
         """
         This endpoint provides the full identifying data associated to a given
-        token (indicated via POST data 'access_token' parameter). Example:
+        session, user id, access token or client id. Example:
 
         curl -H 'authorization: Bearer:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-            -H "Content-Type: application/json"
-            -d '{"acess_token":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}'
-            -X POST
-            'https://dev.adsabs.harvard.edu/v1/accounts/session'
-        """
-        data = get_post_data(request)
-        token = None
-        session_id = None
-        if 'access_token' in data:
-            access_token = data['access_token']
-            token = OAuthToken.query.filter_by(access_token=access_token).first()
-            return self._translate(token, session_id)
-        else:
-            return {'message': 'Missing access_token parameter in POST data'}, 500
+            'https://dev.adsabs.harvard.edu/v1/accounts/info/yyyy'
 
-    def get(self):
-        """
-        This endpoint provides the full identifying data associated to a given
-        session (sent via cookie). Example:
-
-        curl -H 'authorization: Bearer:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
-            -H 'cookie: session=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...'
-            'https://dev.adsabs.harvard.edu/v1/accounts/session'
+        Where 'yyyy' can be a session, access token, user id or client id.
 
         Notice that sessions are not server side, but client stored and server
         signed to avoid user manipulation.
         """
-        if 'session' in request.cookies:
-            # Since an auth token is required, the session variable will contain
-            # the user information linked to that token and the session cookie
-            # is ignored. But we are interested in the session cookie,
-            # so we decode it ourselves:
-            try:
-                session_data = self._decodeFlaskCookie(request.cookies['session'])
-            except Exception:
-                return {'message': 'Invalid session (bad signature, bad data or expired signature)'}, 500
+        ## Input data can be a session, a access token or a user id
+        # 1) Try to treat input data as a session
+        try:
+            session_data = self._decodeFlaskCookie(account_data)
+            if '_id' in session_data:
+                session_id = session_data['_id']
+        except Exception:
+            # Try next identifier type
+            pass
         else:
-            return {'message': 'Missing session'}, 500
-
-        if '_id' in session_data:
-            session_id = session_data['_id']
+            if 'oauth_client' in session_data:
+                # Anonymous users always have their oauth_client id in the session
+                token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
+                return self._translate(token, session_id=session_id, source="session:oauth_client")
+            elif 'user_id' in session_data:
+                # There can be more than one token per user (generally one for
+                # BBB and one for API requests), when client id is not stored
+                # in the session (typically for authenticated users) we pick
+                # just the first in the database that corresponds to BBB since
+                # sessions are used by BBB and not API requests
+                client = OAuthClient.query.filter_by(user_id=session_data['user_id'], name=u'BB client').first()
+                if client:
+                    token = OAuthToken.query.filter_by(client_id=client.client_id, user_id=session_data['user_id']).first()
+                    return self._translate(token, session_id=session_id, source="session:user_id")
+            else:
+                # This should not happen, all ADS created session should contain that parameter
+                return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
+        # 2) Try to treat input data as user id
+        try:
+            user_id = int(account_data)
+        except ValueError:
+            # Try next identifier type
+            pass
         else:
-            session_id = None
-        token = None
-        if 'oauth_client' in session_data:
-            token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
-            return self._translate(token, session_id)
-        elif 'user_id' in session_data:
-            # There can be more than one token per user, since we don't know which
-            # one was being used originally, we pick just the first in the database
-            token = OAuthToken.query.filter_by(user_id=session_data['user_id']).first()
-            return self._translate(token, session_id)
-        else:
-            # This should not happen, all ADS created session should contain that parameter
-            return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
+            token = OAuthToken.query.filter_by(user_id=user_id).first()
+            if token:
+                return self._translate(token, source="user_id")
+        # 3) Try to treat input data as access token
+        token = OAuthToken.query.filter_by(access_token=account_data).first()
+        if token:
+            return self._translate(token, source="access_token")
+        # 4) Try to treat input data as client id
+        token = OAuthToken.query.filter_by(client_id=account_data).first()
+        if token:
+            return self._translate(token, source="client_id")
+        # Data not decoded sucessfully/Identifier not found
+        return {'message': 'Identifier not found'}, 404
 
 
-    def _translate(self, token, session_id):
+    def _translate(self, token, session_id=None, source=None):
         if token:
             client = token.client
             user = token.user
@@ -292,12 +291,13 @@ class UserInfoView(Resource):
                 anonymous = False
             return {
                 'access_token': token.access_token, # It can change for a single user upon request
-                'session_id': session_id, # Not mandatory, it can be None and it can change for a single user (e.g., different browsers)
-                'user_id': token.user_id, # Permanent, but all the anonymous users have the same one
+                'session_id': session_id, # Not mandatory, it can be None (e.g., API requests not from BBB) and it can change for a single user (e.g., different browsers)
+                'user_id': token.user_id, # Permanent, but all the anonymous users have the same one (id 1)
                 'username': user.email, # It can change for a single user upon request
-                'client_id': token.client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a single client ID and it can change (e.g., different browsers)
+                'client_id': token.client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a unique client ID linked to the anonymous user id (id 1)
                 'client_name': client.name, # It helps distinguish between external web/API and internal API calls from our services: "BB client", "ADS API client", "biblib@ads", "vis-services", ...
-                'anonymous': anonymous,
+                'anonymous': anonymous, # True or False
+                'source': source, # Identifier used to recover information: session:client_id, session:user_id, user_id, access_token, client_id
             }, 200
         else:
             return {'message': 'no ADS client found'}, 404

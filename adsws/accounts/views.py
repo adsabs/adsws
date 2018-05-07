@@ -241,7 +241,7 @@ class UserInfoView(Resource):
             if 'oauth_client' in session_data:
                 # Anonymous users always have their oauth_client id in the session
                 token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
-                return self._translate(token, session_id=session_id, source="session:oauth_client")
+                return self._translate(token, session_id=session_id, source="session:client_id")
             elif 'user_id' in session_data:
                 # There can be more than one token per user (generally one for
                 # BBB and one for API requests), when client id is not stored

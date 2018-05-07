@@ -1,5 +1,6 @@
 from flask.ext.testing import TestCase
 from flask.ext.login import current_user
+from flask.sessions import SecureCookieSessionInterface
 from flask import current_app, url_for, session
 
 from adsws.core import db, user_manipulator
@@ -7,6 +8,7 @@ from adsws.testsuite import make_test_suite, run_test_suite
 from adsws import accounts
 from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
+from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 
 from unittest import TestCase as UnitTestCase
 
@@ -15,6 +17,7 @@ import json
 import requests
 import datetime
 import httpretty
+import random
 
 RATELIMIT_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
 
@@ -108,6 +111,95 @@ class TestAccounts(AccountsSetup):
     """
     Tests for accounts endpoints and workflows
     """
+
+    def _create_client(self, client_id='test', user_id=0, scopes='adsws:internal'):
+        # create a client in the database
+        c1 = OAuthClient(
+            client_id=client_id,
+            client_secret='client secret %s' % random.random(),
+            name='bumblebee',
+            description='',
+            is_confidential=False,
+            user_id=user_id,
+            _redirect_uris='%s/client/authorized' % self.app.config.get('SITE_SECURE_URL'),
+            _default_scopes=scopes
+        )
+        db.session.add(c1)
+        db.session.commit()
+        return OAuthClient.query.filter_by(client_secret=c1.client_secret).one()
+
+    def _create_token(self, client_id='test', user_id=0, scopes='adsws:internal'):
+        token = OAuthToken(
+                client_id=client_id,
+                user_id=user_id,
+                access_token='access token %s' % random.random(),
+                refresh_token='refresh token %s' % random.random(),
+                expires=datetime.datetime(2500, 1, 1),
+                _scopes=scopes,
+                is_personal=False,
+                is_internal=True,
+            )
+        db.session.add(token)
+        db.session.commit()
+        return OAuthToken.query.filter_by(id=token.id).one()
+
+    def test_user_info(self):
+        with self.client as c:
+            account_data = self.real_user.id
+            url = url_for('userinfoview', account_data=account_data)
+            # Unauthenticated should return 401
+            r = c.get(url)
+            self.assertStatus(r, 401)
+
+            client = self._create_client('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
+            token = self._create_token('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
+
+            # Authenticated requests (using a client that has the required scope)
+            # and using an 1) user id
+            headers={'Authorization': 'Bearer:{}'.format(token.access_token)}
+            r = c.get(url, headers=headers)
+            self.assertStatus(r, 200)
+            self.assertEqual(r.json['access_token'], token.access_token)
+            self.assertEqual(r.json['client_id'], client.client_id)
+            self.assertEqual(r.json['client_name'], client.name)
+            self.assertIsNone(r.json['session_id'])
+            self.assertEqual(r.json['user_id'], self.real_user.id)
+            self.assertEqual(r.json['username'], self.real_user.email)
+            self.assertFalse(r.json['anonymous'])
+            self.assertEqual(r.json['source'], 'user_id')
+            expected_json = r.json
+
+            # 2) access token
+            account_data = token.access_token
+            url = url_for('userinfoview', account_data=account_data)
+            r = c.get(url, headers=headers)
+            self.assertStatus(r, 200)
+            expected_json['source'] = u'access_token'
+            self.assertEqual(r.json, expected_json)
+
+            # 3) client id
+            account_data = client.client_id
+            url = url_for('userinfoview', account_data=account_data)
+            r = c.get(url, headers=headers)
+            self.assertStatus(r, 200)
+            expected_json['source'] = u'client_id'
+            self.assertEqual(r.json, expected_json)
+
+            # 4) session
+            #
+            # Encode first a session cookie using the current app secret:
+            sscsi = SecureCookieSessionInterface()
+            signingSerializer = sscsi.get_signing_serializer(current_app)
+            session = signingSerializer.dumps({'_id': 'session_id', 'oauth_client': client.client_id})
+
+            account_data = session
+            url = url_for('userinfoview', account_data=account_data)
+            r = c.get(url, headers=headers)
+            self.assertStatus(r, 200)
+            expected_json['session_id'] = u'session_id'
+            expected_json['source'] = u'session:client_id'
+            self.assertEqual(r.json, expected_json)
+
 
     def setup_google_recaptcha_response(self):
         """Set up a mock google recaptcha api"""
@@ -828,7 +920,6 @@ class TestAccounts(AccountsSetup):
             url = url_for('bootstrap')
             c.get(url)
             self.assertTrue(mocked.called)
-
 
 
 TESTSUITE = make_test_suite(TestAccounts, TestUtils)

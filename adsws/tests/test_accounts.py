@@ -18,6 +18,7 @@ import requests
 import datetime
 import httpretty
 import random
+import hashlib, binascii
 
 RATELIMIT_KEY_PREFIX = 'unittest.{0}'.format(datetime.datetime.now())
 
@@ -154,17 +155,18 @@ class TestAccounts(AccountsSetup):
             client = self._create_client('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
             token = self._create_token('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
 
+            user_id = self.real_user.id
+            client_id = client.client_id
+            expected_hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 100000, dklen=32)) if user_id else None
+            expected_hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 100000, dklen=32)) if client_id else None
+
             # Authenticated requests (using a client that has the required scope)
             # and using an 1) user id
             headers={'Authorization': 'Bearer:{}'.format(token.access_token)}
             r = c.get(url, headers=headers)
             self.assertStatus(r, 200)
-            self.assertEqual(r.json['access_token'], token.access_token)
-            self.assertEqual(r.json['client_id'], client.client_id)
-            self.assertEqual(r.json['client_name'], client.name)
-            self.assertIsNone(r.json['session_id'])
-            self.assertEqual(r.json['user_id'], self.real_user.id)
-            self.assertEqual(r.json['username'], self.real_user.email)
+            self.assertEqual(r.json['hashed_user_id'], expected_hashed_user_id)
+            self.assertEqual(r.json['hashed_client_id'], expected_hashed_client_id)
             self.assertFalse(r.json['anonymous'])
             self.assertEqual(r.json['source'], 'user_id')
             expected_json = r.json
@@ -196,7 +198,6 @@ class TestAccounts(AccountsSetup):
             url = url_for('userinfoview', account_data=account_data)
             r = c.get(url, headers=headers)
             self.assertStatus(r, 200)
-            expected_json['session_id'] = u'session_id'
             expected_json['source'] = u'session:client_id'
             self.assertEqual(r.json, expected_json)
 

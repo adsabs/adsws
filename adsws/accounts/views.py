@@ -1,4 +1,5 @@
 import datetime
+import hashlib, binascii
 from werkzeug.security import gen_salt
 
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
@@ -241,7 +242,14 @@ class UserInfoView(Resource):
             if 'oauth_client' in session_data:
                 # Anonymous users always have their oauth_client id in the session
                 token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
-                return self._translate(token, session_id=session_id, source="session:client_id")
+                if token:
+                    return self._translate(token.user_id, token.client_id, token.user.email, source="session:client_id")
+                elif 'user_id' in session_data:
+                    # If token not found in database, use data stored in session
+                    return self._translate(session_data['user_id'], session_data['oauth_client'], None, source="session:client_id")
+                else:
+                    # If token not found in database, use data stored in session
+                    return self._translate(None, session_data['oauth_client'], None, source="session:client_id")
             elif 'user_id' in session_data:
                 # There can be more than one token per user (generally one for
                 # BBB and one for API requests), when client id is not stored
@@ -251,7 +259,14 @@ class UserInfoView(Resource):
                 client = OAuthClient.query.filter_by(user_id=session_data['user_id'], name=u'BB client').first()
                 if client:
                     token = OAuthToken.query.filter_by(client_id=client.client_id, user_id=session_data['user_id']).first()
-                    return self._translate(token, session_id=session_id, source="session:user_id")
+                    if token:
+                        return self._translate(token.user_id, token.client_id, token.user.email, source="session:user_id")
+                    else:
+                        # If token not found in database, use data stored in session
+                        return self._translate(client.user_id, client.client_id, None, source="session:user_id")
+                else:
+                    # If client not found in database, use data stored in session
+                    return self._translate(session_data['user_id'], None, None, source="session:user_id")
             else:
                 # This should not happen, all ADS created session should contain that parameter
                 return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
@@ -264,43 +279,37 @@ class UserInfoView(Resource):
         else:
             token = OAuthToken.query.filter_by(user_id=user_id).first()
             if token:
-                return self._translate(token, source="user_id")
+                return self._translate(token.user_id, token.client_id, token.user.email, source="user_id")
         # 3) Try to treat input data as access token
         token = OAuthToken.query.filter_by(access_token=account_data).first()
         if token:
-            return self._translate(token, source="access_token")
+            return self._translate(token.user_id, token.client_id, token.user.email, source="access_token")
         # 4) Try to treat input data as client id
         token = OAuthToken.query.filter_by(client_id=account_data).first()
         if token:
-            return self._translate(token, source="client_id")
+            return self._translate(token.user_id, token.client_id, token.user.email, source="client_id")
         # Data not decoded sucessfully/Identifier not found
         return {'message': 'Identifier not found'}, 404
 
 
-    def _translate(self, token, session_id=None, source=None):
-        if token:
-            client = token.client
-            user = token.user
-            if isinstance(token.expires, datetime.datetime):
-                expiry = token.expires.isoformat()
-            else:
-                expiry = token.expires
-            if user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
-                anonymous = True
-            else:
-                anonymous = False
-            return {
-                'access_token': token.access_token, # It can change for a single user upon request
-                'session_id': session_id, # Not mandatory, it can be None (e.g., API requests not from BBB) and it can change for a single user (e.g., different browsers)
-                'user_id': token.user_id, # Permanent, but all the anonymous users have the same one (id 1)
-                'username': user.email, # It can change for a single user upon request
-                'client_id': token.client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a unique client ID linked to the anonymous user id (id 1)
-                'client_name': client.name, # It helps distinguish between external web/API and internal API calls from our services: "BB client", "ADS API client", "biblib@ads", "vis-services", ...
-                'anonymous': anonymous, # True or False
-                'source': source, # Identifier used to recover information: session:client_id, session:user_id, user_id, access_token, client_id
-            }, 200
+    def _translate(self, user_id, client_id, user_email, source=None):
+        if user_email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+            anonymous = True
+        elif user_email:
+            anonymous = False
         else:
-            return {'message': 'no ADS client found'}, 404
+            anonymous = None
+
+        # 100,000 rounds of SHA-256 hash digest algorithm for HMAC (pseudorandom function)
+        # with a length of 2x32
+        hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 100000, dklen=32)) if user_id else None
+        hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 100000, dklen=32)) if client_id else None
+        return {
+            'hashed_user_id': hashed_user_id, # Permanent, but all the anonymous users have the same one (id 1)
+            'hashed_client_id': hashed_client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a unique client ID linked to the anonymous user id (id 1)
+            'anonymous': anonymous, # True, False or None if email could not be retreived/anonymous validation could not be executed
+            'source': source, # Identifier used to recover information: session:client_id, session:user_id, user_id, access_token, client_id
+        }, 200
 
     def _decodeFlaskCookie(self, cookie_value):
         sscsi = SecureCookieSessionInterface()

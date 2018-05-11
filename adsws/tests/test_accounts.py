@@ -157,8 +157,8 @@ class TestAccounts(AccountsSetup):
 
             user_id = self.real_user.id
             client_id = client.client_id
-            expected_hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 100000, dklen=32)) if user_id else None
-            expected_hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 100000, dklen=32)) if client_id else None
+            expected_hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 10, dklen=32)) if user_id else None
+            expected_hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 10, dklen=32)) if client_id else None
 
             # Authenticated requests (using a client that has the required scope)
             # and using an 1) user id

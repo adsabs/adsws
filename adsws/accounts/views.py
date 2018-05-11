@@ -244,12 +244,9 @@ class UserInfoView(Resource):
                 token = OAuthToken.query.filter_by(client_id=session_data['oauth_client']).first()
                 if token:
                     return self._translate(token.user_id, token.client_id, token.user.email, source="session:client_id")
-                elif 'user_id' in session_data:
-                    # If token not found in database, use data stored in session
-                    return self._translate(session_data['user_id'], session_data['oauth_client'], None, source="session:client_id")
                 else:
-                    # If token not found in database, use data stored in session
-                    return self._translate(None, session_data['oauth_client'], None, source="session:client_id")
+                    # Token not found in database
+                    return {'message': 'Identifier not found [ERR 010]'}, 404
             elif 'user_id' in session_data:
                 # There can be more than one token per user (generally one for
                 # BBB and one for API requests), when client id is not stored
@@ -262,11 +259,11 @@ class UserInfoView(Resource):
                     if token:
                         return self._translate(token.user_id, token.client_id, token.user.email, source="session:user_id")
                     else:
-                        # If token not found in database, use data stored in session
-                        return self._translate(client.user_id, client.client_id, None, source="session:user_id")
+                        # Token not found in database
+                        return {'message': 'Identifier not found [ERR 020]'}, 404
                 else:
-                    # If client not found in database, use data stored in session
-                    return self._translate(session_data['user_id'], None, None, source="session:user_id")
+                    # Client ID not found in database
+                    return {'message': 'Identifier not found [ERR 030]'}, 404
             else:
                 # This should not happen, all ADS created session should contain that parameter
                 return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
@@ -280,6 +277,9 @@ class UserInfoView(Resource):
             token = OAuthToken.query.filter_by(user_id=user_id).first()
             if token:
                 return self._translate(token.user_id, token.client_id, token.user.email, source="user_id")
+            else:
+                # Token not found in database
+                return {'message': 'Identifier not found [ERR 040]'}, 404
         # 3) Try to treat input data as access token
         token = OAuthToken.query.filter_by(access_token=account_data).first()
         if token:
@@ -289,7 +289,7 @@ class UserInfoView(Resource):
         if token:
             return self._translate(token.user_id, token.client_id, token.user.email, source="client_id")
         # Data not decoded sucessfully/Identifier not found
-        return {'message': 'Identifier not found'}, 404
+        return {'message': 'Identifier not found [ERR 050]'}, 404
 
 
     def _translate(self, user_id, client_id, user_email, source=None):
@@ -300,10 +300,12 @@ class UserInfoView(Resource):
         else:
             anonymous = None
 
-        # 100,000 rounds of SHA-256 hash digest algorithm for HMAC (pseudorandom function)
+        # 10 rounds of SHA-256 hash digest algorithm for HMAC (pseudorandom function)
         # with a length of 2x32
-        hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 100000, dklen=32)) if user_id else None
-        hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 100000, dklen=32)) if client_id else None
+        # NOTE: 100,000 rounds is recommended but it is too slow and security is not
+        # that important here, thus we just do 10 rounds
+        hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 10, dklen=32)) if user_id else None
+        hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 10, dklen=32)) if client_id else None
         return {
             'hashed_user_id': hashed_user_id, # Permanent, but all the anonymous users have the same one (id 1)
             'hashed_client_id': hashed_client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a unique client ID linked to the anonymous user id (id 1)

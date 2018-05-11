@@ -11,7 +11,7 @@ from itsdangerous import URLSafeTimedSerializer
 from views import \
     UserAuthView, LogoutView, UserRegistrationView, \
     VerifyEmailView, ChangePasswordView, \
-    PersonalTokenView, Bootstrap, StatusView, OAuthProtectedView, \
+    PersonalTokenView, UserInfoView, Bootstrap, StatusView, OAuthProtectedView, \
     ForgotPasswordView, ChangeEmailView, DeleteAccountView, CSRFView
 
 def create_app(**kwargs_config):
@@ -50,6 +50,7 @@ def create_app(**kwargs_config):
     api.add_resource(UserRegistrationView, '/register')
     api.add_resource(LogoutView, '/logout')
     api.add_resource(PersonalTokenView, '/token')
+    api.add_resource(UserInfoView, '/info/<string:account_data>')
     api.add_resource(ChangePasswordView, '/change-password')
     api.add_resource(ChangeEmailView, '/change-email')
     api.add_resource(VerifyEmailView, '/verify/<string:token>')

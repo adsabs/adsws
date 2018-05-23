@@ -1,7 +1,5 @@
----
-swagger: '2.0'
+openapi: 3.0.1
 info:
-  version: 1.0.0
   title: API for Astrophysics Data System (ADS)
   description: |
     ## API for the ADS project.
@@ -11,47 +9,288 @@ info:
       - search: https://github.com/adsabs/solr-service
       - server side store: https://github.com/adsabs/myads
       - orcid: https://github.com/adsabs/orcid-service
+  contact:
+    name: ADS Help
+    email: adshelp@cfa.harvard.edu
+  version: 1.0.0
+servers:
+  - url: 'https://api.adsabs.harvard.edu/{basePath}'
+    description: Production Server
+    variables:
+      basePath:
+        default: v1
+        enum:
+          - v1
+  - url: 'qa.adsabs.harvard.edu/{basePath}'
+    description: Development Server
+    variables:
+      basePath:
+        default: v1
+        enum:
+          - v1
+          - v2
+components:
+  securitySchemes:
+    ApiKeySecurity:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      name: Authorization
+      in: header
+    OauthSecurity:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://api.adsabs.harvard.edu/oauth/authorization'
+          tokenUrl: 'https://api.adsabs.harvard.edu/oauth/token'
+          scopes:
+            user: User scopes
+            api: Api user scopes
+            store-query: Save into RDB
+            execute-query: Run saved query
+            store-preferences: Acces or save user preferences
+            'ads-consumer:orcid': Access to the privileged operations
+  parameters:
+    q:
+      name: q
+      description: >-
+        Query string; for detailed documentation go to
+        http://ui.adsabs.harvard.edu/help
+      in: query
+      required: true
+      schema:
+        type: string
+    rows:
+      name: rows
+      description: 'How many records to return for this request (default=10, maximum=200)'
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 10
+        maximum: 200
+    fq:
+      name: fq
+      description: Additional filters applied on top of the results of the main query.
+      in: query
+      required: false
+      schema:
+        type: array
+        maxItems: 10
+        items:
+          type: string
+      style: form
+      explode: true
+    fl:
+      name: fl
+      description: Comma delimited set of fields to return; default is 'id'
+      in: query
+      style: form
+      explode: false
+      schema:
+        type: array
+        default:
+          - id
+        uniqueItems: true
+        items:
+          type: string
+          enum:
+            - abstract
+            - ack
+            - aff
+            - alternate_bibcode
+            - alternate_title
+            - arxiv_class
+            - author
+            - bibcode
+            - bibgroup
+            - bibstem
+            - body
+            - citation_count
+            - copyright
+            - data
+            - database
+            - doi
+            - doctype
+            - first_author
+            - grant
+            - id
+            - identifier
+            - indexstamp
+            - issue
+            - keyword
+            - lang
+            - orcid_pub
+            - orcid_use
+            - orcid_other
+            - page
+            - property
+            - pub
+            - pubdate
+            - read_count
+            - title
+            - vizier
+            - volume
+            - year
+    start:
+      name: start
+      description: 'For pagination, offset of the first returned result (default=0)'
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    sort:
+      name: sort
+      description: >
+        The format is 'field direction' where direction is one of 'asc' or
+        'desc' and field is any of the valid indexes. The default sorting is by
+        relevance (computed by our search engine). Example\:
+        'sort=read_count+desc' Some useful fields to sort by may be pubdate,
+        citation_count, or num_readers.
+      in: query
+      required: false
+      schema:
+        type: string
+    orcidId:
+      name: orcidId
+      in: path
+      description: 'ORCiD ID, i.e. ''0000-0000-0000-0000'''
+      schema:
+        type: string
+      required: true
+    OrcidAuthorization:
+      name: Orcid-Authorization
+      in: header
+      description: '`access_token` of the orcid user (will be passed on to the ORCiD API)'
+      schema:
+        type: string
+    jsonpayload:
+      name: jsonpayload
+      in: header
+      description: >
+        JSON object, to be stored for the user. **WARNING**: the JSON will
+        replace the existing one.
 
-host: api.adsabs.harvard.edu
-basePath: /v1
-externalDocs:
-  description: Complete documentation describing how to use this API
-  url: https://github.com/adsabs/adsabs-dev-api
-schemes:
-  - https
-consumes:
-  - application/json
-produces:
-  - application/json
-securityDefinitions:
-  ApiKeySecurity:
-    type: apiKey
-    in: header
-    name: Authorization
-  OauthSecurity:
-    type: oauth2
-    flow: accessCode
-    authorizationUrl: 'https://api.adsabs.harvard.edu/oauth/authorization'
-    tokenUrl: 'https://api.adsabs.harvard.edu/oauth/token'
-    scopes:
-      user: User scopes
-      api: Api user scopes
-      'store-query': Save into RDB
-      'execute-query': Run saved query
-      'store-preferences': Acces or save user preferences
-      'ads-consumer:orcid': Access to the privileged operations
+        If you send an empty POST request, the stored data will be replaced with
+        `{}`.
+      schema:
+        type: object
+  responses:
+    QTree:
+      description: Abstract Syntax Tree of a Parsed query
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/qtree'
+    SearchResults:
+      description: Results returned by the search engine
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/results'
+    VaultResponse:
+      description: Response from myads service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/vaultObject'
+  schemas:
+    qtree:
+      type: object
+      properties:
+        responseHeader:
+          $ref: '#/components/schemas/responseHeader'
+        qtree:
+          type: string
+          description: serialized JSON
+    results:
+      type: object
+      properties:
+        responseHeader:
+          $ref: '#/components/schemas/responseHeader'
+        docs:
+          type: array
+          items:
+            $ref: '#/components/schemas/doc'
+    doc:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        bibcode:
+          type: string
+        title:
+          type: string
+    responseHeader:
+      type: object
+      properties:
+        status:
+          description: Status code as returned by the search engine
+          type: integer
+        QTime:
+          type: integer
+          description: >-
+            search time in millisecs (only search, without faceting, latency and
+            all other steps)
+    vaultObject:
+      type: object
+      properties:
+        numfound:
+          readOnly: true
+          type: integer
+          description: >
+            Number of docs this query found (the last time it was executed; this
+            number is up to
 
+            date only when the query is stored). But if you see number higher
+            than 0 then you can be sure that
+
+            the query was executed.
+        qid:
+          readOnly: true
+          type: string
+          description: >
+            Query ID (unique hash identifying all the parameters; it is computed
+            from the supplied query
+
+            parameters)
+        query:
+          type: string
+          description: JSON serialized query parameters
+        bigquery:
+          type: string
+          description: >
+            new line separated list of bibcodes, the first line is the name of
+            the index that will be
+
+            searched, right now we only support search in `bibcode` index
 security:
-  - OauthSecurity: []
+  - ApiKeySecurity: []
+  - OauthSecurity:
+      - user
+      - api
+      - store-query
+      - execute-query
+      - store-preferences
+      - 'ads-consumer:arcid'
 paths:
-  '/search/query':
+  /search/query:
     get:
-      description: |
+      description: >
 
-        Query the search engine and return results. All parameters have to be properly url-encoded UTF-8. The response body will always be json encoded.
+        Query the search engine and return results. All parameters have to be
+        properly url-encoded UTF-8. The response body will always be json
+        encoded.
+
 
         ## Example result
+
         ```JSON
+
         {
             "bibcode": "2012A&A...542A..16R",
             "author": [
@@ -84,47 +323,58 @@ paths:
             ],
           }
         ```
+
         ### Example Search Requests
 
 
+
         Query | Explanation
+
         ------|-------------------------------------------------
          `q=bibcode:2011ApJ...737..103S` |  Search by bibcode
          `q=black+holes&fq=database:astronomy` |  Search for "black holes", restricted to astronomy content
          `q=dark+energy&fq=author:"Civano,+F"&sort=citation_count+desc` |  Search for "dark energy", filter by author, sort by citation count
-        `q=dark+energy&sort=citation_count+desc&fl=bibcode,property` |   Return *bibcode* and *property* values
-        `q=author:"Kurtz,+M"&fq=property:refereed`|   Limit a search to only refereed articles
-        `q=transiting+exoplanets&rows=200`|  Search for "transiting exoplanets", get 200 rows
-        `q=transiting+exoplanets&rows=200&start=201`|   Same search but get the next 200 rows
+        `q=dark+energy&sort=citation_count+desc&fl=bibcode,property` |   Return
+        *bibcode* and *property* values
 
-      security:
-        - OauthSecurity: []
+        `q=author:"Kurtz,+M"&fq=property:refereed`|   Limit a search to only
+        refereed articles
+
+        `q=transiting+exoplanets&rows=200`|  Search for "transiting exoplanets",
+        get 200 rows
+
+        `q=transiting+exoplanets&rows=200&start=201`|   Same search but get the
+        next 200 rows
       parameters:
-        - $ref: "#/parameters/q"
-        - $ref: "#/parameters/fq"
-        - $ref: "#/parameters/fl"
-        - $ref: "#/parameters/start"
-        - $ref: "#/parameters/rows"
-        - $ref: "#/parameters/sort"
+        - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/fq'
+        - $ref: '#/components/parameters/fl'
+        - $ref: '#/components/parameters/start'
+        - $ref: '#/components/parameters/rows'
+        - $ref: '#/components/parameters/sort'
       responses:
-        200:
-          $ref: "#/responses/SearchResults"
-        404:
-          $ref: "#/responses/SearchResults"
-        499:
+        '200':
+          $ref: '#/components/responses/SearchResults'
+        '404':
+          $ref: '#/components/responses/SearchResults'
+        '499':
           description: Server too busy
-        500:
+        '500':
           description: Server error
       tags:
         - search
-
-  '/search/qtree':
+  /search/qtree:
     get:
-      description: |
-        Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our query parser. The structure can be used by external applications to rewrite the query or check its syntactic correctnes.
+      description: >
+        Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our
+        query parser. The structure can be used by external applications to
+        rewrite the query or check its syntactic correctnes.
+
 
         ## Example result
+
         ```JSON
+
         {
              "qtree": "\n{\"name\":\"OPERATOR\", \"label\":\"DEFOP\", \"children\": [\n    {\"name\":\"MODIFIER\", \"label\":\"MODIFIER\", \"children\": [\n        {\"name\":\"TMODIFIER\", \"label\":\"TMODIFIER\", \"children\": [\n            {\"name\":\"FIELD\", \"label\":\"FIELD\", \"children\": [\n                {\"name\":\"QNORMAL\", \"label\":\"QNORMAL\", \"children\": [\n                    {\"name\":\"TERM_NORMAL\", \"input\":\"star\", \"start\":0, \"end\":3}]\n                }]\n            }]\n        }]\n    }]\n}",
              "responseHeader": {
@@ -138,31 +388,47 @@ paths:
              }
             }
         ```
-      security:
-        - OauthSecurity: []
       parameters:
-        - $ref: "#/parameters/q"
+        - $ref: '#/components/parameters/q'
       responses:
-        200:
-          $ref: "#/responses/QTree"
-  '/search/bigquery':
+        '200':
+          $ref: '#/components/responses/QTree'
+  /search/bigquery:
     post:
-      description: |
-        Search endpoint which accepts list of many IDs (bibcodes). Supports paging.
+      description: >
+        Search endpoint which accepts list of many IDs (bibcodes). Supports
+        paging.
 
-        Returns standard search results, but accepts as input very large query (i.e. a query that can be expressed only as a list of search
-        criteria, typically IDs). There is currently no limit to the size of the submitted data (besides buffer/time limits imposed by our API
-        frontend), however there are severe limits on how often you can call this enpoint. Typically, only 100 requests per day are allowed.
 
-        The `bigquery` is always executed as a filter **after** the main query (to filter out unwanted results and keep only the results
-        specified by the `bigquery`). You may want to use `q=*:*` to filter contents of the whole database, however it is advisable to make
-        the `q` as specific as possible. Broad queries have higher `qTime` (execution time) and that will be counted towards your rate-limit
+        Returns standard search results, but accepts as input very large query
+        (i.e. a query that can be expressed only as a list of search
+
+        criteria, typically IDs). There is currently no limit to the size of the
+        submitted data (besides buffer/time limits imposed by our API
+
+        frontend), however there are severe limits on how often you can call
+        this enpoint. Typically, only 100 requests per day are allowed.
+
+
+        The `bigquery` is always executed as a filter **after** the main query
+        (to filter out unwanted results and keep only the results
+
+        specified by the `bigquery`). You may want to use `q=*:*` to filter
+        contents of the whole database, however it is advisable to make
+
+        the `q` as specific as possible. Broad queries have higher `qTime`
+        (execution time) and that will be counted towards your rate-limit
+
         (in the future).
 
 
-        The bigquery filter is *applied only after* the main search (ie: it limits results of the main search).
+
+        The bigquery filter is *applied only after* the main search (ie: it
+        limits results of the main search).
+
 
         ## Example request
+
 
         ```python
           import requests
@@ -174,42 +440,51 @@ paths:
         ```
       security:
         - OauthSecurity:
-          - api
+            - api
       parameters:
-        - $ref: "#/parameters/q"
+        - $ref: '#/components/parameters/q'
         - name: filestream
-          in: formData
+          in: header
           required: true
-          type: string
-          description:  |
-            Newline separated list of values, the first line specifies the index field, the rest are the search values. <br/> Currently, we
-            allow to search in `bibcode` index only. You can submit `canonical` as well as `alternate` bibcodes - the search will automatically
-            match both. In the future, the list of available indexes may be extended).
-        - name: 'Content-Type'
+          schema:
+            type: string
+          description: >
+            Newline separated list of values, the first line specifies the index
+            field, the rest are the search values. <br/> Currently, we
+
+            allow to search in `bibcode` index only. You can submit `canonical`
+            as well as `alternate` bibcodes - the search will automatically
+
+            match both. In the future, the list of available indexes may be
+            extended).
+        - name: Content-Type
           in: header
           required: false
-          description: |
-            Default is `big-query/csv`, it influences the way how the values from the `filestream` parameter are parsed. In the future ADS may support `json` and some other formats. The header can also be used to pass additional information to the query parser.
-          default: big-query/csv
-          type: string
-        - $ref: "#/parameters/fq"
-        - $ref: "#/parameters/fl"
-        - $ref: "#/parameters/start"
-        - $ref: "#/parameters/rows"
-        - $ref: "#/parameters/sort"
+          description: >
+            Default is `big-query/csv`, it influences the way how the values
+            from the `filestream` parameter are parsed. In the future ADS may
+            support `json` and some other formats. The header can also be used
+            to pass additional information to the query parser.
+          schema:
+            default: big-query/csv
+            type: string
+        - $ref: '#/components/parameters/fq'
+        - $ref: '#/components/parameters/fl'
+        - $ref: '#/components/parameters/start'
+        - $ref: '#/components/parameters/rows'
+        - $ref: '#/components/parameters/sort'
       responses:
-        200:
-          $ref: "#/responses/SearchResults"
-        404:
-          $ref: "#/responses/SearchResults"
-        499:
+        '200':
+          $ref: '#/components/responses/SearchResults'
+        '404':
+          $ref: '#/components/responses/SearchResults'
+        '499':
           description: Server too busy
-        500:
+        '500':
           description: Server error
       tags:
         - search
-
-  '/vault/query':
+  /vault/query:
     post:
       description: |
         Save a query for later execution.
@@ -227,18 +502,18 @@ paths:
         - name: jsonobj
           description: JSON object holding the values to submit.
           required: true
-          in: body
+          in: header
           schema:
-            $ref: "#/definitions/vaultObject"
+            $ref: '#/components/schemas/vaultObject'
       tags:
         - search
       security:
         - OauthSecurity:
-          - store-query
+            - store-query
       responses:
-        200:
-          $ref: "#/responses/VaultResponse"
-        404:
+        '200':
+          $ref: '#/components/responses/VaultResponse'
+        '404':
           description: QID object not found
   '/vault/query/{queryId}':
     get:
@@ -259,24 +534,27 @@ paths:
           description: QID returned from the POST operation
           required: true
           in: path
-          type: string
+          schema:
+            type: string
       tags:
         - search
       security:
         - OauthSecurity:
-          - store-query
+            - store-query
       responses:
-        200:
-          $ref: "#/responses/VaultResponse"
-        404:
+        '200':
+          $ref: '#/components/responses/VaultResponse'
+        '404':
           description: QID object not found
-
   '/vault/execute_query/{queryId}':
     get:
-      description: |
-        Search using the stored query and return the same data as Search API endpoint.
+      description: >
+        Search using the stored query and return the same data as Search API
+        endpoint.
+
 
         ## Example response
+
 
         ```JSON
           {
@@ -330,37 +608,41 @@ paths:
           description: QID returned from the POST operation
           required: true
           in: path
-          type: string
-        - name: jsonobj
-          description: You can submit query parameters that override parts of the saved query.
-          required: false
-          in: body
           schema:
-            $ref: "#/definitions/vaultObject"
+            type: string
+        - name: jsonobj
+          description: >-
+            You can submit query parameters that override parts of the saved
+            query.
+          required: false
+          in: header
+          schema:
+            $ref: '#/components/schemas/vaultObject'
       tags:
         - search
       security:
         - OauthSecurity:
-          - execute-query
+            - execute-query
       responses:
-        200:
-          $ref: "#/responses/SearchResults"
-        404:
+        '200':
+          $ref: '#/components/responses/SearchResults'
+        '404':
           description: QID object not found
-
-  '/vault/user-data':
+  /vault/user-data:
     get:
-      description: |
-        Retrive stored preferences. No parameter is passed besides the `Authorization` header; user
+      description: >
+        Retrive stored preferences. No parameter is passed besides the
+        `Authorization` header; user
+
         is identified based on that.
       responses:
-        200:
+        '200':
           description: JSON
-        404:
+        '404':
           description: User not found
       security:
         - OauthSecurity:
-          - store-preferences
+            - store-preferences
       x-ratelimit:
         period: day
         limit: 1000
@@ -378,32 +660,35 @@ paths:
           > {"foo": "bar"}
         ```
       parameters:
-        - $ref: "#/parameters/jsonpayload"
+        - $ref: '#/components/parameters/jsonpayload'
       responses:
-        200:
+        '200':
           description: JSON
-        404:
+        '404':
           description: User not found
       security:
         - OauthSecurity:
-          - store-preferences
+            - store-preferences
       x-ratelimit:
         period: day
         limit: 100
       tags:
         - user
         - store
-
-
   '/vault/configuration/{key}':
     get:
-      description: |
-        Retrive various configuration options for the Bumblebee client. This config is static and controlled by ADS;
+      description: >
+        Retrive various configuration options for the Bumblebee client. This
+        config is static and controlled by ADS;
+
         there is no way to update it from outside.
+
 
         ## Example Response
 
+
         ```JSON
+
         {
             "link_servers": [
                 {
@@ -422,17 +707,21 @@ paths:
                     "name": "Cardiff University"
                 }]
         }
+
         ```
       parameters:
         - name: key
           in: path
-          description: Optional. Denotes the key that should be returned from the configuration. When empty, default is to return everything.
-          type: string
+          description: >-
+            Optional. Denotes the key that should be returned from the
+            configuration. When empty, default is to return everything.
+          schema:
+            type: string
           required: true
       responses:
-        200:
+        '200':
           description: JSON
-        404:
+        '404':
           description: Key not found
       security:
         - OauthSecurity: []
@@ -441,15 +730,17 @@ paths:
         limit: 100
       tags:
         - user
-
-
   '/orcid/get-profile/{orcidId}':
     get:
-      description: |
-        Check with ORCiD and downloads the fresh profile from the ORCiD API. We can return the orcid profile only if a user ever logged in with
+      description: >
+        Check with ORCiD and downloads the fresh profile from the ORCiD API. We
+        can return the orcid profile only if a user ever logged in with
+
         ADS (and also the OAuth access_token is stil valid).
 
+
         ## Example Response
+
 
         ```JSON
           {
@@ -503,13 +794,12 @@ paths:
                               },
             # output truncated ....
         ```
-
       parameters:
-        - $ref: "#/parameters/orcidId"
+        - $ref: '#/components/parameters/orcidId'
       responses:
-        200:
+        '200':
           description: JSON
-        404:
+        '404':
           description: |
             JSON
 
@@ -528,29 +818,34 @@ paths:
              "error" : "We do not have a record for: 0000-0000-0000-0000"
             }
             ```
-
       security:
         - OauthSecurity:
-          - ads-consumer:orcid
+            - 'ads-consumer:orcid'
       x-ratelimit:
         period: day
         limit: 100
       tags:
         - user
         - orcid
-
-
   '/orcid/export/{iso_date}':
     get:
-      description: |
-        Return information about users who recently updated their ORCiD information through Bumblebee (ADS UI). This includes also
-        users who just accessed their ORCiD profiles, even if they didn't make new claims. This enpoint always returns maximum of 10
-        records created since (inclusive) the requested date. To access the next records, use the `updated` date + 1 additional microsecond.
+      description: >
+        Return information about users who recently updated their ORCiD
+        information through Bumblebee (ADS UI). This includes also
+
+        users who just accessed their ORCiD profiles, even if they didn't make
+        new claims. This enpoint always returns maximum of 10
+
+        records created since (inclusive) the requested date. To access the next
+        records, use the `updated` date + 1 additional microsecond.
+
 
 
         ## Example Response
 
+
         ```JSON
+
         [
             {
                 "created": "2015-11-15T17:46:28.657982",
@@ -611,63 +906,71 @@ paths:
              ...
             }
         ]
-        ```
 
+        ```
       parameters:
         - name: iso_date
           in: path
-          description: |
-            Date in ISO format (RFC3339, UTC time zone, ie. '2008-09-03T20:56:35.450686Z')
-          type: string
+          description: >
+            Date in ISO format (RFC3339, UTC time zone, ie.
+            '2008-09-03T20:56:35.450686Z')
+          schema:
+            type: string
           required: true
         - name: fields
           in: query
-          description: 'List of fields to return in response, allowed values are: `orcid_id`, `created`, `updated`, `profile`, `info`'
-          type: array
-          uniqueItems: true
-          collectionFormat: csv
-          items:
-            type: string
-            enum:
-              - orcid_id
-              - created
-              - updated
-              - profile
-              - info
-
+          description: >-
+            List of fields to return in response, allowed values are:
+            `orcid_id`, `created`, `updated`, `profile`, `info`
+          style: form
+          explode: false
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              type: string
+              enum:
+                - orcid_id
+                - created
+                - updated
+                - profile
+                - info
       responses:
-        200:
+        '200':
           description: JSON
       security:
         - OauthSecurity:
-          - ads-consumer:orcid
+            - 'ads-consumer:orcid'
       x-ratelimit:
         period: day
         limit: 1000
       tags:
         - orcid
-
-
   '/orcid/preferences/{orcidId}':
     get:
-      description: |
-        Clients can store various data about the user (ie: Bumblebee saves here alternative names
+      description: >
+        Clients can store various data about the user (ie: Bumblebee saves here
+        alternative names
+
         and user preferences associated to the ORCiD display).
+
 
 
         ## Example Response
 
+
         ```json
+
         {
           "alternativeNames" : ["Doe, J", "Doe X, J"]
         }
-        ```
 
+        ```
       parameters:
-        - $ref: "#/parameters/orcidId"
-        - $ref: "#/parameters/OrcidAuthorization"
+        - $ref: '#/components/parameters/orcidId'
+        - $ref: '#/components/parameters/OrcidAuthorization'
       responses:
-        200:
+        '200':
           description: JSON
       security:
         - OauthSecurity: []
@@ -677,32 +980,44 @@ paths:
       tags:
         - orcid
     post:
-      description: |
+      description: >
         Post a JSON payload to **replace** the existing stored values.
+
 
         ## Example Request
 
+
         ```command-line
 
-        $ curl 'https://api.adsabs.harvard.edu/v1/preferences/0000-00002-9384-846X' -H 'Authorization: Bearer:TOKEN' -H 'Orcid-Authorization: Bearer:ea12a66a-2a07-49fc-b0cb-9d0967c484c8' -X POST -d $'{"foo":"bar"}' -H 'Content-Type: application/json'
+
+        $ curl
+        'https://api.adsabs.harvard.edu/v1/preferences/0000-00002-9384-846X' -H
+        'Authorization: Bearer:TOKEN' -H 'Orcid-Authorization:
+        Bearer:ea12a66a-2a07-49fc-b0cb-9d0967c484c8' -X POST -d $'{"foo":"bar"}'
+        -H 'Content-Type: application/json'
+
 
         > {"foo": "bar"}
+
         ```
+
 
         ## Example Response
 
+
         ```json
+
         {
           "alternativeNames" : ["Doe, J", "Doe X, J"]
         }
-        ```
 
+        ```
       parameters:
-        - $ref: "#/parameters/orcidId"
-        - $ref: "#/parameters/OrcidAuthorization"
-        - $ref: "#/parameters/jsonpayload"
+        - $ref: '#/components/parameters/orcidId'
+        - $ref: '#/components/parameters/OrcidAuthorization'
+        - $ref: '#/components/parameters/jsonpayload'
       responses:
-        200:
+        '200':
           description: JSON
       security:
         - OauthSecurity: []
@@ -711,196 +1026,6 @@ paths:
         limit: 1000
       tags:
         - orcid
-
-
-definitions:
-  qtree:
-    type: object
-    properties:
-      responseHeader:
-        $ref: "#/definitions/responseHeader"
-      qtree:
-        type: string
-        description: "serialized JSON"
-  results:
-    type: object
-    properties:
-      responseHeader:
-        $ref: "#/definitions/responseHeader"
-      docs:
-        type: array
-        items:
-          $ref: "#/definitions/doc"
-  doc:
-    type: object
-    required:
-      - id
-    properties:
-      id:
-        type: string
-      bibcode:
-        type: string
-      title:
-        type: string
-  responseHeader:
-    type: object
-    properties:
-      status:
-        description: Status code as returned by the search engine
-        type: integer
-      QTime:
-        type: integer
-        description: search time in millisecs (only search, without faceting, latency and all other steps)
-  vaultObject:
-    type: object
-    properties:
-      numfound:
-        readOnly: true
-        type: integer
-        description: |
-          Number of docs this query found (the last time it was executed; this number is up to
-          date only when the query is stored). But if you see number higher than 0 then you can be sure that
-          the query was executed.
-
-      qid:
-        readOnly: true
-        type: string
-        description: |
-          Query ID (unique hash identifying all the parameters; it is computed from the supplied query
-          parameters)
-
-      query:
-        type: string
-        description: JSON serialized query parameters
-      bigquery:
-        type: string
-        description: |
-          new line separated list of bibcodes, the first line is the name of the index that will be
-          searched, right now we only support search in `bibcode` index
-
-responses:
-  QTree:
-    description: Abstract Syntax Tree of a Parsed query
-    schema:
-      $ref: "#/definitions/qtree"
-  SearchResults:
-    description: Results returned by the search engine
-    schema:
-      $ref: "#/definitions/results"
-
-  VaultResponse:
-    description: Response from myads service
-    schema:
-      $ref: "#/definitions/vaultObject"
-
-
-
-
-
-parameters:
-  q:
-    name: q
-    description: Query string; for detailed documentation go to http://ui.adsabs.harvard.edu/help
-    in: query
-    required: true
-    type: string
-  rows:
-    name: rows
-    description: How many records to return for this request (default=10, maximum=200)
-    in: query
-    required: false
-    type: integer
-    default: 10
-    maximum: 200
-  fq:
-    name: fq
-    description: Additional filters applied on top of the results of the main query.
-    in: query
-    required: false
-    type: array
-    maxItems: 10
-    collectionFormat: multi
-    items:
-      type: string
-  fl:
-    name: fl
-    description: Comma delimited set of fields to return; default is 'id'
-    in: query
-    default:
-      - id
-    type: array
-    uniqueItems: true
-    collectionFormat: csv
-    items:
-      type: string
-      enum:
-        - abstract
-        - ack
-        - aff
-        - alternate_bibcode
-        - alternate_title
-        - arxiv_class
-        - author
-        - bibcode
-        - bibgroup
-        - bibstem
-        - body
-        - citation_count
-        - copyright
-        - data
-        - database
-        - doi
-        - doctype
-        - first_author
-        - grant
-        - id
-        - identifier
-        - indexstamp
-        - issue
-        - keyword
-        - lang
-        - orcid_pub
-        - orcid_use
-        - orcid_other
-        - page
-        - property
-        - pub
-        - pubdate
-        - read_count
-        - title
-        - vizier
-        - volume
-        - year
-  start:
-    name: start
-    description: For pagination, offset of the first returned result (default=0)
-    in: query
-    required: false
-    type: integer
-    default: 0
-  sort:
-    name: sort
-    description: |
-      The format is 'field direction' where direction is one of 'asc' or 'desc' and field is any of the valid indexes. The default sorting is by relevance (computed by our search engine). Example\: 'sort=read_count+desc' Some useful fields to sort by may be pubdate, citation_count, or num_readers.
-    in: query
-    required: false
-    type: string
-  orcidId:
-    name: orcidId
-    in: path
-    description: ORCiD ID, i.e. '0000-0000-00000-00000'
-    type: string
-    required: true
-  OrcidAuthorization:
-    name: 'Orcid-Authorization'
-    in: header
-    description: '`access_token` of the orcid user (will be passed on to the ORCiD API)'
-    type: string
-  jsonpayload:
-    name: jsonpayload
-    in: body
-    description: |
-      JSON object, to be stored for the user. **WARNING**: the JSON will replace the existing one.
-      If you send an empty POST request, the stored data will be replaced with `{}`.
-    schema:
-      type: object
+externalDocs:
+  description: Complete documentation describing how to use this API
+  url: 'https://github.com/adsabs/adsabs-dev-api'

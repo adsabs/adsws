@@ -49,17 +49,16 @@ def cleanup_users(app_override=None, timedelta="hours=24"):
     td = parse_timedelta(timedelta)
 
     with app.app_context():
-        users = db.session.query(User).filter(
+        deletions = 0
+        for user in db.session.query(User).filter(
             User.registered_at <= datetime.datetime.now()-td,
             User.confirmed_at == None,
-        )
+            ).yield_per(100):
 
-        deletions = 0
-
-        for user in users:
             db.session.delete(user)
             deletions += 1
             app.logger.info("Deleted unverified user: {}".format(user.email))
+
         try:
             db.session.commit()
         except Exception, e:
@@ -81,12 +80,11 @@ def cleanup_tokens(app_override=None):
     app = accounts_manager.app if app_override is None else app_override
 
     with app.app_context():
-        tokens = db.session.query(OAuthToken).filter(
-            OAuthToken.expires <= datetime.datetime.now()
-        ).all()
         deletions = 0
+        for token in db.session.query(OAuthToken).filter(
+            OAuthToken.expires <= datetime.datetime.now()
+            ).yield_per(1000):
 
-        for token in tokens:
             db.session.delete(token)
             deletions += 1
         try:
@@ -115,12 +113,11 @@ def cleanup_clients(app_override=None, timedelta="days=365"):
     td = parse_timedelta(timedelta)
 
     with app.app_context():
-        clients = db.session.query(OAuthClient).filter(
-            OAuthClient.last_activity <= datetime.datetime.now()-td
-        ).all()
         deletions = 0
+        for client in db.session.query(OAuthClient).filter(
+            OAuthClient.last_activity <= datetime.datetime.now()-td
+            ).yield_per(1000):
 
-        for client in clients:
             db.session.delete(client)
             deletions += 1
         try:

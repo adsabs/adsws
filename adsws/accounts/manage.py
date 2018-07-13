@@ -97,7 +97,7 @@ def cleanup_tokens(app_override=None):
 
 
 @accounts_manager.command
-def cleanup_clients(app_override=None, timedelta="days=365"):
+def cleanup_clients(app_override=None, timedelta="days=90"):
     """
     Cleans expired oauth2clients that are older than a specified date in the
     database defined in app.config['SQLALCHEMY_DATABASE_URI']

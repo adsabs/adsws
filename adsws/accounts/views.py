@@ -732,7 +732,8 @@ class Bootstrap(Resource):
     def load_client(clientid):
         """
         Loads an Oauth2client from a client id string and returns that client
-        and a valid oauth2token
+        and a valid oauth2token; if a token cannot be found we will create
+        one (provided that the client is already there)
 
         :param clientid: OAuthClient.client_id
         :type clientid: basestring
@@ -751,9 +752,12 @@ class Bootstrap(Resource):
             is_internal=True,
         ).filter(OAuthToken.expires > datetime.datetime.now()).first()
 
+        # create a new token if a client is there
         if token is None:
-            raise NoTokenError("No valid token found")
-
+            token = Bootstrap.create_temporary_token(client)
+            db.session.add(token)
+            db.session.commit()
+            
         return client, token
 
     @staticmethod
@@ -770,14 +774,11 @@ class Bootstrap(Resource):
         """
         assert current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']
 
-        salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
-        scopes = ' '.join(current_app.config.get('BOOTSTRAP_SCOPES', []))
-        expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
         client_name = current_app.config.get('BOOTSTRAP_CLIENT_NAME', 'BB client')
-        uid = current_user.get_id()
+        scopes = ' '.join(current_app.config.get('BOOTSTRAP_SCOPES', []))
 
         client = OAuthClient(
-            user_id=uid,
+            user_id=current_user.get_id(),
             name=client_name,
             description=client_name,
             is_confidential=False,
@@ -788,24 +789,14 @@ class Bootstrap(Resource):
 
         db.session.add(client)
 
-        if isinstance(expires, int):
-            expires = datetime.datetime.utcnow() + datetime.timedelta(
-                seconds=expires)
-
-        token = OAuthToken(
-            client_id=client.client_id,
-            user_id=uid,
-            expires=expires,
-            _scopes=scopes,
-            access_token=gen_salt(salt_length),
-            refresh_token=gen_salt(salt_length),
-            is_personal=False,
-            is_internal=True,
-        )
+        token = Bootstrap.create_temporary_token(client)
 
         db.session.add(token)
         db.session.commit()
         return client, token
+
+    
+        
 
     @staticmethod
     @ratelimit.shared_limit_and_check("100/600 second", scope=scope_func)
@@ -844,16 +835,7 @@ class Bootstrap(Resource):
             client.gen_salt()
             db.session.add(client)
 
-            token = OAuthToken(
-                client_id=client.client_id,
-                user_id=uid,
-                access_token=gen_salt(salt_length),
-                refresh_token=gen_salt(salt_length),
-                expires=datetime.datetime(2500, 1, 1),
-                _scopes=scopes,
-                is_personal=False,
-                is_internal=True,
-            )
+            token = Bootstrap.create_user_token(client)
             db.session.add(token)
             current_app.logger.info(
                 "Created BB client for {email}".format(email=current_user.email)
@@ -866,16 +848,8 @@ class Bootstrap(Resource):
 
             if token is None:
                 # the token was not created yet
-                token = OAuthToken(
-                    client_id=client.client_id,
-                    user_id=uid,
-                    access_token=gen_salt(salt_length),
-                    refresh_token=gen_salt(salt_length),
-                    expires=datetime.datetime(2500, 1, 1),
-                    _scopes=scopes,
-                    is_personal=False,
-                    is_internal=True,
-                )
+                token = Bootstrap.create_user_token(client)
+                
                 db.session.add(token)
                 current_app.logger.info(
                     "Created BB client for {email}".format(email=current_user.email)
@@ -884,3 +858,45 @@ class Bootstrap(Resource):
         db.session.commit()
         return client, token
 
+
+    @staticmethod
+    def create_temporary_token(client):
+        
+        assert current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']
+        
+        salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
+        expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
+        
+        if isinstance(expires, int):
+            expires = datetime.datetime.utcnow() + datetime.timedelta(
+                seconds=expires)
+        
+        token = OAuthToken(
+            client_id=client.client_id,
+            user_id=client.user_id,
+            expires=expires,
+            _scopes=client._default_scopes,
+            access_token=gen_salt(salt_length),
+            refresh_token=gen_salt(salt_length),
+            is_personal=False,
+            is_internal=True,
+        )
+        return token
+
+
+    @staticmethod
+    def create_user_token(client):
+        salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
+        
+        token = OAuthToken(
+                client_id=client.client_id,
+                user_id=client.user_id,
+                access_token=gen_salt(salt_length),
+                refresh_token=gen_salt(salt_length),
+                expires=datetime.datetime(2500, 1, 1),
+                _scopes=client._default_scopes,
+                is_personal=False,
+                is_internal=True,
+            )
+        
+        return token

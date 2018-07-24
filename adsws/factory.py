@@ -141,7 +141,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         but only if the session is not dirty - we don't want to do any
         magic (instead of a developer)
         
-        TODO: perhaps use expire_on_commit=False
+        use expire_on_commit=False doesn't have the same effect
         http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
         
         The problems we are facing is that a new transaction gets opened
@@ -149,13 +149,13 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         opens a new transaction (which never gets closed and is rolled back)
         """
         a = current_app
-        if 'sqlalchemy' in a.extensions:
+        if 'sqlalchemy' in a.extensions: # could use self.db but let's be very careful
             sa = a.extensions['sqlalchemy']
             if hasattr(sa, 'db') and hasattr(sa.db, 'session') and sa.db.session.is_active:
                 if bool(sa.db.session.dirty):
-                    sa.db.session.close() # do not commmit objects - devs should do that explicitly
+                    sa.db.session.close() # db server will do rollback
                 else:
-                    sa.db.session.commit()
+                    sa.db.session.commit() # normal situation
                 
     return app
 

@@ -370,7 +370,7 @@ class PersonalTokenView(Resource):
             user_id=current_user.get_id(),
             name=u'ADS API client',
         ).first()
-
+        
         if client is None:  # If no client exists, create a new one
             client = OAuthClient(
                 user_id=current_user.get_id(),
@@ -426,9 +426,13 @@ class PersonalTokenView(Resource):
                 "Updated ADS API token for {0}".format(current_user.email)
             )
 
+        # since commits are above, this action will trigger reload from the db
+        # and therefore we have to issue commit to close the transaction
         output = print_token(token)
         output['client_id'] = client.client_id
         output['user_id'] = current_user.get_id()
+        db.session.commit()
+        
         return output
 
 
@@ -720,12 +724,12 @@ class Bootstrap(Resource):
                 client.client_name = client_name
 
         client.last_activity = datetime.datetime.now()
-        db.session.commit()
         output = print_token(token)
 
         output['client_id'] = client.client_id
         output['client_secret'] = client.client_secret
 
+        db.session.commit()
         return output
 
     @staticmethod

@@ -12,7 +12,7 @@ import logging
 import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
-from flask import g, request, jsonify, session
+from flask import g, request, jsonify, session, current_app
 from flask.ext.login import current_user
 from flask.ext.sslify import SSLify
 from flask.ext.consulate import Consul, ConsulConnectionError
@@ -134,6 +134,29 @@ def create_app(app_name=None, instance_path=None, static_path=None,
                 )
             request.headers = h
         return valid, oauth
+    
+    @app.teardown_request
+    def teardown_request(exception=None):
+        """This function will close active transaction, if there is one
+        but only if the session is not dirty - we don't want to do any
+        magic (instead of a developer)
+        
+        use expire_on_commit=False doesn't have the same effect
+        http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
+        
+        The problems we are facing is that a new transaction gets opened
+        when session is committed; consequent access to the ORM objects
+        opens a new transaction (which never gets closed and is rolled back)
+        """
+        a = current_app
+        if 'sqlalchemy' in a.extensions: # could use self.db but let's be very careful
+            sa = a.extensions['sqlalchemy']
+            if hasattr(sa, 'db') and hasattr(sa.db, 'session') and sa.db.session.is_active:
+                if bool(sa.db.session.dirty):
+                    sa.db.session.close() # db server will do rollback
+                else:
+                    sa.db.session.commit() # normal situation
+                
     return app
 
 

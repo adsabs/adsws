@@ -28,13 +28,18 @@ class ProxyView(Resource):
             self.session = self.cs
         else:
             self.session = requests.Session()
-            ## Set retries to 3, otherwise we will generate 502 HTTP errors from
-            ## time to time due to "Resetting dropped connection", connections
-            ## being drop even if the Keep-alive was present (which it is for
-            ## requests sessions)
+            # HTTP connection pool
+            # - The maximum number of retries each connection should attempt: this
+            #   applies only to failed DNS lookups, socket connections and connection timeouts,
+            #   never to requests where data has made it to the server. By default,
+            #   requests does not retry failed connections.
+            #   * If retries not set, we will generate 502 HTTP errors from
+            #   time to time due to "Resetting dropped connection", connections
+            #   being drop even if the Keep-alive was present (which it is for
+            #   requests sessions)
             # http://docs.python-requests.org/en/latest/api/?highlight=max_retries#requests.adapters.HTTPAdapter
             #
-            http_adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=1000, max_retries=3, pool_block=False)
+            http_adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=1000, max_retries=3, pool_block=False)
             self.session.mount('http://', http_adapter)
 
     @staticmethod

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+LOG_STDOUT = True
 
 OAUTH2_CACHE_TYPE = 'redis'
 """ Type of cache to use for storing the temporary grant token """

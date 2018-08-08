@@ -1,3 +1,5 @@
+LOG_LEVEL = 30 # To be deprecated when all microservices use ADSFlask
+LOGGING_LEVEL = "INFO"
 LOG_STDOUT = True
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',

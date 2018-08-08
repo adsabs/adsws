@@ -1,3 +1,5 @@
+LOG_LEVEL = 30 # To be deprecated when all microservices use ADSFlask
+LOGGING_LEVEL = "INFO"
 LOG_STDOUT = True
 BOOTSTRAP_USER_EMAIL = 'anonymous@ads'
 BOOTSTRAP_TOKEN_EXPIRES = 3600*24  # 1 day

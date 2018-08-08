@@ -1,4 +1,3 @@
-LOG_STDOUT = True
 SECURITY_REGISTER_BLUEPRINT = False
 EXTENSIONS = ['adsws.ext.menu',
               'adsws.ext.sqlalchemy',

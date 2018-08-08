@@ -1,5 +1,5 @@
 import Cookie
-from flask import request
+from flask import request, current_app
 from functools import wraps
 from werkzeug.datastructures import Headers
 from werkzeug.datastructures import ImmutableTypeConversionDict
@@ -13,6 +13,7 @@ def _get_route(storage, route_redis_prefix, user_token):
     """
     try:
         route = storage.get(route_redis_prefix+user_token)
+        current_app.logger.info("Cached affinity route '{}'".format(route))
     except:
         route = None
     return route
@@ -29,6 +30,7 @@ def _set_route(storage, route_redis_prefix, user_token, route, route_redis_expir
     """
     try:
         storage.setex(route_redis_prefix+user_token, route, route_redis_expiration_time)
+        current_app.logger.info("Stored affinity route '{}'".format(route))
     except:
         pass
 

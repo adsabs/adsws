@@ -2,7 +2,6 @@
 Configuration file. Please prefix application specific config values with
 the application name.
 """
-LOG_STDOUT = True
 EXTENSIONS = [
     'adsws.ext.ratelimiter',
     'adsws.ext.mail'

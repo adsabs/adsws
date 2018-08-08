@@ -64,18 +64,21 @@ class ProxyView(Resource):
             ep = urljoin(self.service_uri, path)
         else:
             ep = path
+        current_app.logger.info("Dispatching '{}' request to endpoint '{}'".format(request.method, ep))
         resp = self.__getattribute__(request.method.lower())(ep, request)
 
         if isinstance(resp, tuple):
             if len(resp) == 2:
                 text = resp[0]
                 status_code = resp[1]
+                current_app.logger.info("Received response from endpoint '{}' with status code '{}'".format(ep, status_code))
                 return text, status_code
 
         headers = {}
         if resp.headers:
             [headers.update({key: resp.headers[key]}) for key in current_app.config['REMOTE_PROXY_ALLOWED_HEADERS'] if key in resp.headers]
 
+        current_app.logger.info("Received response from endpoint '{}' with status code '{}'".format(ep, resp.status_code))
         if headers:
             return resp.content, resp.status_code, headers
         else:

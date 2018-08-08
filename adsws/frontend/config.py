@@ -1,4 +1,3 @@
-LOG_STDOUT = True
 EXTENSIONS = [
     'adsws.ext.sqlalchemy',
     'adsws.ext.security',

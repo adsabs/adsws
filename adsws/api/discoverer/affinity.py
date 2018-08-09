@@ -52,7 +52,7 @@ def _build_updated_cookies(request, user_token, route, name):
     # Update cookie structures
     if route:
         # Create/update solr route
-        cookies_header[name] = route.encode("utf8")
+        cookies_header[name.encode("utf8")] = route.encode("utf8")
         cookies[name] = route
     else:
         # Discard non-registered solr route if it is present

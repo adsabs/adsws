@@ -13,7 +13,8 @@ def _get_route(storage, route_redis_prefix, user_token):
     """
     try:
         route = storage.get(route_redis_prefix+user_token)
-        current_app.logger.info("Cached affinity route '{}'".format(route))
+        if route:
+            current_app.logger.info("Recovered cached affinity route '{}' from '{}'".format(route, route_redis_prefix+user_token))
     except:
         route = None
     return route
@@ -30,7 +31,7 @@ def _set_route(storage, route_redis_prefix, user_token, route, route_redis_expir
     """
     try:
         storage.setex(route_redis_prefix+user_token, route, route_redis_expiration_time)
-        current_app.logger.info("Stored affinity route '{}'".format(route))
+        current_app.logger.info("Stored affinity route '{}' into '{}'".format(route, route_redis_prefix+user_token))
     except:
         pass
 

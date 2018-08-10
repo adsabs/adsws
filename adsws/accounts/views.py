@@ -211,11 +211,9 @@ class UserInfoView(Resource):
     Implements getting user info from session ID, user id, access token or
     client id. It should be limited to internal use only.
     """
-    decorators = [
-        ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func),
-        oauth2.require_oauth('adsws:internal')
-    ]
 
+    @ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func)
+    @oauth2.require_oauth('adsws:internal')
     def get(self, account_data):
         """
         This endpoint provides the full identifying data associated to a given
@@ -370,7 +368,7 @@ class PersonalTokenView(Resource):
             user_id=current_user.get_id(),
             name=u'ADS API client',
         ).first()
-        
+
         if client is None:  # If no client exists, create a new one
             client = OAuthClient(
                 user_id=current_user.get_id(),
@@ -432,7 +430,7 @@ class PersonalTokenView(Resource):
         output['client_id'] = client.client_id
         output['user_id'] = current_user.get_id()
         db.session.commit()
-        
+
         return output
 
 
@@ -761,7 +759,7 @@ class Bootstrap(Resource):
             token = Bootstrap.create_temporary_token(client)
             db.session.add(token)
             db.session.commit()
-            
+
         return client, token
 
     @staticmethod
@@ -799,8 +797,8 @@ class Bootstrap(Resource):
         db.session.commit()
         return client, token
 
-    
-        
+
+
 
     @staticmethod
     @ratelimit.shared_limit_and_check("100/600 second", scope=scope_func)
@@ -853,7 +851,7 @@ class Bootstrap(Resource):
             if token is None:
                 # the token was not created yet
                 token = Bootstrap.create_user_token(client)
-                
+
                 db.session.add(token)
                 current_app.logger.info(
                     "Created BB client for {email}".format(email=current_user.email)
@@ -865,16 +863,16 @@ class Bootstrap(Resource):
 
     @staticmethod
     def create_temporary_token(client):
-        
+
         assert current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']
-        
+
         salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
         expires = current_app.config.get('BOOTSTRAP_TOKEN_EXPIRES', 3600*24)
-        
+
         if isinstance(expires, int):
             expires = datetime.datetime.utcnow() + datetime.timedelta(
                 seconds=expires)
-        
+
         token = OAuthToken(
             client_id=client.client_id,
             user_id=client.user_id,
@@ -891,7 +889,7 @@ class Bootstrap(Resource):
     @staticmethod
     def create_user_token(client):
         salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
-        
+
         token = OAuthToken(
                 client_id=client.client_id,
                 user_id=client.user_id,
@@ -902,5 +900,5 @@ class Bootstrap(Resource):
                 is_personal=False,
                 is_internal=True,
             )
-        
+
         return token

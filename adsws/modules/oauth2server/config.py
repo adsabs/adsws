@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+LOG_LEVEL = 30 # To be deprecated when all microservices use ADSFlask
+LOGGING_LEVEL = "INFO"
+LOG_STDOUT = True
+
 OAUTH2_CACHE_TYPE = 'redis'
 """ Type of cache to use for storing the temporary grant token """
 

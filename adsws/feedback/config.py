@@ -2,6 +2,9 @@
 Configuration file. Please prefix application specific config values with
 the application name.
 """
+LOG_LEVEL = 30 # To be deprecated when all microservices use ADSFlask
+LOGGING_LEVEL = "INFO"
+LOG_STDOUT = True
 EXTENSIONS = [
     'adsws.ext.ratelimiter',
     'adsws.ext.mail'

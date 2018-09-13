@@ -15,11 +15,12 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    #with app.app_context() as c:
-    #   db.session.add(Model())
-    #   db.session.commit()
-    op.add_column('users', sa.Column('ratelimit_level', sa.Integer))
 
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.add_column(sa.Column('ratelimit_level', sa.Integer))
+        
 
 def downgrade():
-    op.drop_column('users', 'ratelimit_level')
+    
+    with op.batch_alter_table('users') as batch_op:
+        batch_op.drop_column('ratelimit_level')

@@ -9,6 +9,8 @@ from flask.ext.security import UserMixin, RoleMixin
 from adsws.ext.sqlalchemy import db
 from sqlalchemy.orm import synonym
 from flask.ext.security.utils import encrypt_password, verify_password
+from flask import current_app
+
 
 roles_users = db.Table(
     'roles_users',
@@ -32,6 +34,7 @@ class User(UserMixin, db.Model):
     login_count = db.Column(db.Integer)
     registered_at = db.Column(db.DateTime())
     ratelimit_level = db.Column(db.Integer)
+    _allowed_scopes = db.Column(db.Text)
 
     roles = db.relationship('Role', secondary=roles_users,
                             backref=db.backref('users', lazy='dynamic'))
@@ -62,6 +65,18 @@ class User(UserMixin, db.Model):
         need to convert it to unicode.
         """
         return unicode(self.id)
+    
+    @property
+    def allowed_scopes(self):
+        """Returns list of scopes that this user is allowed to request/initialize
+        when bootstraping a new OAuth client; for example ads:internal scopes
+        should only be given/owned to user accounts that can safely dispense
+        with them, but should not be available to other users.
+        """
+        
+        if self._allowed_scopes:
+            return self._allowed_scopes.split(' ')
+        return current_app.config['USER_DEFAULT_SCOPES']
 
 
 class Role(RoleMixin, db.Model):

@@ -141,7 +141,11 @@ class OAuthClient(db.Model):
 
     user = db.relationship('User')
     """ Relationship to user. """
-
+    
+    ratelimit = db.Column(db.Float, default=0.0)
+    """ Pre-computed allotment of the available rates of the user's global ratelimit."""
+    
+    
     @property
     def allowed_grant_types(self):
         return current_app.config['OAUTH2_ALLOWED_GRANT_TYPES']

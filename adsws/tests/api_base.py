@@ -63,7 +63,8 @@ class ApiTestCase(FlaskAppTestCase):
             is_confidential=False,
             user_id=user.id,
             _redirect_uris='%s/client/authorized' % self.base_url,
-            _default_scopes="adsws:internal"
+            _default_scopes="adsws:internal",
+            ratelimit=1.0
         )
         db.session.add(c1)
         db.session.commit()

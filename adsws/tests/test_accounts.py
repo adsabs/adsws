@@ -9,6 +9,7 @@ from adsws import accounts
 from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
+from sqlalchemy import func
 
 from unittest import TestCase as UnitTestCase
 
@@ -686,7 +687,7 @@ class TestAccounts(AccountsSetup):
             self.assertEqual(current_user.email, self.bootstrap_user.email)
             self.assertTrue(r.json['anonymous'])
             for k in ['access_token', 'expire_in', 'scopes', 'token_type',
-                      'username', 'refresh_token']:
+                      'username', 'refresh_token', 'ratelimit']:
                 self.assertIn(
                     k, r.json,
                     msg="{k} not in {data}".format(k=k, data=r.json)
@@ -746,7 +747,7 @@ class TestAccounts(AccountsSetup):
             # that authenticated user's data
             r = c.get(url)
             for k in ['access_token', 'expire_in', 'scopes', 'token_type',
-                      'username', 'refresh_token']:
+                      'username', 'refresh_token', 'ratelimit']:
                 self.assertIn(
                     k, r.json,
                     msg="{k} not in {data}".format(k=k, data=r.json)
@@ -772,6 +773,81 @@ class TestAccounts(AccountsSetup):
             )
             self.assertStatus(r, 200)
 
+    def test_bootstrap_api(self):
+        """
+        test the bootstrap workflow with api key
+        """
+        
+        #
+        url = url_for('bootstrap')
+        client = self._create_client('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
+        token = self._create_token('priviledged_client_id', self.real_user.id, scopes='adsws:internal')
+        headers = {'Authorization': 'Bearer %s' % token.access_token}
+
+        # create a new oauth application
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 0.5, 'create_new': True}, headers=headers)
+            j = r.json
+            assert j['username'] == 'real_user@unittests'
+            assert j['ratelimit'] == 0.5
+            assert j['client_id'] != client.client_id
+            assert j['scopes'] == ['user']
+            x = db.session.query(OAuthClient).filter_by(client_id=j['client_id']).one()
+            assert x.user_id == self.real_user.id
+            assert x.ratelimit == 0.5
+            assert x._default_scopes == 'user'
+            used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
+            assert used == 0.5
+        
+        # create a bigger application
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 1.4, 'create_new': True}, headers=headers)
+            j = r.json
+            assert j['username'] == 'real_user@unittests'
+            assert j['ratelimit'] == 1.4
+            assert j['client_id'] != client.client_id
+            assert j['scopes'] == ['user']
+            x = db.session.query(OAuthClient).filter_by(client_id=j['client_id']).one()
+            assert x.user_id == self.real_user.id
+            assert x.ratelimit == 1.4
+            assert x._default_scopes == 'user'
+            used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
+            assert used == 1.9
+        
+        # try to go over the limit
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 0.2, 'create_new': True}, headers=headers)
+            j = r.json
+            assert j == {'error': 'The current user accont does not have enough capacity to create a new client. Requested: 0.2, Available: 0.1'}
+    
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 0.01, 'create_new': True}, headers=headers)
+            used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
+            assert used == 1.91
+            
+        # instead of creating a new client, update an existing; this should automatically
+        # grab the latest client (or use client_name to find the right one)
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 0.0, 'create_new': False}, headers=headers)
+            used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
+            assert used == 1.90
+            
+            # now lets use this new client to access api
+            headers['Authorization'] = 'Bearer %s' % r.json['access_token']
+        
+        # TODO: this should not work but it seems something is off with the ratelimiter
+        # itself for adsws.accounts (it doesn't work there); to be revisited - I have 
+        # another test inside test_accounts to check this functionality
+        with self.client as c:
+            r = c.get(url_for('personaltokenview'), headers=headers)
+            
+        # this should result in error
+        with self.client as c:
+            r = c.get(url, query_string={'ratelimit': 0.01, 'create_new': True, 'scope': 'ads:internal'}, headers=headers)
+            assert r.json == {u'error': u'You have requested a scope not available to the current user'}
+            assert r.status_code == 400
+        
+        
     def test_change_password(self):
         """
         test change password workflow

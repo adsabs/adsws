@@ -51,7 +51,9 @@ def limit_func(counts, per_second):
     
     if hasattr(request, 'oauth'):
         try:
-            factor = request.oauth.client.ratelimit or 1.0
+            factor = request.oauth.client.ratelimit
+            if factor is None:
+                factor = 1.0
         except AttributeError:
-            pass
+            factor = 1.0
     return "{0}/{1} second".format(int(counts * factor), per_second)

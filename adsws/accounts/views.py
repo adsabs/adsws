@@ -212,8 +212,8 @@ class UserInfoView(Resource):
     client id. It should be limited to internal use only.
     """
 
-    @oauth2.require_oauth('adsws:internal')
     @ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func)
+    @oauth2.require_oauth('adsws:internal')
     def get(self, account_data):
         """
         This endpoint provides the full identifying data associated to a given
@@ -700,8 +700,8 @@ class Bootstrap(Resource):
         # our anonymous user
         if not current_user.is_authenticated():
             
-            if 'scopes' in kwargs or client_name:
-                abort(401, "Sorry, you cant change scopes/name/redirect_uri of this user")
+            if 'scopes' in kwargs or client_name or redirect_uri:
+                abort(401, "Sorry, you cant change scopes/name/redirect_uri when creating temporary OAuth application")
             
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
@@ -765,8 +765,8 @@ class Bootstrap(Resource):
         amount is."""
         
         # we are always called with some user logged in
-        rlimit = current_user.ratelimit_level or 2.0
-        if rlimit == -1:
+        allowed_limit = current_user.ratelimit_level or 2.0
+        if allowed_limit == -1:
             return True
         
         # count the existing clients
@@ -774,8 +774,8 @@ class Bootstrap(Resource):
         #for x in db.session.query(OAuthClient).filter_by(user_id=current_user.get_id()).options(load_only('ratelimit')).all():
         #    used += x.ratelimit_level
             
-        if rlimit - (used+ratelimit) < 0:
-            raise ValidationError('The current user accont does not have enough capacity to create a new client. Requested: %s, Available: %s' % (ratelimit, rlimit-used))
+        if allowed_limit - (used+ratelimit) < 0:
+            raise ValidationError('The current user account does not have enough capacity to create a new client. Requested: %s, Available: %s' % (ratelimit, allowed_limit-used))
         return True
 
          
@@ -898,7 +898,7 @@ class Bootstrap(Resource):
         token = Bootstrap.create_user_token(client)
         db.session.add(token)
         current_app.logger.info(
-            "Created BB client for {email}".format(email=current_user.email)
+            "Created OAuth client for {email}".format(email=current_user.email)
         )
         db.session.commit()
         return client, token

@@ -39,7 +39,7 @@ def scope_func(endpoint_name):
 
 def limit_func(counts, per_second):
     """
-    Returns the default limit multiplied by user's ratelimit_level attribute,
+    Returns the default limit multiplied by the OAuth client's ratelimit attribute,
     if it exists.
     :param counts: default rate limit
     :type counts: int
@@ -48,10 +48,12 @@ def limit_func(counts, per_second):
     :return user's ratelimit
     :rtype int
     """
-    factor = 1
+    
     if hasattr(request, 'oauth'):
         try:
-            factor = request.oauth.user.ratelimit_level or 1
+            factor = request.oauth.client.ratelimit
+            if factor is None:
+                factor = 1.0
         except AttributeError:
-            pass
-    return "{0}/{1} second".format(counts * factor, per_second)
+            factor = 1.0
+    return "{0}/{1} second".format(int(counts * factor), per_second)

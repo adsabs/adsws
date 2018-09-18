@@ -9,6 +9,7 @@ from wtforms import validators
 from sqlalchemy_utils import URLType
 
 from adsws.core import db, user_manipulator
+from adsmutils import get_date, UTCDateTime
 
 from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, \
     InvalidRedirectURIError
@@ -141,7 +142,12 @@ class OAuthClient(db.Model):
 
     user = db.relationship('User')
     """ Relationship to user. """
-
+    
+    ratelimit = db.Column(db.Float, default=0.0)
+    """ Pre-computed allotment of the available rates of the user's global ratelimit."""
+    
+    created = db.Column(UTCDateTime, default=get_date)
+    
     @property
     def allowed_grant_types(self):
         return current_app.config['OAUTH2_ALLOWED_GRANT_TYPES']

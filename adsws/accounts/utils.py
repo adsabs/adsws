@@ -181,5 +181,5 @@ def print_token(token):
         'expire_in': expiry,
         'token_type': 'Bearer',
         'scopes': token.scopes,
-        'anonymous': anon,
+        'anonymous': anon
     }

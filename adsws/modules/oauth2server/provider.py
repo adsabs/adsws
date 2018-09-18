@@ -6,16 +6,44 @@ Configuration of flask-oauthlib provider
 
 from datetime import datetime, timedelta
 
-from flask import current_app
+from flask import current_app, request
 from flask.ext.login import current_user
 from flask_oauthlib.provider import OAuth2Provider
+from flask_oauthlib.utils import extract_params
 from flask_login import current_user
 
 from adsws.core import db, user_manipulator
 from .models import OAuthToken, OAuthClient, OAuthGrant
+from functools import wraps
 
+class OAuth2bProvider(OAuth2Provider):
+    def optional_oauth(self, *scopes):
+        """Protect resource with specified scopes."""
+        def wrapper(f):
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                for func in self._before_request_funcs:
+                    func()
 
-oauth2 = OAuth2Provider()
+                if hasattr(request, 'oauth') and request.oauth:
+                    return f(*args, **kwargs)
+
+                server = self.server
+                uri, http_method, body, headers = extract_params()
+                valid, req = server.verify_request(
+                    uri, http_method, body, headers, scopes
+                )
+
+                for func in self._after_request_funcs:
+                    valid, req = func(valid, req)
+
+                if valid:
+                    request.oauth = req
+                return f(*args, **kwargs)
+            return decorated
+        return wrapper
+
+oauth2 = OAuth2bProvider()
 
 @oauth2.clientgetter
 def load_client(client_id):

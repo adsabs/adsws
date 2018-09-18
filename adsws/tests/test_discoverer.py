@@ -1,6 +1,6 @@
 from flask import current_app, g
 from flask.ext.login import login_user, current_user
-from adsws.core import user_manipulator
+from adsws.core import user_manipulator, db
 from api_base import ApiTestCase
 from adsws import api
 import subprocess
@@ -11,6 +11,8 @@ import mock
 from datetime import datetime
 from unittest import TestCase
 from requests.exceptions import ConnectionError
+from adsws.modules.oauth2server.models import OAuthClient
+import unittest
 
 LIVESERVER_WAIT_SECONDS = 2.5
 
@@ -174,7 +176,9 @@ class DiscovererTestCase:
         Set the user's ratelimit_level to a value and confirm that
         """
         go = lambda: self.open('GET', '/test_webservice/LOW_RATE_LIMIT') # 3 per 5 second
-        user_manipulator.update(self.user, ratelimit_level=2) # 2*3 per 5 second
+        ocl = db.session.query(OAuthClient).filter_by(user_id=self.user.id).first()
+        ocl.ratelimit = 2.0
+        db.session.commit() # 2*3 per 5 second
 
         r = go()
         self.assertStatus(r, 200)
@@ -196,6 +200,12 @@ class DiscovererTestCase:
         time.sleep(5)
         r = go()
         self.assertStatus(r, 200)
+        
+        ocl.ratelimit = 0.0
+        db.session.commit()
+        
+        r = go()
+        self.assertStatus(r, 429)
 
     def test_adsws_user_header(self):
         """
@@ -458,3 +468,6 @@ class TestUnitTests(TestCase):
             requests.get.assert_called_with('http://foo.bar-us-east-1.com:8980/', timeout=5)
             m_os.path.exists.called_with('/tmp/http:foobar-us-east-1com:8980tee')
             m_json.loads.assert_called_with('{"hey": {"methods": ["IGNORE"]}}')
+
+if __name__ == '__main__':
+    unittest.main()

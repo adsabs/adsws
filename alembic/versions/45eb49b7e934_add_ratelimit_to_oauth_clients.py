@@ -32,8 +32,10 @@ def upgrade():
     with op.batch_alter_table('users') as batch_op:
         batch_op.alter_column(
             column_name = 'ratelimit_level',
-            type_ = sa.types.Float,
-            default=2.0)
+            type_ = sa.types.Float)
+        batch_op.alter_column(
+            column_name = 'ratelimit_level',
+            server_default='2.0')
         batch_op.add_column(sa.Column('_allowed_scopes', sa.Text))
         
     # now we are going to migrate data
@@ -41,9 +43,9 @@ def upgrade():
     
     app = create_app()
     with app.app_context():
-        for c in db.session.query(OAuthClient).filter(User.ratelimit_level >= 2).yield_per(50):
-            current_level = c.user.ratelimit_level
-            c.ratelimit = current_level
+        for u in db.session.query(User).filter(User.ratelimit_level >= 2).yield_per(50):
+            for c in db.session.query(OAuthClient).filter(OAuthClient.user_id == u.id).all():
+                c.ratelimit = u.ratelimit_level
         db.session.commit()
             
             
@@ -55,8 +57,10 @@ def downgrade():
         batch_op.drop_column('created')
         
     with op.batch_alter_table('users') as batch_op:
+        bbatch_op.alter_column(
+            column_name = 'ratelimit_level',
+            type_ = sa.types.Integer)
         batch_op.alter_column(
             column_name = 'ratelimit_level',
-            type_ = sa.types.Integer,
-            default=2)
+            server_default='2')
         batch_op.drop_column('_allowed_scopes')

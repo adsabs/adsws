@@ -698,14 +698,14 @@ class Bootstrap(Resource):
         
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
-        if not current_user.is_authenticated():
-            
-            if 'scopes' in kwargs or client_name or redirect_uri:
-                abort(401, "Sorry, you cant change scopes/name/redirect_uri when creating temporary OAuth application")
-            
+        if not current_user.is_authenticated():            
             login_user(user_manipulator.first(
                 email=current_app.config['BOOTSTRAP_USER_EMAIL']
             ))
+        
+        if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+            if 'scopes' in kwargs or client_name or redirect_uri:
+                abort(401, "Sorry, you cant change scopes/name/redirect_uri when creating temporary OAuth application")
 
         try:
             scopes = self._sanitize_scopes(kwargs.get('scope', None))
@@ -722,6 +722,10 @@ class Bootstrap(Resource):
                 if 'oauth_client' in session:
                     client, token = Bootstrap.load_client(
                         session['oauth_client']
+                    )
+                elif hasattr(request, 'oauth') and request.oauth.user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
+                    client, token = Bootstrap.load_client(
+                        request.oauth.client.client_id
                     )
                 else:
                     raise NoClientError('client/user mismatch')
@@ -856,6 +860,7 @@ class Bootstrap(Resource):
             is_confidential=False,
             is_internal=True,
             _default_scopes=scopes,
+            ratelimit=1.0
         )
         client.gen_salt()
 

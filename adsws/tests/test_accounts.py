@@ -848,6 +848,27 @@ class TestAccounts(AccountsSetup):
             assert r.status_code == 400
         
         
+        # and a client without any session and without any api key
+        atoken = ''        
+        with self.client as c:
+            c.cookie_jar.clear()
+            r = c.get(url, query_string={'create_new': True}, headers={})
+            j = r.json
+            assert r.status_code == 200
+            assert j['username'] == 'bootstrap_user@unittests'
+            assert j['ratelimit'] == 1.0
+            assert j['scopes'] == []
+            token = j['access_token']
+            
+            # tryin again, should give us the same token
+            r = c.get(url, headers={})
+            assert r.json['access_token'] == token
+            
+            c.cookie_jar.clear()
+            r = c.get(url, headers={'Authorization': 'Bearer %s' % token})
+            assert r.json['access_token'] == token
+
+        
     def test_change_password(self):
         """
         test change password workflow

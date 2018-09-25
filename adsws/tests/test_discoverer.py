@@ -222,11 +222,15 @@ class DiscovererTestCase:
         remote services
         """
         r = self.open('GET', '/test_webservice/ECHO_HEADERS')
-        self.assertNotIn('X-Adsws-Ratelimit-Level', r.json)
+        self.assertIn('X-Adsws-Ratelimit-Level', r.json)
 
-        user_manipulator.update(self.user, ratelimit_level=10)
+        
+        ocl = db.session.query(OAuthClient).filter_by(user_id=self.user.id).first()
+        ocl.ratelimit = 10.56
+        db.session.commit()
+        
         r = self.open('GET', '/test_webservice/ECHO_HEADERS')
-        self.assertEqual('10', r.json['X-Adsws-Ratelimit-Level'])
+        self.assertEqual('10.56', r.json['X-Adsws-Ratelimit-Level'])
 
     def test_adsws_proxy_retains_headers_from_service(self):
         """

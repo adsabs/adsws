@@ -124,15 +124,20 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         If the user is authenticated, inject the header "X-adsws-uid" into
         the incoming request header
         """
+        h = Headers(request.headers.items())
+        
         if current_user.is_authenticated():
-            h = Headers(request.headers.items())
             h.add_header("X-Adsws-Uid", current_user.id)
-            if current_user.ratelimit_level is not None:
-                h.add_header(
-                    "X-Adsws-Ratelimit-Level",
-                    current_user.ratelimit_level
-                )
-            request.headers = h
+            
+        if valid:    
+            level = oauth.client.ratelimit
+            if level is None:
+                level = 1.0
+            h.add_header("X-Adsws-Ratelimit-Level", level)
+        else:
+            h.add_header("X-Adsws-Ratelimit-Level", 0.0)
+        
+        request.headers = h
         return valid, oauth
     
     @app.teardown_request

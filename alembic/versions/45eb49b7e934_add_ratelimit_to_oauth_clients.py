@@ -16,12 +16,24 @@ from adsmutils import UTCDateTime, get_date
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))                               
-from adsws.core import db
-from adsws.accounts import create_app
-from adsws.modules.oauth2server.models import OAuthToken, OAuthClient
-from adsws.core.users import User
 
+ # this is a modified/simplified version of the User and OAuthClient 
+ # objects; just to prevent any troubles with changes upstream
+
+users = sa.Table(
+    'users',
+    sa.MetaData(),
+    sa.Column('id', sa.Integer, primary_key=True),
+    sa.Column('email', sa.String(255)),
+    sa.Column('ratelimit_level', sa.Integer)
+    )
+clients = sa.Table(
+        'oauth2client',
+        sa.MetaData(),
+        sa.Column('user_id', sa.Integer),
+        sa.Column('client_id', sa.String(255)),
+        sa.Column('ratelimit', sa.Float)
+    )
 
 def upgrade():
         
@@ -37,16 +49,49 @@ def upgrade():
             column_name = 'ratelimit_level',
             server_default='2.0')
         batch_op.add_column(sa.Column('_allowed_scopes', sa.Text))
-        
+    
+    
+
     # now we are going to migrate data
     # if a user previously had high ratelimit, we will copy it to the oauth client
+    connection = op.get_bind()
     
-    app = create_app()
-    with app.app_context():
-        for u in db.session.query(User).filter(User.ratelimit_level >= 2).yield_per(50):
-            for c in db.session.query(OAuthClient).filter(OAuthClient.user_id == u.id).all():
-                c.ratelimit = u.ratelimit_level
-        db.session.commit()
+    for user in connection.execute(users.select()):
+        if user.email == 'anonymous@ads':
+            connection.execute(users.update().where(users.c.id == user.id).values(ratelimit_level=-1.0))
+            connection.execute(
+                clients.update().where(
+                    clients.c.user_id == user.id
+                ).values(
+                    ratelimit=1.0
+                )
+            )
+        elif user.email and user.email.endswith('@ads'):
+            connection.execute(
+                clients.update().where(
+                    clients.c.user_id == user.id
+                ).values(
+                    ratelimit=user.ratelimit_level
+                )
+            )  
+        elif user.ratelimit_level and float(user.ratelimit_level) > 1.0:
+            # count all the clients (stupid way, dunno how to issue 'count' with alembic)
+            c = 0
+            for c in connection.execute(clients.select().where(clients.c.user_id==user.id)):
+                c += 1
+            if c > 0:
+                new_limit = float(user.ratelimit_level) / c
+                clients.update().where(
+                    clients.c.user_id == user.id
+                ).values(
+                    ratelimit=new_limit
+                )
+        else: # set all others to have ralimit of 1.0
+            clients.update().where(
+                    clients.c.user_id == user.id
+                ).values(
+                    ratelimit=1.0
+                )
             
             
 
@@ -57,7 +102,7 @@ def downgrade():
         batch_op.drop_column('created')
         
     with op.batch_alter_table('users') as batch_op:
-        bbatch_op.alter_column(
+        batch_op.alter_column(
             column_name = 'ratelimit_level',
             type_ = sa.types.Integer)
         batch_op.alter_column(

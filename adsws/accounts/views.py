@@ -711,10 +711,7 @@ class Bootstrap(Resource):
             scopes = self._sanitize_scopes(kwargs.get('scope', None))
         except ValidationError, e:
             return {'error': e.value}, 400
-        try:
-            self._check_ratelimit(ratelimit)
-        except ValidationError, e:
-            return {'error': e.value}, 400
+
 
         if current_user.email == current_app.config['BOOTSTRAP_USER_EMAIL']:
             try:
@@ -737,10 +734,15 @@ class Bootstrap(Resource):
                 client, token = Bootstrap.bootstrap_bumblebee()
                 session['oauth_client'] = client.client_id
         else:
-            if create_new:
-                client, token = Bootstrap.bootstrap_user_new(client_name, scopes=scopes, ratelimit=ratelimit)
-            else:
-                client, token = Bootstrap.bootstrap_user(client_name, scopes=scopes, ratelimit=ratelimit)
+            try:
+                if create_new:
+                    client, token = self.bootstrap_user_new(client_name, scopes=scopes, ratelimit=ratelimit)
+                else:
+                    client, token = self.bootstrap_user(client_name, scopes=scopes, ratelimit=ratelimit)
+            except ValidationError, e:
+                return {'error': e.value}, 400
+        
+            
 
             if scopes:
                 client._default_scopes = scopes
@@ -775,11 +777,9 @@ class Bootstrap(Resource):
         
         # count the existing clients
         used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
-        #for x in db.session.query(OAuthClient).filter_by(user_id=current_user.get_id()).options(load_only('ratelimit')).all():
-        #    used += x.ratelimit_level
             
         if allowed_limit - (used+ratelimit) < 0:
-            raise ValidationError('The current user account does not have enough capacity to create a new client. Requested: %s, Available: %s' % (ratelimit, allowed_limit-used))
+            raise ValidationError('The current user account (%s) does not have enough capacity to create a new client. Requested: %s, Available: %s' % (current_user.email, ratelimit, allowed_limit-used))
         return True
 
          
@@ -873,9 +873,8 @@ class Bootstrap(Resource):
         return client, token
 
 
-    @staticmethod
     @ratelimit.shared_limit_and_check("2/60 second", scope=scope_func)
-    def bootstrap_user_new(client_name=None, scopes=None, ratelimit=1.0):
+    def bootstrap_user_new(self, client_name=None, scopes=None, ratelimit=1.0):
         """
         Create a OAuthClient owned by the authenticated real user.
 
@@ -884,7 +883,8 @@ class Bootstrap(Resource):
         :return: OAuthToken instance
         """
         assert current_user.email != current_app.config['BOOTSTRAP_USER_EMAIL']
-
+        self._check_ratelimit(ratelimit)
+        
         uid = current_user.get_id()
         client_name = client_name or current_app.config.get('BOOTSTRAP_CLIENT_NAME', 'BB client')
 
@@ -908,9 +908,9 @@ class Bootstrap(Resource):
         db.session.commit()
         return client, token
 
-    @staticmethod
+
     @ratelimit.shared_limit_and_check("100/600 second", scope=scope_func)
-    def bootstrap_user(client_name=None, scopes=None, ratelimit=1.0):
+    def bootstrap_user(self, client_name=None, scopes=None, ratelimit=1.0):
         """
         Return or create a OAuthClient owned by the authenticated real user.
         Re-uses an existing client if "oauth_client" is found in the database
@@ -921,7 +921,7 @@ class Bootstrap(Resource):
         :return: OAuthToken instance
         """
         assert current_user.email != current_app.config['BOOTSTRAP_USER_EMAIL']
-
+        
         uid = current_user.get_id()
         client_name = client_name or current_app.config.get('BOOTSTRAP_CLIENT_NAME', 'BB client')
 
@@ -932,6 +932,7 @@ class Bootstrap(Resource):
 
 
         if client is None:
+            self._check_ratelimit(ratelimit)
             client = OAuthClient(
                 user_id=current_user.get_id(),
                 name=client_name,

@@ -818,7 +818,7 @@ class TestAccounts(AccountsSetup):
         with self.client as c:
             r = c.get(url, query_string={'ratelimit': 0.2, 'create_new': True}, headers=headers)
             j = r.json
-            assert j == {'error': 'The current user account does not have enough capacity to create a new client. Requested: 0.2, Available: 0.1'}
+            assert j == {u'error': u'The current user account (real_user@unittests) does not have enough capacity to create a new client. Requested: 0.2, Available: 0.1'}
     
         with self.client as c:
             r = c.get(url, query_string={'ratelimit': 0.01, 'create_new': True}, headers=headers)

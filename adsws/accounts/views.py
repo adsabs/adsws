@@ -379,6 +379,7 @@ class PersonalTokenView(Resource):
                 _default_scopes=' '.join(
                     current_app.config['USER_API_DEFAULT_SCOPES']
                 ),
+                ratelimit=1.0
             )
             client.gen_salt()
 

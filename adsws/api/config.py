@@ -32,9 +32,7 @@ RATELIMIT_KEY_PREFIX = "limiter"
 WEBSERVICES_PUBLISH_ENDPOINT = 'resources'
 WEBSERVICES = {
     # uri : deploy_path
-    'http://localhost:4000/': '/vis',
     'adsws.solr.app': '/solr',
-    'adsws.graphics.app': '/graphics',
 }
 # when defined, the remote resources will be cached (to be reused)
 # in case when the service is temporarily down during a worker startup

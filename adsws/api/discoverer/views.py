@@ -47,10 +47,12 @@ class ProxyView(Resource):
         """
         Returns the correct payload data coming from the flask.Request object
         """
-        payload = request.get_json(silent=True)
-        if payload:
-            return json.dumps(payload)
-        return request.form or request.data
+        if request.content_length < 5242880: # 1024 * 1024 * 5
+            request.input_stream.seek(0)
+            return request.input_stream.read()
+        else:
+            raise Exception('Request too large')
+        
 
     def dispatcher(self, **kwargs):
         """

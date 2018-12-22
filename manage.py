@@ -23,5 +23,17 @@ def generate_secret_key():
     key = "'{0}{1}'".format(os.urandom(15), os.urandom(15))
     print "\nSECRET_KEY = '{0}'\n".format(key.encode('hex'))
 
+
+@manager.shell
+def make_shell_context():
+    from wsgi import application, API, ACCOUNTS
+    app = application.app
+    context = app.app_context()
+    flask._app_ctx_stack.push(context)
+
+
+    return dict(app=app, api=API, accounts=ACCOUNTS,
+                context=context)
+
 if __name__ == "__main__":
     manager.run()

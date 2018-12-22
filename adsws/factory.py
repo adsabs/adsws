@@ -98,6 +98,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
 
     app.before_request(set_translations)
     app.before_request(make_session_permanent)
+    app.before_request(cache_data_stream)
 
     if app.config.get('PRODUCTION', False):
         app.wsgi_app = ProxyFix(
@@ -246,6 +247,28 @@ def set_translations():
     def _(s, **kwargs):
         return s % kwargs
     g._ = _
+
+
+def cache_data_stream():
+    """Workaround for remembering the input stream data (i.e. input stream
+    will be saved/cached and can be retrieved.
+    
+    The problem is following:
+        - request.attributes are initialized the first time they are used
+        
+        - flask_oauthlib is the first one to call request
+            request.form.to_dict()
+        - but stream is *only* cached if request.get_data() was 
+          called first
+        - if you call request.form, the stream is read and it can
+          never be retrieved again (it is a socked)
+          
+    Important detail: always set MAX_CONTENT_LENGTH
+    """
+    cl = request.content_length
+    ml = current_app.config.get('MAX_CONTENT_LENGTH', 1024*1024*5)
+    if ml is None or ml > cl:
+        request.get_data(cache=True, as_text=False, parse_form_data=False)
 
 
 def register_secret_key(app):

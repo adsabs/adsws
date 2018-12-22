@@ -98,7 +98,8 @@ def get_token():
         description=args.description,
         name=args.name,
         is_confidential=True,
-        is_internal=True,)
+        is_internal=True,
+        ratelimit=1.0)
       client.gen_salt()
       db.session.add(client)
       db.session.commit()

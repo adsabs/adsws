@@ -751,7 +751,9 @@ class Bootstrap(Resource):
                 client._redirect_uris = redirect_uri
             if client_name:
                 client.client_name = client_name
-            if client.ratelimit != ratelimit:
+            if kwargs.get('ratelimit') is not None and client.ratelimit != ratelimit:
+                # If the client ratelimit was included in the request and it is different from the current ratelimit
+                self._check_ratelimit(ratelimit)
                 client.ratelimit = ratelimit
 
         client.last_activity = datetime.datetime.now()

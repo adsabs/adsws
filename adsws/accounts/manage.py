@@ -80,13 +80,9 @@ def cleanup_tokens(app_override=None):
     app = accounts_manager.app if app_override is None else app_override
 
     with app.app_context():
-        deletions = 0
-        for token in db.session.query(OAuthToken).filter(
+        deletions = db.session.query(OAuthToken).filter(
             OAuthToken.expires <= datetime.datetime.now()
-            ).yield_per(1000):
-
-            db.session.delete(token)
-            deletions += 1
+            ).delete(synchronize_session=False)
         try:
             db.session.commit()
         except Exception, e:
@@ -114,12 +110,10 @@ def cleanup_clients(app_override=None, timedelta="days=90"):
 
     with app.app_context():
         deletions = 0
-        for client in db.session.query(OAuthClient).filter(
+        db.session.query(OAuthClient).filter(
             OAuthClient.last_activity <= datetime.datetime.now()-td
-            ).yield_per(1000):
+            ).delete(synchronize_session=False);
 
-            db.session.delete(client)
-            deletions += 1
         try:
             db.session.commit()
         except Exception, e:

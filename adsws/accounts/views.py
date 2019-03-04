@@ -21,6 +21,7 @@ from .emails import PasswordResetEmail, VerificationEmail, \
     EmailChangedNotification, WelcomeVerificationEmail
 from sqlalchemy import func
 from sqlalchemy.orm import load_only
+from adsmutils import get_date
 
 class StatusView(Resource):
     """
@@ -684,6 +685,7 @@ class Bootstrap(Resource):
         parser.add_argument('client_name', type=str)
         parser.add_argument('ratelimit', type=float)
         parser.add_argument('create_new', type=inputs.boolean)
+        parser.add_argument('expires', type=str)
         
         kwargs = parser.parse_args()
 
@@ -691,12 +693,18 @@ class Bootstrap(Resource):
         redirect_uri = kwargs.get('redirect_uri', None)
         ratelimit = kwargs.get('ratelimit', 1.0)
         create_new = kwargs.get('create_new', False)
+        expires = kwargs.get('expires', None)
         
         if ratelimit is None:
             ratelimit = 1.0
         
         assert ratelimit >= 0.0
         
+        if expires is not None:
+            expires = get_date(expires) # throwing error on parse OK
+        else:
+            expires = datetime.datetime(2500, 1, 1)
+            
         # If we visit this endpoint and are unauthenticated, then login as
         # our anonymous user
         if not current_user.is_authenticated():            
@@ -737,9 +745,11 @@ class Bootstrap(Resource):
         else:
             try:
                 if create_new:
-                    client, token = self.bootstrap_user_new(client_name, scopes=scopes, ratelimit=ratelimit)
+                    client, token = self.bootstrap_user_new(client_name, scopes=scopes, 
+                                                            ratelimit=ratelimit, expires=expires)
                 else:
-                    client, token = self.bootstrap_user(client_name, scopes=scopes, ratelimit=ratelimit)
+                    client, token = self.bootstrap_user(client_name, scopes=scopes, 
+                                                        ratelimit=ratelimit, expires=expires)
             except ValidationError, e:
                 return {'error': e.value}, 400
         
@@ -877,7 +887,8 @@ class Bootstrap(Resource):
 
 
     @ratelimit.shared_limit_and_check("2/60 second", scope=scope_func)
-    def bootstrap_user_new(self, client_name=None, scopes=None, ratelimit=1.0):
+    def bootstrap_user_new(self, client_name=None, scopes=None, ratelimit=1.0,
+                           expires=datetime.datetime(2500, 1, 1)):
         """
         Create a OAuthClient owned by the authenticated real user.
 
@@ -903,7 +914,7 @@ class Bootstrap(Resource):
         client.gen_salt()
         db.session.add(client)
 
-        token = Bootstrap.create_user_token(client)
+        token = Bootstrap.create_user_token(client, expires=expires)
         db.session.add(token)
         current_app.logger.info(
             "Created OAuth client for {email}".format(email=current_user.email)
@@ -913,7 +924,8 @@ class Bootstrap(Resource):
 
 
     @ratelimit.shared_limit_and_check("100/600 second", scope=scope_func)
-    def bootstrap_user(self, client_name=None, scopes=None, ratelimit=1.0):
+    def bootstrap_user(self, client_name=None, scopes=None, ratelimit=1.0,
+                       expires=datetime.datetime(2500, 1, 1)):
         """
         Return or create a OAuthClient owned by the authenticated real user.
         Re-uses an existing client if "oauth_client" is found in the database
@@ -948,7 +960,7 @@ class Bootstrap(Resource):
             client.gen_salt()
             db.session.add(client)
 
-            token = Bootstrap.create_user_token(client)
+            token = Bootstrap.create_user_token(client, expires=expires)
             db.session.add(token)
             current_app.logger.info(
                 "Created BB client for {email}".format(email=current_user.email)
@@ -961,7 +973,7 @@ class Bootstrap(Resource):
 
             if token is None:
                 # the token was not created yet
-                token = Bootstrap.create_user_token(client)
+                token = Bootstrap.create_user_token(client, expires=expires)
 
                 db.session.add(token)
                 current_app.logger.info(
@@ -998,7 +1010,7 @@ class Bootstrap(Resource):
 
 
     @staticmethod
-    def create_user_token(client):
+    def create_user_token(client, expires=datetime.datetime(2500, 1, 1)):
         salt_length = current_app.config.get('OAUTH2_CLIENT_ID_SALT_LEN', 40)
 
         token = OAuthToken(
@@ -1006,7 +1018,7 @@ class Bootstrap(Resource):
                 user_id=client.user_id,
                 access_token=gen_salt(salt_length),
                 refresh_token=gen_salt(salt_length),
-                expires=datetime.datetime(2500, 1, 1),
+                expires=expires,
                 _scopes=client._default_scopes,
                 is_personal=False,
                 is_internal=True,

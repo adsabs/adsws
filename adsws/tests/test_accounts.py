@@ -786,18 +786,20 @@ class TestAccounts(AccountsSetup):
 
         # create a new oauth application
         with self.client as c:
-            r = c.get(url, query_string={'ratelimit': 0.5, 'create_new': True}, headers=headers)
+            r = c.get(url, query_string={'ratelimit': 0.5, 'create_new': True, 'expires': '2019-03-04T17:16:16.707545+00:00'}, headers=headers)
             j = r.json
             assert j['username'] == 'real_user@unittests'
             assert j['ratelimit'] == 0.5
             assert j['client_id'] != client.client_id
             assert j['scopes'] == ['user']
+            assert j['expire_in'] == '2019-03-04T17:16:16.707545'
             x = db.session.query(OAuthClient).filter_by(client_id=j['client_id']).one()
             assert x.user_id == self.real_user.id
             assert x.ratelimit == 0.5
             assert x._default_scopes == 'user'
             used = db.session.query(func.sum(OAuthClient.ratelimit).label('sum')).filter(OAuthClient.user_id==current_user.get_id()).first()[0] or 0.0
             assert used == 0.5
+
         
         # create a bigger application
         with self.client as c:
@@ -807,6 +809,7 @@ class TestAccounts(AccountsSetup):
             assert j['ratelimit'] == 1.4
             assert j['client_id'] != client.client_id
             assert j['scopes'] == ['user']
+            assert j['expire_in'] == u'2500-01-01T00:00:00'
             x = db.session.query(OAuthClient).filter_by(client_id=j['client_id']).one()
             assert x.user_id == self.real_user.id
             assert x.ratelimit == 1.4

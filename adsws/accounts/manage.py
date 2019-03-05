@@ -80,20 +80,37 @@ def cleanup_tokens(app_override=None):
     app = accounts_manager.app if app_override is None else app_override
 
     with app.app_context():
-        deletions = 0
-        for token in db.session.query(OAuthToken).filter(
-            OAuthToken.expires <= datetime.datetime.now()
-            ).yield_per(1000):
-
-            db.session.delete(token)
-            deletions += 1
-        try:
-            db.session.commit()
-        except Exception, e:
-            db.session.rollback()
-            app.logger.error("Could not cleanup expired oauth2tokens. "
-                             "Database error; rolled back: {0}".format(e))
-        app.logger.info("Deleted {0} expired oauth2tokens".format(deletions))
+        total = 0
+        deletions = None
+        while deletions != 0: 
+            deletions = 0
+            # go through the expired tokens and delete the associated client
+            # every client should have only one token (that's by design)
+            # faster way - not portable though - would be to delete anything
+            # selected by the following query:
+            # select c.user_id, c.client_id from oauth2client AS c LEFT OUTER JOIN oauth2token AS t 
+            # ON c.client_id = t.client_id WHERE t.access_token is null
+            for token in db.session.query(OAuthToken).filter(
+                OAuthToken.expires <= datetime.datetime.now()
+                ).limit(1000).yield_per(100):
+                
+                # for some odd reasons, even though clients-tokens are associated
+                # the deletes didn't cascade on postgres; so let's delete them
+                # explicitly
+                db.session.delete(token.client)
+                db.session.delete(token)
+                deletions += 1
+            try:
+                db.session.commit()
+                total += deletions
+                app.logger.info("Deleted {0} expired oauth2tokens/oauth2clients".format(deletions))
+            except Exception, e:
+                db.session.rollback()
+                app.logger.error("Could not cleanup expired oauth2tokens. "
+                                 "Database error; rolled back: {0}".format(e))
+                total -= deletions
+                
+        app.logger.info("Deleted total of {0} expired oauth2tokens/oauth2clients".format(total))
 
 
 @accounts_manager.command
@@ -101,6 +118,12 @@ def cleanup_clients(app_override=None, timedelta="days=90"):
     """
     Cleans expired oauth2clients that are older than a specified date in the
     database defined in app.config['SQLALCHEMY_DATABASE_URI']
+    
+    WARNING: do not use this function lightly! For cleaning, use cleanup_tokens
+    instead; that one will remove an oauth2token whose token has expired. This
+    function, instead, will remove any client that wasn't used in past X days, 
+    even if it is still valid.
+    
     :param app_override: flask.app instance to use instead of manager.app
     :param timedelta: String representing the datetime.timedelta against which
             to compare client's last_activity ["days=365"].

@@ -97,7 +97,8 @@ def cleanup_tokens(app_override=None):
                 # for some odd reasons, even though clients-tokens are associated
                 # the deletes didn't cascade on postgres; so let's delete them
                 # explicitly
-                db.session.delete(token.client)
+                if token.client:
+                    db.session.delete(token.client)
                 db.session.delete(token)
                 deletions += 1
             try:

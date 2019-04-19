@@ -8,7 +8,7 @@ from adsws.modules.oauth2server.models import OAuthToken, OAuthClient
 from adsws.core.users import User
 from adsws.core import db
 from adsws.accounts import create_app
-from sqlalchemy import or_, exc
+from sqlalchemy import or_, exc, and_
 from flask.ext.script import Manager
 
 accounts_manager = Manager(create_app())
@@ -115,7 +115,7 @@ def cleanup_tokens(app_override=None):
 
 
 @accounts_manager.command
-def cleanup_clients(app_override=None, timedelta="days=90"):
+def cleanup_clients(app_override=None, timedelta="days=90", userid=None):
     """
     Cleans expired oauth2clients that are older than a specified date in the
     database defined in app.config['SQLALCHEMY_DATABASE_URI']
@@ -129,6 +129,8 @@ def cleanup_clients(app_override=None, timedelta="days=90"):
     :param timedelta: String representing the datetime.timedelta against which
             to compare client's last_activity ["days=365"].
     :type timedelta: basestring
+    :param userid: numerical id of the user account, deletes will be limited
+            only to clients of that user
     :return: None
     """
 
@@ -138,12 +140,21 @@ def cleanup_clients(app_override=None, timedelta="days=90"):
 
     with app.app_context():
         deletions = 0
-        for client in db.session.query(OAuthClient).filter(
-            OAuthClient.last_activity <= datetime.datetime.now()-td
-            ).yield_per(1000):
-
-            db.session.delete(client)
-            deletions += 1
+        if userid is not None:
+            for client in db.session.query(OAuthClient).filter(and_(
+                OAuthClient.last_activity <= datetime.datetime.now()-td,
+                OAuthClient.user_id==userid)
+                ).yield_per(1000):
+    
+                db.session.delete(client)
+                deletions += 1
+        else:
+            for client in db.session.query(OAuthClient).filter(
+                OAuthClient.last_activity <= datetime.datetime.now()-td
+                ).yield_per(1000):
+    
+                db.session.delete(client)
+                deletions += 1
         try:
             db.session.commit()
         except Exception, e:
@@ -152,7 +163,8 @@ def cleanup_clients(app_override=None, timedelta="days=90"):
                              "Database error; rolled back: {0}".format(e))
             return
         app.logger.info("Deleted {0} oauth2clients whose last_activity was "
-                        "at least {1} old".format(deletions, timedelta))
+                        "at least {1} old and userid={2}".format(
+                            deletions, timedelta, userid))
 
 
 @accounts_manager.command

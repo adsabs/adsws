@@ -316,6 +316,34 @@ class TestManage_Accounts(TestCase):
         current_clients = db.session.query(OAuthClient).all()
         self.assertEqual(1, len(current_clients))
         self.assertIsNone(current_clients[0].last_activity)
+        
+        # test they can be cleaned up by userid
+        db.session.add(OAuthClient(
+            user_id=99,
+            client_id=gen_salt(20),
+            client_secret=gen_salt(20),
+            is_confidential=False,
+            is_internal=True,
+            _default_scopes="",
+            last_activity=datetime.datetime.now()
+        ))
+        db.session.add(OAuthClient(
+            user_id=1,
+            client_id=gen_salt(20),
+            client_secret=gen_salt(20),
+            is_confidential=False,
+            is_internal=True,
+            _default_scopes="",
+            last_activity=datetime.datetime.now()
+        ))
+        db.session.commit()
+        
+        self.assertEqual(3, len(db.session.query(OAuthClient).all()))
+        
+        time.sleep(1.1)
+        cleanup_clients(app_override=self.app, timedelta="seconds=0.1", userid=99)
+        self.assertEqual(2, len(db.session.query(OAuthClient).all()))
+        
 
 
 TEST_SUITE = make_test_suite(TestManage_Accounts, TestManageScopes)

@@ -344,7 +344,25 @@ class TestManage_Accounts(TestCase):
         cleanup_clients(app_override=self.app, timedelta="seconds=0.1", userid=99)
         self.assertEqual(2, len(db.session.query(OAuthClient).all()))
         
-
+        db.session.add(OAuthClient(
+            user_id=99,
+            client_id=gen_salt(20),
+            client_secret=gen_salt(20),
+            is_confidential=False,
+            is_internal=True,
+            _default_scopes="",
+            last_activity=datetime.datetime.now(),
+            ratelimit=0.2
+        ))
+        db.session.commit()
+        time.sleep(0.5)
+        
+        cleanup_clients(app_override=self.app, timedelta="seconds=0.1", userid=99, ratelimit='0.19')
+        self.assertEqual(3, len(db.session.query(OAuthClient).all()))
+        
+        cleanup_clients(app_override=self.app, timedelta="seconds=0.1", userid=99, ratelimit='0.2')
+        self.assertEqual(2, len(db.session.query(OAuthClient).all()))
+        
 
 TEST_SUITE = make_test_suite(TestManage_Accounts, TestManageScopes)
 

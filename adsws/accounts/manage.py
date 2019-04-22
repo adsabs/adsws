@@ -115,7 +115,8 @@ def cleanup_tokens(app_override=None):
 
 
 @accounts_manager.command
-def cleanup_clients(app_override=None, timedelta="days=90", userid=None):
+def cleanup_clients(app_override=None, timedelta="days=90", 
+                    userid=None, ratelimit=1.0):
     """
     Cleans expired oauth2clients that are older than a specified date in the
     database defined in app.config['SQLALCHEMY_DATABASE_URI']
@@ -131,8 +132,15 @@ def cleanup_clients(app_override=None, timedelta="days=90", userid=None):
     :type timedelta: basestring
     :param userid: numerical id of the user account, deletes will be limited
             only to clients of that user
+    :param ratelimit: int, default=1; ony clients that have limit lower or 
+            equal to this value will be deleted
     :return: None
     """
+    
+    if ratelimit is None:
+        ratelimit = 1.0
+    else:
+        ratelimit = float(ratelimit)
 
     app = accounts_manager.app if app_override is None else app_override
 
@@ -143,14 +151,16 @@ def cleanup_clients(app_override=None, timedelta="days=90", userid=None):
         if userid is not None:
             for client in db.session.query(OAuthClient).filter(and_(
                 OAuthClient.last_activity <= datetime.datetime.now()-td,
-                OAuthClient.user_id==userid)
+                OAuthClient.user_id==userid,
+                OAuthClient.ratelimit <= ratelimit)
                 ).yield_per(1000):
     
                 db.session.delete(client)
                 deletions += 1
         else:
             for client in db.session.query(OAuthClient).filter(
-                OAuthClient.last_activity <= datetime.datetime.now()-td
+                OAuthClient.last_activity <= datetime.datetime.now()-td,
+                OAuthClient.ratelimit <= ratelimit
                 ).yield_per(1000):
     
                 db.session.delete(client)

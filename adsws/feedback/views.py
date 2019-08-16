@@ -53,23 +53,10 @@ class SlackFeedback(Resource):
         except BadRequestKeyError:
             raise
 
-        feedback_email = 'no email sent'
-        if post_data.has_key('_replyto') and post_data.has_key('name'):
-            try:
-                res = send_feedback_email(name, reply_to, comments)
-                feedback_email = 'success'
-            except Exception as e:
-                current_app.logger.info('Sending feedback mail failed: %s' % str(e))
-                feedback_email = 'failed'
-
-        icon_emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
-
         text = [
-            '```Incoming Feedback```',
             '*Commenter*: {}'.format(name),
             '*e-mail*: {}'.format(reply_to),
             '*Feedback*: {}'.format(comments),
-            '*sent to adshelp*: {}'.format(feedback_email)
         ]
 
         used = ['channel', 'username', 'name', '_replyto', 'comments', 'g-recaptcha-response']
@@ -77,9 +64,20 @@ class SlackFeedback(Resource):
             if key in used:
                 continue
             text.append('*{}*: {}'.format(key, post_data[key]))
-
         text = '\n'.join(text)
 
+        feedback_email = 'no email sent'
+        if post_data.has_key('_replyto') and post_data.has_key('name'):
+            try:
+                res = send_feedback_email(name, reply_to, text)
+                feedback_email = 'success'
+            except Exception as e:
+                current_app.logger.info('Sending feedback mail failed: %s' % str(e))
+                feedback_email = 'failed'
+
+        text = '```Incoming Feedback```\n' + text + '\n*sent to adshelp*: {}\n'.format(feedback_email)
+
+        icon_emoji = current_app.config['FEEDBACK_SLACK_EMOJI']
         prettified_data = {
             'text': text,
             'username': username,

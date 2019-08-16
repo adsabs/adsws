@@ -258,7 +258,7 @@ class TestUnits(TestBase):
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
                     '*Feedback*: Why are my citations missing?\n'
-                    '*sent to adshelp*: failed',
+                    '*sent to adshelp*: failed\n',
             'username': 'TownCrier',
             'channel': '#feedback',
             'icon_emoji': emoji

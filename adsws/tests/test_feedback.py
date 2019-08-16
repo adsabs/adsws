@@ -286,9 +286,9 @@ class TestUnits(TestBase):
                     '*Commenter*: Commenter\n'
                     '*e-mail*: commenter@email.com\n'
                     '*Feedback*: Why are my citations missing?\n'
-                    '*sent to adshelp*: failed\n'
                     '*IP Address*: 127.0.0.1\n'
-                    '*Browser*: Firefox v42',
+                    '*Browser*: Firefox v42\n'
+                    '*sent to adshelp*: failed\n',
             'username': 'TownCrier',
             'channel': '#feedback',
             'icon_emoji': emoji

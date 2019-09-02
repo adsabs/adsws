@@ -1,6 +1,7 @@
 from flask import request, current_app
 from flask.ext.restful import Resource
 from flask.ext.consulate import ConsulService
+from flask_login import current_user
 from urlparse import urljoin
 import requests
 import json
@@ -46,18 +47,18 @@ class ProxyView(Resource):
     def get_body_data(request):
         """
         Returns the correct payload data coming from the flask.Request object.
-        
+
         The correctness of this methods depends on the before_request hook to be
         called before any other module (such as oauthlib); basically - data stream
-        must be cached before something parses it; because during parsing the 
+        must be cached before something parses it; because during parsing the
         stream gets consumed and is gone.
-        
+
         Also, NOTHING should modify Content-Length and Type headers!!!
         """
-        
+
         return request.get_data()
-        
-        
+
+
 
     def dispatcher(self, **kwargs):
         """
@@ -71,6 +72,11 @@ class ProxyView(Resource):
             ep = urljoin(self.service_uri, path)
         else:
             ep = path
+        current_user_id = current_user.get_id()
+        if current_user_id:
+            current_app.logger.info("Dispatching '{}' request to endpoint '{}' for user '{}'".format(request.method, ep, current_user_id))
+        else:
+            current_app.logger.info("Dispatching '{}' request to endpoint '{}'".format(request.method, ep))
         current_app.logger.info("Dispatching '{}' request to endpoint '{}'".format(request.method, ep))
         resp = self.__getattribute__(request.method.lower())(ep, request)
 
@@ -104,7 +110,7 @@ class ProxyView(Resource):
         """
         Proxy to remote POST endpoint, should be invoked via self.dispatcher()
         """
-        
+
         try:
             return self.session.post(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
@@ -114,7 +120,7 @@ class ProxyView(Resource):
         """
         Proxy to remote PUT endpoint, should be invoked via self.dispatcher()
         """
-        
+
         try:
             return self.session.put(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
@@ -124,7 +130,7 @@ class ProxyView(Resource):
         """
         Proxy to remote PUT endpoint, should be invoked via self.dispatcher()
         """
-        
+
         try:
             return self.session.delete(ep, data=ProxyView.get_body_data(request), headers=request.headers, timeout=self.default_request_timeout)
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):

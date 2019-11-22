@@ -33,6 +33,7 @@ from flask import Blueprint, render_template, request, abort, redirect, \
 from flask.ext.login import login_required, current_user
 from flask.ext.menu import register_menu
 from flask.ext.breadcrumbs import register_breadcrumb
+from flask import current_app
 
 from adsws.core import db
 
@@ -59,6 +60,9 @@ def client_getter():
         @wraps(f)
         def decorated(*args, **kwargs):
             if 'client_id' not in kwargs:
+                current_app.logger.error(
+                    'Aborting with status code 500,'
+                    ' client_id not found in args: {}'.format(kwargs))
                 abort(500)
 
             client = OAuthClient.query.filter_by(
@@ -82,6 +86,9 @@ def token_getter(is_personal=True, is_internal=False):
         @wraps(f)
         def decorated(*args, **kwargs):
             if 'token_id' not in kwargs:
+                current_app.logger.error(
+                    'Aborting with status code 500,'
+                    ' token_id not found in args: {}'.format(kwargs))
                 abort(500)
 
             token = OAuthToken.query.filter_by(

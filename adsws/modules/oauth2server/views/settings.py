@@ -59,7 +59,11 @@ def client_getter():
         @wraps(f)
         def decorated(*args, **kwargs):
             if 'client_id' not in kwargs:
-                abort(500, message='client_id not found in args: {}'.format(kwargs))
+                from flask import current_app
+                current_app.logger.error(
+                    'Aborting with status code 500,'
+                    ' client_id not found in args: {}'.format(kwargs))
+                abort(500)
 
             client = OAuthClient.query.filter_by(
                 client_id=kwargs.pop('client_id'),
@@ -82,7 +86,11 @@ def token_getter(is_personal=True, is_internal=False):
         @wraps(f)
         def decorated(*args, **kwargs):
             if 'token_id' not in kwargs:
-                abort(500, message='token_id not found in args: {}'.format(kwargs))
+                from flask import current_app
+                current_app.logger.error(
+                    'Aborting with status code 500,'
+                    ' token_id not found in args: {}'.format(kwargs))
+                abort(500)
 
             token = OAuthToken.query.filter_by(
                 id=kwargs.pop('token_id'),

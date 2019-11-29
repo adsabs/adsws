@@ -80,7 +80,7 @@ def affinity_decorator(storage, name="sroute"):
         def decorated_function(*args, **kwargs):
             # Obtain user token, giving priority to forwarded authorization field (used when a microservice uses its own token)
             user_token = request.headers.get('X-Forwarded-Authorization', None)
-            if user_token is None:
+            if user_token is None or user_token == u"-":
                 user_token = request.headers.get('Authorization', None)
             if user_token and len(user_token) > 7: # This should be always true
                 user_token = user_token[7:] # Get rid of "Bearer:" or "Bearer "

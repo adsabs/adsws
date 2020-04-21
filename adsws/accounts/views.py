@@ -266,19 +266,9 @@ class UserInfoView(Resource):
             else:
                 # This should not happen, all ADS created session should contain that parameter
                 return {'message': 'Missing oauth_client/user_id parameter in session'}, 500
-        # 2) Try to treat input data as user id
-        try:
-            user_id = int(account_data)
-        except ValueError:
-            # Try next identifier type
-            pass
-        else:
-            token = OAuthToken.query.filter_by(user_id=user_id).first()
-            if token:
-                return self._translate(token.user_id, token.client_id, token.user.email, source="user_id")
-            else:
-                # Token not found in database
-                return {'message': 'Identifier not found [ERR 040]'}, 404
+        
+        
+        
         # 3) Try to treat input data as access token
         token = OAuthToken.query.filter_by(access_token=account_data).first()
         if token:
@@ -303,10 +293,13 @@ class UserInfoView(Resource):
         # with a length of 2x32
         # NOTE: 100,000 rounds is recommended but it is too slow and security is not
         # that important here, thus we just do 10 rounds
-        hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 10, dklen=32)) if user_id else None
         hashed_client_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(client_id), current_app.secret_key, 10, dklen=32)) if client_id else None
+        if anonymous:
+            hashed_user_id = hashed_client_id
+        else:
+            hashed_user_id = binascii.hexlify(hashlib.pbkdf2_hmac('sha256', str(user_id), current_app.secret_key, 10, dklen=32)) if user_id else None
         return {
-            'hashed_user_id': hashed_user_id, # Permanent, but all the anonymous users have the same one (id 1)
+            'hashed_user_id': hashed_user_id, # Permanent, all the anonymous users will have hashed_client_id instead
             'hashed_client_id': hashed_client_id, # A single user has a client ID for the BB token and another for the API, anonymous users have a unique client ID linked to the anonymous user id (id 1)
             'anonymous': anonymous, # True, False or None if email could not be retreived/anonymous validation could not be executed
             'source': source, # Identifier used to recover information: session:client_id, session:user_id, user_id, access_token, client_id

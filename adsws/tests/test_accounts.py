@@ -165,19 +165,19 @@ class TestAccounts(AccountsSetup):
             # and using an 1) user id
             headers={'Authorization': 'Bearer:{}'.format(token.access_token)}
             r = c.get(url, headers=headers)
-            self.assertStatus(r, 200)
-            self.assertEqual(r.json['hashed_user_id'], expected_hashed_user_id)
-            self.assertEqual(r.json['hashed_client_id'], expected_hashed_client_id)
-            self.assertFalse(r.json['anonymous'])
-            self.assertEqual(r.json['source'], 'user_id')
-            expected_json = r.json
+            self.assertStatus(r, 404)
+            
 
             # 2) access token
             account_data = token.access_token
             url = url_for('userinfoview', account_data=account_data)
             r = c.get(url, headers=headers)
             self.assertStatus(r, 200)
-            expected_json['source'] = u'access_token'
+            self.assertEqual(r.json['hashed_user_id'], expected_hashed_user_id)
+            self.assertEqual(r.json['hashed_client_id'], expected_hashed_client_id)
+            self.assertFalse(r.json['anonymous'])
+            self.assertEqual(r.json['source'], 'access_token')
+            expected_json = r.json
             self.assertEqual(r.json, expected_json)
 
             # 3) client id

@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import re
 import Cookie
 from flask.ext.headers import headers
 from flask import request
@@ -34,7 +35,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
-
+    
     app.logger.debug(
         'Attempting bootstrap_local_module [{0}]'.format(service_uri)
     )
@@ -65,15 +66,22 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
         if deploy_path in local_app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
             view = affinity_decorator(ratelimit._storage.storage, name=local_app.config['AFFINITY_ENHANCED_ENDPOINTS'].get(deploy_path))(view)
-
+        
+        
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
+            
+            # collect symbolic ratelimits
+            _update_symbolic_ratelimits(app, route, {'rate_limit': attr_base.rate_limit})
+            
+            # create local (default) ratelimits
             d = attr_base.rate_limit[0]
             view = ratelimit.shared_limit_and_check(
                 lambda counts=d, per_second=attr_base.rate_limit[1]: limit_func(counts, per_second),
                 scope=scope_func,
                 key_func=key_func,
                 methods=rule.methods,
+                per_method=False
             )(view)
 
         # Decorate the view with require_oauth
@@ -91,6 +99,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
         app.add_url_rule(route, route, view, methods=rule.methods)
 
 
+
 def bootstrap_remote_service(service_uri, deploy_path, app):
     """
     Incorporates the routes of a remote app into this one by registering
@@ -100,6 +109,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
+    
     app.logger.debug(
         'Attempting bootstrap_remote_service [{0}]'.format(service_uri)
     )
@@ -151,6 +161,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     # If any part of this procedure fails, log that we couldn't produce this
     # ProxyView, but otherwise continue.
     for resource, properties in resource_json.iteritems():
+        
+        properties.setdefault('rate_limit', [1000, 86400])
+        properties.setdefault('scopes', [])
+        
         if resource.startswith('/'):
             resource = resource[1:]
         route = os.path.join(deploy_path, resource)
@@ -163,6 +177,11 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             # app_context to allow config lookup via current_app in __init__
             proxyview = ProxyView(remote_route, service_uri, deploy_path, route)
 
+
+        _update_symbolic_ratelimits(app, route, properties)
+        
+        
+        
         for method in properties['methods']:
             if method not in proxyview.methods:
                 app.logger.warning("Could not create a ProxyView for "
@@ -171,8 +190,6 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                 continue
 
             view = proxyview.dispatcher
-            properties.setdefault('rate_limit', [1000, 86400])
-            properties.setdefault('scopes', [])
 
             if deploy_path in app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
                 view = affinity_decorator(ratelimit._storage.storage, name=app.config['AFFINITY_ENHANCED_ENDPOINTS'].get(deploy_path))(view)
@@ -184,6 +201,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                 scope=scope_func,
                 key_func=key_func,
                 methods=[method],
+                per_method=False
             )(view)
 
             # Decorate with the advertised oauth2 scopes
@@ -234,3 +252,48 @@ def discover(app):
                     traceback=traceback.format_exc()
                 )
             )
+
+
+def _update_symbolic_ratelimits(app, route, properties):
+    """Build information about ratelimit groups; this data
+    is used for ratelimiting endpoints that should share
+    ratelimit counters.
+    
+    All the info is stored in the current application
+    (which is a global object)
+    """
+    
+    symbolic_ratelimits = app.extensions['symbolic_ratelimits'] #fail if not properly initiated
+    
+    if route in symbolic_ratelimits:
+        return # already there
+    
+    
+    # check if the remote endpoint ratelimit should belong to a
+    # virtual ratelimit group (and build the info accordingly)
+    for ratelimit_group, endpoint_patterns in app.config.get('RATELIMIT_GROUPS', {}).items():
+        for pattern_num, pattern in enumerate(endpoint_patterns):
+            try:
+                p = re.compile(pattern)
+                if p.match(route):
+                    app.logger.info("Endpoint {endpoint} will belong to a virtual ratelimit {group}"
+                                    .format(endpoint=route, group=ratelimit_group))
+                    if ratelimit_group not in symbolic_ratelimits:
+                        symbolic_ratelimits[ratelimit_group] = {'key': ratelimit_group, 
+                                                                '#': pattern_num,
+                                                                'count': properties['rate_limit'][0],
+                                                                'per_second': properties['rate_limit'][1]}
+                    
+                    pointer = symbolic_ratelimits[ratelimit_group]
+                    symbolic_ratelimits[route] = pointer
+                    
+                    # lower orders have higher priority (over-riding ratelimits)
+                    if pattern_num < pointer['#']:
+                        pointer['count'] = properties['rate_limit'][0]
+                        pointer['per_second'] = properties['rate_limit'][1]
+                    
+                    break
+                    
+            except:
+                app.logger.error("Error compiling regex {regex} for ratelimit {group}"
+                                 .format(regex=pattern, group=ratelimit_group))

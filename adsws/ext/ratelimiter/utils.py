@@ -12,6 +12,9 @@ def key_func():
     Returns the key with which to track the endpoint's requests
     for the purposes of ratelimiting
     """
+    symbolic_ratelimits = current_app.extensions.get('symbolic_ratelimits', {})
+    if request.endpoint in symbolic_ratelimits:
+        return symbolic_ratelimits[request.endpoint]['key']
     return request.endpoint
 
 def scope_func(endpoint_name):
@@ -49,6 +52,8 @@ def limit_func(counts, per_second):
     :rtype int
     """
     
+    symbolic_ratelimits = current_app.extensions.get('symbolic_ratelimits', {})
+    
     if hasattr(request, 'oauth'):
         try:
             factor = request.oauth.client.ratelimit
@@ -56,4 +61,11 @@ def limit_func(counts, per_second):
                 factor = 1.0
         except AttributeError:
             factor = 1.0
+    else:
+        factor = 1.0
+    
+    if request.endpoint in symbolic_ratelimits:
+        counts = symbolic_ratelimits[request.endpoint]['count']
+        per_second = symbolic_ratelimits[request.endpoint]['per_second']
+        
     return "{0}/{1} second".format(int(counts * factor), per_second)

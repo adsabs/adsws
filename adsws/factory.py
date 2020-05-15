@@ -129,6 +129,8 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         
         if current_user.is_authenticated():
             h.add_header("X-Adsws-Uid", current_user.id)
+        elif h.has_key("X-Adsws-Uid"):
+            h.remove("X-Adsws-Uid") # being paranoid
             
         if valid:    
             level = oauth.client.ratelimit

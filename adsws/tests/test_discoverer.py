@@ -326,6 +326,83 @@ class DiscoverLocalModuleTestCase(ApiTestCase, DiscovererTestCase):
         self.assertEqual(current_app.config['TEST_SPECIFIC_CONFIG'], 'foo')
 
 
+class SymbolicRatelimitServerTestCase(ApiTestCase, DiscovererTestCase):
+    """
+    . Run a third party service (webserver via subprocess)
+    . create discoverer app, connecting to the service
+    . Test that the app has the bootstrapped routes
+    . Test GET, POST to the bootstrapped routes -> Backend services response
+    . Requires that the remote service be a liveserver with >1 worker
+        (https://github.com/adsabs/adsws/issues/19)
+    """
+
+    def create_app(self):
+        app = api.create_app(
+            WEBSERVICES={'http://localhost:5005/': '/test_webservice', 
+                         'http://127.0.0.1:5005/': '/test_webservice2',
+                         'adsws.tests.sample_microservice.app': '/test_webservice3'},
+            RATELIMIT_GROUPS={'search': [
+                '/test_webservice2/LOW_RATE_LIMIT',
+                '/test_webservice2/.*', 
+                '/test_webservice3/.*']},
+            WEBSERVICES_PUBLISH_ENDPOINT='resources',
+            SQLALCHEMY_BINDS=None,
+            SQLALCHEMY_DATABASE_URI='sqlite://',
+            WTF_CSRF_ENABLED=False,
+            TESTING=False,
+            DEBUG=False,
+            SITE_SECURE_URL='http://localhost',
+            SECURITY_POST_LOGIN_VIEW='/postlogin',
+            SECURITY_REGISTER_BLUEPRINT=True,
+            SHOULD_NOT_OVERRIDE='parent',
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+                time.time()),
+        )
+        return app
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setupRemoteServer()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownRemoteServer()
+
+    def test_shared_ratelimits(self):
+        """
+        Test that ratelimits were properly constructed
+        """
+        sr = self.app.extensions['symbolic_ratelimits']
+        self.assertEqual(id(sr['/test_webservice2/LOW_RATE_LIMIT']), id(sr['/test_webservice3/LOW_RATE_LIMIT']))
+        self.assertEqual(sr['/test_webservice2/LOW_RATE_LIMIT']['count'], 3)
+        self.assertEqual(sr['/test_webservice2/ECHO_HEADERS']['count'], 3)
+        
+        
+        go = lambda x, y: self.open('GET', '/test_webservice' + x + '/' + (y or 'LOW_RATE_LIMIT')) # 3 per 5 second
+        
+        # not included in the group
+        r = go('', '')
+        self.assertStatus(r, 200)
+        r = go('', '')
+        self.assertStatus(r, 200)
+        r = go('', '')
+        self.assertStatus(r, 200)
+        r = go('', '')
+        self.assertStatus(r, 429)
+        
+        
+        # included in the group (everything becomes low rate limit)
+        r = go('2', 'ECHO_HEADERS')
+        self.assertStatus(r, 200)
+        r = go('3', '')
+        self.assertStatus(r, 200)
+        r = go('2', 'LOW_RATE_LIMIT')
+        self.assertStatus(r, 200)
+        r = go('3', 'ECHO_HEADERS')
+        self.assertStatus(r, 429)
+        
+
+
 class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):
     """
     . Run a third party service (webserver via subprocess)
@@ -424,6 +501,7 @@ class TestUnitTests(TestCase):
         requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
 
         app = mock.Mock()
+        app.extensions = {'symbolic_ratelimits': {}}
         app.app_context = mock.mock_open()
         app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : '/tmp'}
 
@@ -442,6 +520,7 @@ class TestUnitTests(TestCase):
         requests.get.return_value.json.return_value = {'hey': {'methods': ['IGNORE']}}
 
         app = mock.Mock()
+        app.extensions = {'symbolic_ratelimits': {}}
         app.app_context = mock.mock_open()
         app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : ''}
 
@@ -462,6 +541,7 @@ class TestUnitTests(TestCase):
         requests.get.side_effect = ConnectionError()
         requests.exceptions.ConnectionError = ConnectionError
         app = mock.Mock()
+        app.extensions = {'symbolic_ratelimits': {}}
         app.app_context = mock.mock_open()
         app.config = {'WEBSERVICES_DISCOVERY_CACHE_DIR' : '/tmp'}
         m_os.path.join = os.path.join

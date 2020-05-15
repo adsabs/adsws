@@ -26,6 +26,9 @@ def create_app(**kwargs_config):
         allow_headers=app.config.get('CORS_HEADERS'),
         methods=app.config.get('CORS_METHODS')
     )
+    
+    # here is where we collect data for ratelimiting    
+    app.extensions['symbolic_ratelimits'] = {}
 
     app.json_encoder = JSONEncoder
     api.add_resource(StatusView, '/status')
@@ -37,6 +40,8 @@ def create_app(**kwargs_config):
     if not app.config.get('DEBUG'):
         app.errorhandler(AdsWSError)(on_adsws_error)
         app.errorhandler(AdsWSFormError)(on_adsws_form_error)
+    
+    
     return app
 
 def on_adsws_error(e):

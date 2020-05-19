@@ -358,6 +358,7 @@ class SymbolicRatelimitServerTestCase(ApiTestCase, DiscovererTestCase):
             RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
                 time.time()),
         )
+        self._count = 3
         return app
 
     @classmethod
@@ -374,8 +375,8 @@ class SymbolicRatelimitServerTestCase(ApiTestCase, DiscovererTestCase):
         """
         sr = self.app.extensions['symbolic_ratelimits']
         self.assertEqual(id(sr['/test_webservice2/LOW_RATE_LIMIT']), id(sr['/test_webservice3/LOW_RATE_LIMIT']))
-        self.assertEqual(sr['/test_webservice2/LOW_RATE_LIMIT']['count'], 3)
-        self.assertEqual(sr['/test_webservice2/ECHO_HEADERS']['count'], 3)
+        self.assertEqual(sr['/test_webservice2/LOW_RATE_LIMIT']['count'], self._count)
+        self.assertEqual(sr['/test_webservice2/ECHO_HEADERS']['count'], self._count)
         
         
         go = lambda x, y: self.open('GET', '/test_webservice' + x + '/' + (y or 'LOW_RATE_LIMIT')) # 3 per 5 second
@@ -398,9 +399,43 @@ class SymbolicRatelimitServerTestCase(ApiTestCase, DiscovererTestCase):
         self.assertStatus(r, 200)
         r = go('2', 'LOW_RATE_LIMIT')
         self.assertStatus(r, 200)
+        
+        c = self._count - 3
+        while c > 0:
+            r = go('2', 'LOW_RATE_LIMIT')
+            self.assertStatus(r, 200)
+            c -= 1
+        
         r = go('3', 'ECHO_HEADERS')
         self.assertStatus(r, 429)
-        
+
+class TestExplicitSymbolicRatelimitServerTestCase(SymbolicRatelimitServerTestCase):
+    def create_app(self):
+        app = api.create_app(
+            WEBSERVICES={'http://localhost:5005/': '/test_webservice', 
+                         'http://127.0.0.1:5005/': '/test_webservice2',
+                         'adsws.tests.sample_microservice.app': '/test_webservice3'},
+            RATELIMIT_GROUPS={'search': {
+                'limits': [6, 10], 
+                'patterns': [
+                '/test_webservice2/LOW_RATE_LIMIT',
+                '/test_webservice2/.*', 
+                '/test_webservice3/.*']}},
+            WEBSERVICES_PUBLISH_ENDPOINT='resources',
+            SQLALCHEMY_BINDS=None,
+            SQLALCHEMY_DATABASE_URI='sqlite://',
+            WTF_CSRF_ENABLED=False,
+            TESTING=False,
+            DEBUG=False,
+            SITE_SECURE_URL='http://localhost',
+            SECURITY_POST_LOGIN_VIEW='/postlogin',
+            SECURITY_REGISTER_BLUEPRINT=True,
+            SHOULD_NOT_OVERRIDE='parent',
+            RATELIMIT_KEY_PREFIX='unittest.LocalDiscoverer.{}'.format(
+                time.time()),
+        )
+        self._count = 6
+        return app
 
 
 class DiscoverRemoteServerTestCase(ApiTestCase, DiscovererTestCase):

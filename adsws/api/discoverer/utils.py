@@ -271,7 +271,16 @@ def _update_symbolic_ratelimits(app, route, properties):
     
     # check if the remote endpoint ratelimit should belong to a
     # virtual ratelimit group (and build the info accordingly)
-    for ratelimit_group, endpoint_patterns in app.config.get('RATELIMIT_GROUPS', {}).items():
+    for ratelimit_group, values in app.config.get('RATELIMIT_GROUPS', {}).items():
+        
+        
+        # if not supplied, we'll use limits of the endpoint
+        count, per_second = isinstance(values, dict) and values.get('limits', [properties['rate_limit'][0], properties['rate_limit'][1]]) \
+            or [properties['rate_limit'][0], properties['rate_limit'][1]]
+        
+    
+        endpoint_patterns = isinstance(values, dict) and values.get('patterns', []) or values
+        
         for pattern_num, pattern in enumerate(endpoint_patterns):
             try:
                 p = re.compile(pattern)
@@ -281,16 +290,17 @@ def _update_symbolic_ratelimits(app, route, properties):
                     if ratelimit_group not in symbolic_ratelimits:
                         symbolic_ratelimits[ratelimit_group] = {'key': ratelimit_group, 
                                                                 '#': pattern_num,
-                                                                'count': properties['rate_limit'][0],
-                                                                'per_second': properties['rate_limit'][1]}
+                                                                'count': count,
+                                                                'per_second': per_second}
                     
                     pointer = symbolic_ratelimits[ratelimit_group]
                     symbolic_ratelimits[route] = pointer
                     
                     # lower orders have higher priority (over-riding ratelimits)
+                    # it matters only when ratelimits were not explicitly configured
                     if pattern_num < pointer['#']:
-                        pointer['count'] = properties['rate_limit'][0]
-                        pointer['per_second'] = properties['rate_limit'][1]
+                        pointer['count'] = count
+                        pointer['per_second'] = per_second
                     
                     break
                     

@@ -52,15 +52,15 @@ def setup_app():
     # Configures an OAuth2Provider instance to use configured caching system
     # to get and set the grant token.
     bind_cache_grant(current_app, oauth2, OAuthUserProxy.get_current_user)
-    
+
     for x in ['oauthlib', 'flask_oauthlib']:
         logger = logging.getLogger('flask_oauthlib')
         logger.setLevel(current_app.logger.getEffectiveLevel())
         for h in current_app.logger.handlers:
             if h not in logger.handlers:
                 logger.addHandler(h)
-    
-    
+
+
 
 @oauth2.after_request
 def login_oauth2_user(valid, oauth):
@@ -68,7 +68,7 @@ def login_oauth2_user(valid, oauth):
     Login a user after having been verified
     """
     if valid:
-        login_user(user_manipulator.first(id=oauth.user.id))
+        valid = login_user(user_manipulator.first(id=oauth.user.id))
     return valid, oauth
 
 
@@ -83,7 +83,7 @@ def authorize(*args, **kwargs):
     View for rendering authorization request.
     """
     assert current_user.is_anonymous() is False
-    
+
     if request.method == 'GET':
         client = OAuthClient.query.filter_by(
             client_id=kwargs.get('client_id')

@@ -56,7 +56,7 @@ class SlackFeedback(Resource):
         text = [
             '*Commenter*: {}'.format(name),
             '*e-mail*: {}'.format(reply_to),
-            '*Feedback*: {}'.format(comments),
+            '*Feedback*: {}'.format(comments.encode('utf-8')),
         ]
 
         used = ['channel', 'username', 'name', '_replyto', 'comments', 'g-recaptcha-response']

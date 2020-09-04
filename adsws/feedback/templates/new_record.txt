@@ -1,0 +1,13 @@
+From: {{data.name}}
+Address: {{data.email}}
+
+Abstract data for new record. Summary:
+
+Collection: {{data.new.collection[0]}}
+
+%R {{data.new.bibcode}}
+%T {{data.new.title}}
+%A {{data.new.author_list}}
+%D {{data.new.publicationDate}}
+%J {{data.new.publication}}
+%B {{data.new.abstract}}

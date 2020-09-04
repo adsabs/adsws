@@ -12,6 +12,7 @@ from flask import url_for, current_app
 from flask.ext.testing import TestCase
 from httpretty import HTTPretty
 from adsws.feedback.views import SlackFeedback, verify_recaptcha
+from adsws.tests.stubdata import missing_references, associated_other, associated_errata, new_abstract, corrected_abstract
 
 
 class GoogleRecaptchaService(object):
@@ -155,7 +156,8 @@ class TestFunctionals(TestBase):
             'name': 'Commenter',
             'comments': 'Why are my citations missing?',
             '_replyto': 'commenter@email.com',
-            'g-recaptcha-response': 'correct_response'
+            'g-recaptcha-response': 'correct_response',
+            'origin': 'bbb_feedback'
         }
 
         # User presses submit on the feedback form
@@ -167,6 +169,81 @@ class TestFunctionals(TestBase):
             )
         self.assertEqual(response.status_code, 200)
 
+    def test_submitting_missing_references(self):
+        """
+        A generic test of the entire work flow of the feedback submission
+        end point: submissions of missing references
+        """
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=json.dumps(missing_references.data)
+            )
+        self.assertEqual(response.status_code, 200)
+        
+    def test_submitting_associated(self):
+        """
+        A generic test of the entire work flow of the feedback submission
+        end point: submissions of associated records
+        """
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=json.dumps(associated_errata.data)
+            )
+        self.assertEqual(response.status_code, 200)
+    
+    def test_submitting_associated_other(self):
+        """
+        A generic test of the entire work flow of the feedback submission
+        end point: submissions of associated records of type 'other'
+        """
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=json.dumps(associated_other.data)
+            )
+        self.assertEqual(response.status_code, 200)
+
+    def test_submitting_new_abstract(self):
+        """
+        A generic test of the entire work flow of the feedback submission
+        end point: submissions of new abstract
+        """
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=json.dumps(new_abstract.data)
+            )
+        self.assertEqual(response.status_code, 200)
+
+    def test_submitting_corrected_abstract(self):
+        """
+        A generic test of the entire work flow of the feedback submission
+        end point: submissions of new abstract
+        """
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=json.dumps(corrected_abstract.data)
+            )
+        self.assertEqual(response.status_code, 200)
+
     def test_submitting_feedback_with_minimal_information(self):
         """
         Check they can send minimal information to the end point
@@ -174,7 +251,8 @@ class TestFunctionals(TestBase):
         # User fills the user feedback form
         form_data = {
             'comments': 'Why are my citations missing?',
-            'g-recaptcha-response': 'correct_response'
+            'g-recaptcha-response': 'correct_response',
+            'origin': 'bbb_feedback'
         }
 
         # User presses submit on the feedback form
@@ -195,7 +273,29 @@ class TestFunctionals(TestBase):
         form_data = {
             'name': 'Commenter',
             '_replyto': 'commenter@email.com',
-            'g-recaptcha-response': 'correct_response'
+            'g-recaptcha-response': 'correct_response',
+            'origin': 'bbb_feedback'
+        }
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=form_data
+            )
+        self.assertEqual(response.status_code, 404)
+    
+    def test_404_if_not_right_origin(self):
+        """
+        Checks the passed data. The endpoint expects specific values for the 'origin' attribute
+        """
+        # User fills the user feedback form
+        form_data = {
+            'name': 'Commenter',
+            '_replyto': 'commenter@email.com',
+            'g-recaptcha-response': 'correct_response',
+            'origin': 'foobar'
         }
 
         # User presses submit on the feedback form
@@ -207,6 +307,28 @@ class TestFunctionals(TestBase):
             )
         self.assertEqual(response.status_code, 404)
 
+    def test_404_if_not_right_subject(self):
+        """
+        Checks the passed data. For user submission feedback, the value _subject field
+        determines the email template. Exception is thrown when this has an unexpected value.
+        """
+        # User fills the user feedback form
+        form_data = {
+            'name': 'Commenter',
+            '_replyto': 'commenter@email.com',
+            'g-recaptcha-response': 'correct_response',
+            'origin': 'user_submission',
+            '_subject': 'foo'
+        }
+
+        # User presses submit on the feedback form
+        url = url_for('slackfeedback')
+        with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
+            response = self.client.post(
+                url,
+                data=form_data
+            )
+        self.assertEqual(response.status_code, 404)
 
 class TestUnits(TestBase):
     """
@@ -306,6 +428,23 @@ class TestUnits(TestBase):
 
         for key in post_data_sent.keys():
             self.assertEqual(post_data_sent[key], prettified_post_data[key])
+
+    def test_email_body(self):
+        """
+        
+        """
+
+        email_body = SlackFeedback().create_email_body(corrected_abstract.data)
+        self.assertEqual(email_body, corrected_abstract.response)
+        
+        email_body = SlackFeedback().create_email_body(new_abstract.data)
+        self.assertEqual(email_body, new_abstract.response)
+        
+        email_body = SlackFeedback().create_email_body(associated_other.data)
+        self.assertEqual(email_body, associated_other.response)
+        
+        email_body = SlackFeedback().create_email_body(missing_references.data)
+        self.assertEqual(email_body, missing_references.response)
 
     def test_verify_google_recaptcha(self):
         """

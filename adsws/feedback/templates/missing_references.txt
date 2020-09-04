@@ -1,0 +1,7 @@
+From: {{data.name}}
+Address: {{data.email}}
+
+Missing references:
+{% for reference in data.references -%}
+{{reference.citing}}[tab]{{reference.cited}}[tab]{{reference.refstring}}
+{% endfor %}

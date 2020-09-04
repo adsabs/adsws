@@ -1,0 +1,6 @@
+From: {{data.name}}
+Address: {{data.email}}
+
+Correction for {{data.original.bibcode}}:
+
+{{data.diff}}

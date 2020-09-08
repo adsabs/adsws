@@ -186,6 +186,9 @@ class SlackFeedback(Resource):
             except Exception as error:
                 current_app.logger.error('Fatal error while processing feedback form data: {0}'.format(error))
                 return err(ERROR_FEEDBACKFORM_PROBLEM)
+            if not email_sent:
+                # If the email could not be sent, we can still log the data submitted
+                current_app.logger.error('Sending of email failed. Feedback data submitted by {0} ({1}): {2}'.format(post_data, post_data.get('name'), post_data.get('email')))
         elif origin == current_app.config['BBB_FEEDBACK_ORIGIN']:
             try:
                 current_app.logger.info('Prettifiying post data: {0}'

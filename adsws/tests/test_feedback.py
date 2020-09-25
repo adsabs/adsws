@@ -136,7 +136,28 @@ class TestBase(TestCase):
         """
         Create the wsgi application
         """
-        app_ = feedback.create_app()
+        app_ = feedback.create_app(
+            FEEDBACK_SLACK_END_POINT = 'https://hooks.slack.com/services/TOKEN/TOKEN',
+            FEEDBACK_SLACK_EMOJI = ':interrobang:',
+            FORM_SLACK_EMOJI = ':inbox_tray:',
+            DEFAULT_EMAIL = 'adshelp@cfa.harvard.edu',
+            FEEDBACK_FORMS_ORIGIN = 'user_submission',
+            BBB_FEEDBACK_ORIGIN = 'bbb_feedback',
+            FEEDBACK_TEMPLATES = {
+                'Missing References': 'missing_references.txt',
+                'Associated Articles': 'associated_articles.txt',
+                'Updated Record': 'updated_record.txt',
+                'New Record': 'new_record.txt',
+                'Bumblebee Feedback':'bumblebee_feedback.txt'
+            },
+            FEEDBACK_EMAILS = {
+                'Missing References': 'ads@cfa.harvard.edu',
+            },  
+            MAIL_SUPPRESS_SEND=True,
+            GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify',
+            GOOGLE_RECAPTCHA_PRIVATE_KEY = 'MY_PRIVATE_KEY'
+
+        )
         return app_
 
 
@@ -150,21 +171,12 @@ class TestFunctionals(TestBase):
         A generic test of the entire work flow of the feedback submission
         end point
         """
-        # User fills the user feedback form
-        form_data = {
-            'name': 'Commenter',
-            'comments': 'Why are my citations missing?',
-            '_replyto': 'commenter@email.com',
-            'g-recaptcha-response': 'correct_response',
-            'origin': 'bbb_feedback'
-        }
-
         # User presses submit on the feedback form
         url = url_for('userfeedback')
         with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
             response = self.client.post(
                 url,
-                data=form_data
+                data=json.dumps(general_feedback.data)
             )
         self.assertEqual(response.status_code, 200)
 
@@ -247,19 +259,12 @@ class TestFunctionals(TestBase):
         """
         Check they can send minimal information to the end point
         """
-        # User fills the user feedback form
-        form_data = {
-            'comments': 'Why are my citations missing?',
-            'g-recaptcha-response': 'correct_response',
-            'origin': 'bbb_feedback'
-        }
-
         # User presses submit on the feedback form
         url = url_for('userfeedback')
         with SlackWebService() as SLW, GoogleRecaptchaService() as GRS:
             response = self.client.post(
                 url,
-                data=form_data
+                data=json.dumps(general_feedback.data)
             )
         self.assertEqual(response.status_code, 200)
 

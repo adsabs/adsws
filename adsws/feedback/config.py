@@ -13,8 +13,7 @@ EXTENSIONS = [
 FEEDBACK_SLACK_END_POINT = 'https://hooks.slack.com/services/TOKEN/TOKEN'
 FEEDBACK_SLACK_EMOJI = ':interrobang:'
 FORM_SLACK_EMOJI = ':inbox_tray:'
-DEFAULT_EMAIL_BACKUP = 'adshelp@cfa.harvard.edu'
-DEFAULT_EMAIL = 'ehenneken@gmail.com'
+DEFAULT_EMAIL = 'adshelp@cfa.harvard.edu'
 # Feedback processing depends on 'origin' attribute supplied in POST data
 FEEDBACK_FORMS_ORIGIN = 'user_submission'
 BBB_FEEDBACK_ORIGIN = 'bbb_feedback'
@@ -28,8 +27,7 @@ FEEDBACK_TEMPLATES = {
 }
 # Override defaul recipient based on email subject (key)
 FEEDBACK_EMAILS = {
-    'Missing References backup': 'ads@cfa.harvard.edu',
-    'Missing References': 'ehenneken@gmail.com'
+    'Missing References': 'ads@cfa.harvard.edu',
 }
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'
@@ -37,3 +35,4 @@ GOOGLE_RECAPTCHA_PRIVATE_KEY = 'MY_PRIVATE_KEY'
 CORS_DOMAINS = ['https://ui.adsabs.harvard.edu']
 CORS_HEADERS = []
 CORS_METHODS = ['POST', 'GET']
+

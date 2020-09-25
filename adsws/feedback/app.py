@@ -5,7 +5,7 @@ Application factory
 from .. import factory
 from flask.ext.restful import Api
 from flask.ext.cors import CORS
-from adsws.feedback.views import SlackFeedback
+from adsws.feedback.views import UserFeedback
 from flask.ext.mail import Mail
 
 
@@ -35,6 +35,7 @@ def create_app(**kwargs_config):
     )
 
     # Add end points
-    api.add_resource(SlackFeedback, '/slack')
+    api.add_resource(UserFeedback, '/userfeedback')
+    
 
     return app

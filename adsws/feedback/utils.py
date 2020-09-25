@@ -9,10 +9,10 @@ import json
 
 def send_feedback_email(name, sender, subject, data, attachments=None):
     # Allow the default recipient to be overriden depending on email subject
-    help_email = current_app.config['FEEDBACK_EMAILS'].get(subject, current_app.config['DEFAULT_EMAIL'])
+    email = current_app.config['FEEDBACK_EMAILS'].get(subject, current_app.config['DEFAULT_EMAIL'])
     msg = Message(subject="%s from %s (%s)" % (subject, name, sender),
-                  recipients=[help_email],
-                  sender=("ADS", help_email),
+                  recipients=[email],
+                  sender=("ADS", email),
                   reply_to=(name, sender),
                   body=data)
     if attachments:

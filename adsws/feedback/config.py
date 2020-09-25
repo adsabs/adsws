@@ -37,10 +37,3 @@ GOOGLE_RECAPTCHA_PRIVATE_KEY = 'MY_PRIVATE_KEY'
 CORS_DOMAINS = ['https://ui.adsabs.harvard.edu']
 CORS_HEADERS = []
 CORS_METHODS = ['POST', 'GET']
-
-MAIL_SERVER = 'smtp.mail.yahoo.com'
-MAIL_PORT = 587
-MAIL_USE_TLS = True
-MAIL_USERNAME = 'edwinhenneken@yahoo.com'  # enter your email here
-MAIL_DEFAULT_SENDER = 'edwinhenneken@yahoo.com' # enter your email here
-MAIL_PASSWORD = 'wmngndstdnxxczzn' # enter your password here

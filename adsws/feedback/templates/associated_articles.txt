@@ -1,0 +1,16 @@
+From: {{data.name}}
+Address: {{data.email}}
+
+Correlated articles:
+{% if 'other' == data.relationship -%}
+    {{data.custom_name}}: {{data.source}}    {{data.target[0]}}
+{% else -%}
+    {{data.relationship}}: {{data.source}}    {{data.target[0]}}
+	{% if data.target|length > 1 -%}
+	{% for bibcode in data.target[1:] -%}
+	{% set indent_count = data.relationship | length -%}
+	{{bibcode | indent(indent_count + 17, true)}}
+	{% endfor %}
+	{% endif %}
+{% endif %}
+

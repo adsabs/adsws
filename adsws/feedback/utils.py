@@ -5,14 +5,20 @@ project, and so do not belong to anything specific.
 """
 from flask import current_app
 from flask.ext.mail import Message
+import json
 
-def send_feedback_email(name, sender, feedback):
-    help_email = current_app.config['FEEDBACK_EMAIL']
-    msg = Message(subject="Bumblebee Feedback from %s (%s)" % (name, sender),
-                  recipients=[help_email],
-                  sender=("adshelp", help_email),
+def send_feedback_email(name, sender, subject, data, attachments=None):
+    # Allow the default recipient to be overriden depending on email subject
+    email = current_app.config['FEEDBACK_EMAILS'].get(subject, current_app.config['DEFAULT_EMAIL'])
+    msg = Message(subject="%s from %s (%s)" % (subject, name, sender),
+                  recipients=[email],
+                  sender=("ADS", email),
                   reply_to=(name, sender),
-                  body=feedback)
+                  body=data)
+    if attachments:
+        for attachment in attachments:
+            # Each entry is a tuple of file name and JSON data
+            msg.attach(attachment[0], "application/json", json.dumps(attachment[1]))
     current_app.extensions['mail'].send(msg)
     return msg
 

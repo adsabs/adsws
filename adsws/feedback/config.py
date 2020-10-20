@@ -27,7 +27,7 @@ FEEDBACK_TEMPLATES = {
 }
 # Override defaul recipient based on email subject (key)
 FEEDBACK_EMAILS = {
-    'Missing References': 'ads@cfa.harvard.edu',
+    'Missing References': 'adsabs@cfa.harvard.edu',
 }
 
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'

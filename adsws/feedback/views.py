@@ -86,7 +86,7 @@ class UserFeedback(Resource):
         # We also attach the JSON data of the new record as a file
         if post_data.get('_subject') == 'New Record':
             try:
-                email_data['new']['author_list'] = ";".join([a['name'] for a in post_data['new']['authors']])
+                email_data['new']['author_list'] = ";".join([a['name'] for a in post_data['authors']])
             except:
                 email_data['new']['author_list'] = ""
         # Construct the email body

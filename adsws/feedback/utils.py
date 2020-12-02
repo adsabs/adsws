@@ -12,7 +12,7 @@ def send_feedback_email(name, sender, subject, data, attachments=None):
     email = current_app.config['FEEDBACK_EMAILS'].get(subject, current_app.config['DEFAULT_EMAIL'])
     msg = Message(subject="%s from %s (%s)" % (subject, name, sender),
                   recipients=[email],
-                  sender=("ADS", email),
+                  sender=("ADS Administration", current_app.config['DEFAULT_EMAIL']),
                   reply_to=(name, sender),
                   body=data)
     if attachments:

@@ -148,7 +148,7 @@ class UserFeedback(Resource):
             channel = post_data.get('channel', '#feedback')
             username = post_data.get('username', 'TownCrier')
             icon_emoji = current_app.config['FORM_SLACK_EMOJI']
-            text = 'Received data from feedback form "{0}" from {1} ({2})'.format(post_data.get('_subject'), post_data.get('name'), post_data.get('email'))
+            text = 'Received data from feedback form "{0}" from {1}'.format(post_data.get('_subject'), post_data.get('email'))
             slack_data = {
                 'text': text,
                 'username': username,
@@ -180,7 +180,7 @@ class UserFeedback(Resource):
                 email_sent = False
             if not email_sent:
                 # If the email could not be sent, we can still log the data submitted
-                current_app.logger.error('Sending of email failed. Feedback data submitted by {0} ({1}): {2}'.format(post_data, name, post_data.get('email')))
+                current_app.logger.error('Sending of email failed. Feedback data submitted by {0}: {1}'.format(post_data.get('email'), post_data))
                 return err(ERROR_EMAIL_NOT_SENT)
         # If we have Slack data, post the message to Slack
         if slack_data:

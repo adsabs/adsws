@@ -20,6 +20,7 @@ def send_feedback_email(name, sender, subject, data, attachments=None):
             # Each entry is a tuple of file name and JSON data
             msg.attach(attachment[0], "application/json", json.dumps(attachment[1]))
     current_app.extensions['mail'].send(msg)
+    current_app.logger.info('Successfully sent email: data submitted by {0}, sent to {1} (form: {2})'.format(sender, email, subject))
     return msg
 
 def err(error_dictionary):

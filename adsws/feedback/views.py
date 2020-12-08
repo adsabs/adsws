@@ -111,12 +111,12 @@ class UserFeedback(Resource):
 
         current_app.logger.info('Received feedback of type {0}: {1}'.format(post_data.get('_subject'), post_data))
 
-#        if not post_data.get('g-recaptcha-response', False) or \
-#                not verify_recaptcha(request):
-#            current_app.logger.info('The captcha was not verified!')
-#            return err(ERROR_UNVERIFIED_CAPTCHA)
-#        else:
-#            current_app.logger.info('Skipped captcha!')
+        if not post_data.get('g-recaptcha-response', False) or \
+                not verify_recaptcha(request):
+            current_app.logger.info('The captcha was not verified!')
+            return err(ERROR_UNVERIFIED_CAPTCHA)
+        else:
+            current_app.logger.info('Skipped captcha!')
         # We only allow POST data from certain origins
         allowed_origins = [v for k,v in current_app.config.items() if k.endswith('_ORIGIN')]
         origin = post_data.get('origin', 'NA')
@@ -173,42 +173,42 @@ class UserFeedback(Resource):
                 'channel': channel,
                 'icon_emoji': icon_emoji
             }
-        print email_body
+
         # If we have an email body (should always be the case), send out the email
-#        if email_body:
-#            email_sent = False
-#            try:
-#                res = send_feedback_email(name, reply_to, post_data['_subject'], email_body, attachments=attachments)
-#                email_sent = True
-#            except Exception as e:
-#                current_app.logger.error('Fatal error while processing feedback form data: {0}'.format(e))
-#                email_sent = False
-#            if not email_sent:
-#                # If the email could not be sent, we can still log the data submitted
-#                current_app.logger.error('Sending of email failed. Feedback data submitted by {0}: {1}'.format(post_data.get('email'), post_data))
-#                return err(ERROR_EMAIL_NOT_SENT)
-#        # If we have Slack data, post the message to Slack
-#        if slack_data:
-#            slack_data['text'] += '\n*sent to adshelp*: {0}'.format(email_sent)
-#            try:
-#                slack_response = requests.post(
-#                    url=current_app.config['FEEDBACK_SLACK_END_POINT'],
-#                    data=json.dumps(slack_data),
-#                    timeout=60
-#                )
-#            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-#                return b'504 Gateway Timeout', 504
-#            current_app.logger.info('slack response: {0}'
-#                                    .format(slack_response.status_code))
-#
-#            # Slack annoyingly redirects if you have the wrong end point
-#            current_app.logger.info('Slack API' in slack_response.text)
-#
-#            if 'Slack API' in slack_response.text:
-#                return err(ERROR_WRONG_ENDPOINT)
-#            elif slack_response.status_code == 200:
-#                return {}, 200
-#            else:
-#                return {'msg': 'Unknown error'}, slack_response.status_code
+        if email_body:
+            email_sent = False
+            try:
+                res = send_feedback_email(name, reply_to, post_data['_subject'], email_body, attachments=attachments)
+                email_sent = True
+            except Exception as e:
+                current_app.logger.error('Fatal error while processing feedback form data: {0}'.format(e))
+                email_sent = False
+            if not email_sent:
+                # If the email could not be sent, we can still log the data submitted
+                current_app.logger.error('Sending of email failed. Feedback data submitted by {0}: {1}'.format(post_data.get('email'), post_data))
+                return err(ERROR_EMAIL_NOT_SENT)
+        # If we have Slack data, post the message to Slack
+        if slack_data:
+            slack_data['text'] += '\n*sent to adshelp*: {0}'.format(email_sent)
+            try:
+                slack_response = requests.post(
+                    url=current_app.config['FEEDBACK_SLACK_END_POINT'],
+                    data=json.dumps(slack_data),
+                    timeout=60
+                )
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                return b'504 Gateway Timeout', 504
+            current_app.logger.info('slack response: {0}'
+                                    .format(slack_response.status_code))
+
+            # Slack annoyingly redirects if you have the wrong end point
+            current_app.logger.info('Slack API' in slack_response.text)
+
+            if 'Slack API' in slack_response.text:
+                return err(ERROR_WRONG_ENDPOINT)
+            elif slack_response.status_code == 200:
+                return {}, 200
+            else:
+                return {'msg': 'Unknown error'}, slack_response.status_code
 
         return {}, 200

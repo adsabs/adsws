@@ -58,4 +58,4 @@ data = {
   "diff": "%0A%20%20%3E%3E%3E%3E%20Title%0A%20%20test%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20Publication%0A%20%20test%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20PublicationDate%0A%20%202020-01%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20Comments%0A%20%20test%0A%20%20%3C%3C%3C%3C"
 }
 
-response = 'From: Tim Hostetler\nAddress: twhostetler0@gmail.com\n\nCorrection for 2021NewA...8301464S:\n\n\n  >>>> Title\n  test\n  <<<<\n\n  >>>> Publication\n  test\n  <<<<\n\n  >>>> PublicationDate\n  2020-01\n  <<<<\n\n  >>>> Comments\n  test\n  <<<<'
+response = 'From: Tim Hostetler\nAddress: twhostetler0@gmail.com\n\nCorrection for 2021NewA...8301464S:\n\n>>>> $delete\n2021NewA...8301464S\temail\n2021NewA...8301464S\trecaptcha\n2021NewA...8301464S\tentryType\n2021NewA...8301464S\tname\n>>>>\n>>>> collection\n2021NewA...8301464S\tastronomy\n2021NewA...8301464S\tphysics\n>>>>\n'

@@ -42,7 +42,10 @@ def make_diff(original, updated):
         elif isinstance(changes,list):
             for item in changes:
                 try:
-                    results += "{0}\t{1}\n".format(updated['bibcode'], item.replace('(bibcode) ','').replace('(reference) ',''))
+                    if field == 'references':
+                        results += "{0}\t{1}\n".format(updated['bibcode'], item.replace('(bibcode) ','').replace('(reference) ',''))
+                    else:
+                        results += str(item) + "\n"
                 except:
                     results += str(item) + "\n"
         else:

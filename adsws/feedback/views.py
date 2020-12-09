@@ -12,7 +12,7 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 from adsws.feedback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
-from utils import send_feedback_email
+from utils import send_feedback_email, make_diff
 from urllib import unquote
 
 API_DOCS = 'https://github.com/adsabs/adsabs-dev-api'
@@ -76,17 +76,21 @@ class UserFeedback(Resource):
                 email_data.pop(key, None)
         # Retrieve the appropriate template
         template = current_app.config['FEEDBACK_TEMPLATES'].get(email_data.get('_subject'))
-        # For abstract corrections, the POST payload has a "diff" attribute that contains
+        # For abstract corrections, we determine a diff from the original and updated records.
+        # In case this fails we fall back on the POST data "diff" attribute that contains
         # the updated fields in Github "diff" format, URL encoded. For display purposes,
         # this needs to be decoded.
-        if post_data.has_key('diff'):
-            email_data['diff'] = unquote(post_data['diff'])
+        if post_data.get('_subject') == 'Updated Record':
+            try:
+                email_data['diff'] = make_diff(post_data['original'], post_data['new'])
+            except:
+                email_data['diff'] = unquote(post_data.get('diff',''))
         # In the case of a new record the mail body will show a summary
         # In this summary it's easier to show a author list in the form of a string
         # We also attach the JSON data of the new record as a file
         if post_data.get('_subject') == 'New Record':
             try:
-                email_data['new']['author_list'] = ";".join([a['name'] for a in post_data['new']['authors']])
+                email_data['new']['author_list'] = ";".join([a for a in post_data['new']['authors']])
             except:
                 email_data['new']['author_list'] = ""
         # Construct the email body

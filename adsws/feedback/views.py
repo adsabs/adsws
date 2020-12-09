@@ -90,7 +90,7 @@ class UserFeedback(Resource):
         # We also attach the JSON data of the new record as a file
         if post_data.get('_subject') == 'New Record':
             try:
-                email_data['new']['author_list'] = ";".join([a['name'] for a in post_data['new']['authors']])
+                email_data['new']['author_list'] = ";".join([a for a in post_data['new']['authors']])
             except:
                 email_data['new']['author_list'] = ""
         # Construct the email body
@@ -173,7 +173,6 @@ class UserFeedback(Resource):
                 'channel': channel,
                 'icon_emoji': icon_emoji
             }
-
         # If we have an email body (should always be the case), send out the email
         if email_body:
             email_sent = False

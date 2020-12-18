@@ -60,7 +60,7 @@ def _build_updated_cookies(request, user_token, route, name):
         cookies_header.pop(name, None)
         cookies.pop(name, None)
     # Transform cookies structures into the format that request requires
-    cookies_header_content = cookies_header.output(header="", sep=";")
+    cookies_header_content = cookies_header.output(header="", sep=";").strip()
     cookies_content = ImmutableTypeConversionDict(cookies)
     return cookies_header_content, cookies_content
 

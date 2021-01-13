@@ -35,7 +35,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
-    
+
     app.logger.debug(
         'Attempting bootstrap_local_module [{0}]'.format(service_uri)
     )
@@ -66,14 +66,14 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
         if deploy_path in local_app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
             view = affinity_decorator(ratelimit._storage.storage, name=local_app.config['AFFINITY_ENHANCED_ENDPOINTS'].get(deploy_path))(view)
-        
-        
+
+
         # Decorate the view with ratelimit
         if hasattr(attr_base, 'rate_limit'):
-            
+
             # collect symbolic ratelimits
             _update_symbolic_ratelimits(app, route, {'rate_limit': attr_base.rate_limit})
-            
+
             # create local (default) ratelimits
             d = attr_base.rate_limit[0]
             view = ratelimit.shared_limit_and_check(
@@ -109,7 +109,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     :param app: flask.Flask application instance
     :return: None
     """
-    
+
     app.logger.debug(
         'Attempting bootstrap_remote_service [{0}]'.format(service_uri)
     )
@@ -161,10 +161,10 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     # If any part of this procedure fails, log that we couldn't produce this
     # ProxyView, but otherwise continue.
     for resource, properties in resource_json.iteritems():
-        
+
         properties.setdefault('rate_limit', [1000, 86400])
         properties.setdefault('scopes', [])
-        
+
         if resource.startswith('/'):
             resource = resource[1:]
         route = os.path.join(deploy_path, resource)
@@ -179,9 +179,9 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
 
 
         _update_symbolic_ratelimits(app, route, properties)
-        
-        
-        
+
+
+
         for method in properties['methods']:
             if method not in proxyview.methods:
                 app.logger.warning("Could not create a ProxyView for "
@@ -190,9 +190,6 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                 continue
 
             view = proxyview.dispatcher
-
-            if deploy_path in app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
-                view = affinity_decorator(ratelimit._storage.storage, name=app.config['AFFINITY_ENHANCED_ENDPOINTS'].get(deploy_path))(view)
 
             # Decorate the view with ratelimit.
             d = properties['rate_limit'][0]
@@ -203,6 +200,9 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
                 methods=[method],
                 per_method=False
             )(view)
+
+            if deploy_path in app.config.get('AFFINITY_ENHANCED_ENDPOINTS', []):
+                view = affinity_decorator(ratelimit._storage.storage, name=app.config['AFFINITY_ENHANCED_ENDPOINTS'].get(deploy_path))(view)
 
             # Decorate with the advertised oauth2 scopes
             view = oauth2.require_oauth(*properties['scopes'])(view)
@@ -258,29 +258,29 @@ def _update_symbolic_ratelimits(app, route, properties):
     """Build information about ratelimit groups; this data
     is used for ratelimiting endpoints that should share
     ratelimit counters.
-    
+
     All the info is stored in the current application
     (which is a global object)
     """
-    
+
     symbolic_ratelimits = app.extensions['symbolic_ratelimits'] #fail if not properly initiated
-    
+
     if route in symbolic_ratelimits:
         return # already there
-    
-    
+
+
     # check if the remote endpoint ratelimit should belong to a
     # virtual ratelimit group (and build the info accordingly)
     for ratelimit_group, values in app.config.get('RATELIMIT_GROUPS', {}).items():
-        
-        
+
+
         # if not supplied, we'll use limits of the endpoint
         count, per_second = isinstance(values, dict) and values.get('limits', [properties['rate_limit'][0], properties['rate_limit'][1]]) \
             or [properties['rate_limit'][0], properties['rate_limit'][1]]
-        
-    
+
+
         endpoint_patterns = isinstance(values, dict) and values.get('patterns', []) or values
-        
+
         for pattern_num, pattern in enumerate(endpoint_patterns):
             try:
                 p = re.compile(pattern)
@@ -288,22 +288,22 @@ def _update_symbolic_ratelimits(app, route, properties):
                     app.logger.info("Endpoint {endpoint} will belong to a virtual ratelimit {group}"
                                     .format(endpoint=route, group=ratelimit_group))
                     if ratelimit_group not in symbolic_ratelimits:
-                        symbolic_ratelimits[ratelimit_group] = {'key': ratelimit_group, 
+                        symbolic_ratelimits[ratelimit_group] = {'key': ratelimit_group,
                                                                 '#': pattern_num,
                                                                 'count': count,
                                                                 'per_second': per_second}
-                    
+
                     pointer = symbolic_ratelimits[ratelimit_group]
                     symbolic_ratelimits[route] = pointer
-                    
+
                     # lower orders have higher priority (over-riding ratelimits)
                     # it matters only when ratelimits were not explicitly configured
                     if pattern_num < pointer['#']:
                         pointer['count'] = count
                         pointer['per_second'] = per_second
-                    
+
                     break
-                    
+
             except:
                 app.logger.error("Error compiling regex {regex} for ratelimit {group}"
                                  .format(regex=pattern, group=ratelimit_group))

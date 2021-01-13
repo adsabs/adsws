@@ -39,6 +39,6 @@ WEBSERVICES = {
 # WEBSERVICES_DISCOVERY_CACHE_DIR='/tmp'
 
 API_PROXYVIEW_HEADERS = {'Cache-Control': 'public, max-age=600'}
-REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition']
+REMOTE_PROXY_ALLOWED_HEADERS = ['Content-Type', 'Content-Disposition', 'Set-Cookie'] # Set-Cookie required for affinity
 
 AFFINITY_ENHANCED_ENDPOINTS = {"/search": "sroute",} # keys: deploy paths, value: cookie

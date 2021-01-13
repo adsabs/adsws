@@ -100,7 +100,7 @@ def affinity_decorator(storage, name="sroute"):
                 response_headers = None
 
             if user_token and response_headers:
-                set_cookie = response_headers.get('Set-Cookie', None)
+                set_cookie = response_headers.pop('Set-Cookie', None)
                 if set_cookie:
                     # If solr issued a set cookie, store the value in redis linked to the user token
                     cookie = Cookie.SimpleCookie()

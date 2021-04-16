@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: API for Astrophysics Data System (ADS)
   description: |
@@ -9,60 +9,49 @@ info:
       - search: https://github.com/adsabs/solr-service
       - server side store: https://github.com/adsabs/myads
       - orcid: https://github.com/adsabs/orcid-service
+  termsOfService: https://ui.adsabs.harvard.edu/help/terms/
   contact:
     name: ADS Help
+    url: https://github.com/adsabs/adsabs-dev-api
     email: adshelp@cfa.harvard.edu
+  license:
+    name: XXX
+    url: https://ui.adsabs.harvard.edu/help/terms/
   version: 1.0.0
 servers:
-  - url: 'https://api.adsabs.harvard.edu/{basePath}'
+  - url: https://api.adsabs.harvard.edu/{basePath}
     description: Production Server
     variables:
       basePath:
         default: v1
         enum:
           - v1
-  - url: 'qa.adsabs.harvard.edu/{basePath}'
+  - url: https://devapi.adsabs.harvard.edu/{basePath}
     description: Development Server
     variables:
       basePath:
         default: v1
         enum:
           - v1
-          - v2
 components:
   securitySchemes:
     ApiKeySecurity:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      name: Authorization
-      in: header
-    OauthSecurity:
-      type: oauth2
-      flows:
-        authorizationCode:
-          authorizationUrl: 'https://api.adsabs.harvard.edu/oauth/authorization'
-          tokenUrl: 'https://api.adsabs.harvard.edu/oauth/token'
-          scopes:
-            user: User scopes
-            api: Api user scopes
-            store-query: Save into RDB
-            execute-query: Run saved query
-            store-preferences: Acces or save user preferences
-            'ads-consumer:orcid': Access to the privileged operations
   parameters:
     q:
       name: q
       description: >-
         Query string; for detailed documentation go to
-        http://ui.adsabs.harvard.edu/help
+        https://ui.adsabs.harvard.edu/help/search/search-syntax
       in: query
       required: true
       schema:
         type: string
     rows:
       name: rows
-      description: 'How many records to return for this request (default=10, maximum=200)'
+      description: How many records to return for this request (default=10, maximum=200)
       in: query
       required: false
       schema:
@@ -89,8 +78,7 @@ components:
       explode: false
       schema:
         type: array
-        default:
-          - id
+        default: id
         uniqueItems: true
         items:
           type: string
@@ -98,43 +86,72 @@ components:
             - abstract
             - ack
             - aff
+            - aff_id
             - alternate_bibcode
             - alternate_title
             - arxiv_class
             - author
+            - author_count
+            - author_norm
             - bibcode
             - bibgroup
             - bibstem
-            - body
+            - citation
             - citation_count
+            - cite_read_boost
+            - classic_factor
+            - comment
             - copyright
             - data
             - database
-            - doi
+            - date
             - doctype
+            - doi
+            - eid
+            - entdate
+            - entry_date
+            - esources
+            - facility
             - first_author
+            - first_author_norm
             - grant
+            - grant_agencies
+            - grant_id
             - id
             - identifier
             - indexstamp
+            - inst
+            - isbn
+            - issn
             - issue
             - keyword
+            - keyword_norm
+            - keyword_schema
             - lang
+            - links_data
+            - nedid
+            - nedtype
             - orcid_pub
-            - orcid_use
             - orcid_other
+            - orcid_user
             - page
+            - page_count
+            - page_range
             - property
             - pub
+            - pub_raw
             - pubdate
+            - pubnote
             - read_count
+            - reference
+            - simbid
             - title
             - vizier
             - volume
             - year
     start:
       name: start
-      description: 'For pagination, offset of the first returned result (default=0)'
+      description: For pagination, offset of the first returned result (default=0)
       in: query
       required: false
       schema:
@@ -144,26 +161,50 @@ components:
     sort:
       name: sort
       description: >
-        The format is 'field direction' where direction is one of 'asc' or
+        The format is 'field' + 'direction' where direction is one of 'asc' or
         'desc' and field is any of the valid indexes. The default sorting is by
         relevance (computed by our search engine). Example\:
-        'sort=read_count+desc' Some useful fields to sort by may be pubdate,
-        citation_count, or num_readers.
+        'sort=read_count+desc' Some useful fields to sort by may be date,
+        citation_count, or read_count.
       in: query
       required: false
       schema:
         type: string
+        enum:
+          - id asc
+          - author_count asc
+          - bibcode asc
+          - citation_count asc
+          - citation_count_norm asc
+          - classic_factor asc
+          - first_author asc
+          - date asc
+          - entry_date asc
+          - read_count asc'
+          - score asc
+          - id desc
+          - author_count desc
+          - bibcode desc
+          - citation_count desc
+          - citation_count_norm desc
+          - classic_factor desc
+          - first_author desc
+          - date desc
+          - entry_date desc
+          - read_count desc
+          - score desc
     orcidId:
       name: orcidId
       in: path
-      description: 'ORCiD ID, i.e. ''0000-0000-0000-0000'''
+      description: ORCiD ID, i.e. '0000-0000-0000-0000'
       schema:
         type: string
       required: true
     OrcidAuthorization:
       name: Orcid-Authorization
       in: header
-      description: '`access_token` of the orcid user (will be passed on to the ORCiD API)'
+      description: >
+        'access_token' of the orcid user (will be passed on to the ORCiD API)
       schema:
         type: string
     jsonpayload:
@@ -191,11 +232,38 @@ components:
           schema:
             $ref: '#/components/schemas/results'
     VaultResponse:
-      description: Response from myads service
+      description: Response from vault storage service
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/vaultObject'
+            type: object
+            properties:
+              numfound:
+                readOnly: true
+                type: integer
+                description: >
+                  Number of docs this query found (the last time it was executed; this
+                  number is up to date only when the query is stored). But if you see number higher
+                  than 0 then you can be sure that the query was executed.
+              qid:
+                readOnly: true
+                type: string
+                description: >
+                  Query ID (unique hash identifying all the parameters; it is computed
+                  from the supplied query parameters)
+              query:
+                type: string
+                description: >
+                  Serialized JSON input search parameters
+    ErrorResponse:
+      description: Response returned with an error status code
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
   schemas:
     qtree:
       type: object
@@ -210,6 +278,10 @@ components:
       properties:
         responseHeader:
           $ref: '#/components/schemas/responseHeader'
+        numFound:
+          type: integer
+        start:
+          type: integer
         docs:
           type: array
           items:
@@ -236,97 +308,109 @@ components:
           description: >-
             search time in millisecs (only search, without faceting, latency and
             all other steps)
+        parameters:
+          description: Input search parameters
+          type: object
+          properties:
+            q:
+              type: string
+            fl:
+              type: string
+            start:
+              type: string
+            rows:
+              type: string
     vaultObject:
       type: object
       properties:
-        numfound:
-          readOnly: true
-          type: integer
-          description: >
-            Number of docs this query found (the last time it was executed; this
-            number is up to
-
-            date only when the query is stored). But if you see number higher
-            than 0 then you can be sure that
-
-            the query was executed.
-        qid:
-          readOnly: true
+        q:
+          $ref: '#/components/parameters/q'
+        fl:
+          $ref: '#/components/parameters/fl'
+        start:
+          $ref: '#/components/parameters/start'
+        rows:
+          $ref: '#/components/parameters/rows'
+        sort:
+          $ref: '#/components/parameters/sort'
+        fq:
           type: string
           description: >
-            Query ID (unique hash identifying all the parameters; it is computed
-            from the supplied query
-
-            parameters)
-        query:
-          type: string
-          description: JSON serialized query parameters
+            must be set to `'{!bitset}'`
         bigquery:
           type: string
           description: >
             new line separated list of bibcodes, the first line is the name of
-            the index that will be
-
-            searched, right now we only support search in `bibcode` index
+            the index that will be searched, right now we only support search in `bibcode` index
 security:
   - ApiKeySecurity: []
-  - OauthSecurity:
-      - user
-      - api
-      - store-query
-      - execute-query
-      - store-preferences
-      - 'ads-consumer:arcid'
 paths:
   /search/query:
     get:
       description: >
 
         Query the search engine and return results. All parameters have to be
-        properly url-encoded UTF-8. The response body will always be json
+        properly url-encoded UTF-8. The response body will always be JSON
         encoded.
 
 
-        ## Example result
+        ## Example Search
 
-        ```JSON
+        `q=bibcode:2012A%26A...542A..16R&fl=bibcode,author,pub,identifier,title,property,abstract,keyword,aff`
 
-        {
-            "bibcode": "2012A&A...542A..16R",
-            "author": [
-              "Ranalli, P.",
-              "Comastri, A.",
-              ...
-            ],
-            "pub": "Astronomy and Astrophysics",
-            "identifier": [
-              "2012arXiv1204.4485R",
-              "arXiv:1204.4485",
-              "2012A&A...542A..16R"
-            ],
-            "title": "X-ray properties of radio-selected star forming galaxies in the Chandra-COSMOS survey",
-            "property": [
-              "REFEREED",
-              "ARTICLE"
-            ],
-            "abstract": "X-ray surveys contain sizable numbers of star forming galaxies, ...",
-            "keyword": [
-              "astronomy x rays",
-              "astronomy radio",
-              "galaxies fundamental parameters",
-              "galaxies star clusters",
-              "galaxies active"
-            ],
-            "aff": [
-              "Università di Bologna, Dipartimento di Astronomia, via Ranzani 1, 40127, Bologna, Italy ; Institute of Astronomy and Astrophysics, National Observatory of Athens, Palaia Penteli, 15236, Athens, Greece; INAF - Osservatorio Astronomico di Bologna, via Ranzani 1, 40127, Bologna, Italy",
-              "INAF - Osservatorio Astronomico di Bologna, via Ranzani 1, 40127, Bologna, Italy",
-            ],
-          }
+        ## Example Response
+
+        ```{
+          "responseHeader":{
+            "status":0,
+            "QTime":3,
+            "params":{
+              "q":"bibcode:2012A&A...542A..16R",
+              "fl":"bibcode,author,pub,identifier,title,property,abstract,keyword",
+              "start":"0",
+              "rows":"10",
+              "wt":"json"}},
+          "response":{"numFound":1,"start":0,"docs":[
+            {
+              "identifier":["2012arXiv1204.4485R",
+                "2012A&A...542A..16R",
+                "10.1051/0004-6361/201118723",
+                "10.1051/0004-6361/201118723",
+                "arXiv:1204.4485",
+                "2012arXiv1204.4485R"],
+              "abstract":"X-ray surveys contain sizable numbers [...],
+              "property":["ARTICLE",
+                "ASSOCIATED",
+                "DATA",
+                "EPRINT_OPENACCESS",
+                "ESOURCE",
+                "OPENACCESS",
+                "PUB_OPENACCESS",
+                "REFEREED"],
+              "bibcode":"2012A&A...542A..16R",
+              "author":["Ranalli, P.",
+                "Comastri, A.",
+                "Zamorani, G.",
+                "Cappelluti, N.",
+                "Civano, F.",
+                "Georgantopoulos, I.",
+                "Gilli, R.",
+                "Schinnerer, E.",
+                "Smolčić, V.",
+                "Vignali, C."],
+              "pub":"Astronomy and Astrophysics",
+              "keyword":["X-rays: galaxies",
+                "radio continuum: galaxies",
+                "galaxies: fundamental parameters",
+                "galaxies: star formation",
+                "galaxies: active",
+                "galaxies: high-redshift",
+                "Astrophysics - Cosmology and Extragalactic Astrophysics"],
+              "title":["X-ray properties of radio-selected star forming galaxies in the Chandra-COSMOS survey"]}]
+          }}
         ```
 
-        ### Example Search Requests
-
-
+        ## Example Search Requests
 
         Query | Explanation
 
@@ -345,6 +429,7 @@ paths:
 
         `q=transiting+exoplanets&rows=200&start=201`|   Same search but get the
         next 200 rows
+
       parameters:
         - $ref: '#/components/parameters/q'
         - $ref: '#/components/parameters/fq'
@@ -355,8 +440,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/SearchResults'
+        '400':
+          description: Malformed request
         '404':
-          $ref: '#/components/responses/SearchResults'
+          description: Resource not found
         '499':
           description: Server too busy
         '500':
@@ -368,7 +455,7 @@ paths:
       description: >
         Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our
         query parser. The structure can be used by external applications to
-        rewrite the query or check its syntactic correctnes.
+        rewrite the query or check its syntactic correctness.
 
 
         ## Example result
@@ -390,47 +477,60 @@ paths:
         ```
       parameters:
         - $ref: '#/components/parameters/q'
+        - $ref: '#/components/parameters/fq'
+        - $ref: '#/components/parameters/fl'
+        - $ref: '#/components/parameters/start'
+        - $ref: '#/components/parameters/rows'
+        - $ref: '#/components/parameters/sort'
       responses:
         '200':
           $ref: '#/components/responses/QTree'
+        '400':
+          description: Malformed request
+        '404':
+          description: Resource not found
+        '499':
+          description: Server too busy
+        '500':
+          description: Server error
+      tags:
+        - search
   /search/bigquery:
     post:
       description: >
-        Search endpoint which accepts list of many IDs (bibcodes). Supports
+        Search endpoint which accepts a list of many IDs (bibcodes). Supports
         paging.
 
 
-        Returns standard search results, but accepts as input very large query
+        This endpoint accepts standard search query parameters and returns
+        standard search results, but it also accepts as input a very large query
         (i.e. a query that can be expressed only as a list of search
-
         criteria, typically IDs). There is currently no limit to the size of the
         submitted data (besides buffer/time limits imposed by our API
-
-        frontend), however there are severe limits on how often you can call
-        this enpoint. Typically, only 100 requests per day are allowed.
+        frontend); however, there are severe limits on how often you can call
+        this endpoint. Typically, only 100 requests per day per user are allowed.
 
 
         The `bigquery` is always executed as a filter **after** the main query
         (to filter out unwanted results and keep only the results
-
         specified by the `bigquery`). You may want to use `q=*:*` to filter
         contents of the whole database, however it is advisable to make
-
         the `q` as specific as possible. Broad queries have higher `qTime`
         (execution time) and that will be counted towards your rate-limit
-
         (in the future).
 
 
-
-        The bigquery filter is *applied only after* the main search (ie: it
+        The bigquery filter is *applied only after* the main search (i.e. it
         limits results of the main search).
 
 
-        ## Example request
+        ## Example requests
 
 
-        ```python
+        Python
+
+
+        ```
           import requests
           bibcodes="bibcode\n1907AN....174...59.\n1908PA.....16..445.\n1989LNP...334..242S"
           r = requests.post('https://api.adsabs.harvard.edu/v1/search/bigquery',
@@ -438,41 +538,42 @@ paths:
                headers={'Authorization': 'Bearer:TOKEN'},
                data=bibcodes)
         ```
+
+
+        Bash curl
+
+
+        ```
+          curl 'https://api.adsabs.harvard.edu/v1/search/bigquery?q=*:*&fl=bibcode' \
+          -X 'POST' -H 'Authorization: Bearer TOKEN' -H 'Content-Type: big-query/csv' \
+          -d $'bibcode\n1907AN....174...59.\n1908PA.....16..445.\n1989LNP...334..242S'
+        ```
       security:
-        - OauthSecurity:
-            - api
+        - ApiKeySecurity: []
       parameters:
         - $ref: '#/components/parameters/q'
-        - name: filestream
-          in: header
-          required: true
-          schema:
-            type: string
-          description: >
-            Newline separated list of values, the first line specifies the index
-            field, the rest are the search values. <br/> Currently, we
-
-            allow to search in `bibcode` index only. You can submit `canonical`
-            as well as `alternate` bibcodes - the search will automatically
-
-            match both. In the future, the list of available indexes may be
-            extended).
-        - name: Content-Type
-          in: header
-          required: false
-          description: >
-            Default is `big-query/csv`, it influences the way how the values
-            from the `filestream` parameter are parsed. In the future ADS may
-            support `json` and some other formats. The header can also be used
-            to pass additional information to the query parser.
-          schema:
-            default: big-query/csv
-            type: string
         - $ref: '#/components/parameters/fq'
         - $ref: '#/components/parameters/fl'
         - $ref: '#/components/parameters/start'
         - $ref: '#/components/parameters/rows'
         - $ref: '#/components/parameters/sort'
+      requestBody:
+        description: >
+          Newline separated list of values; the first line specifies the index
+          field, the rest are the search values. <br/> Currently, we
+          allow searching in `bibcode` index only. You can submit `canonical`
+          as well as `alternate` bibcodes - the search will automatically
+          match both. In the future, the list of available indexes may be
+          extended.
+
+
+          Note: to correctly format the POST payload, including the newline (\n)
+          characters, in a bash curl request, use ANSI-C quoting (e.g. `$'...'`)
+          as shown in the examples.
+        content:
+          big-query/csv:
+            schema:
+              type: string
       responses:
         '200':
           $ref: '#/components/responses/SearchResults'
@@ -487,35 +588,39 @@ paths:
   /vault/query:
     post:
       description: |
-        Save a query for later execution.
+        Save a query for later execution. Can be either a regular query or a bigquery.
 
         ## Example request
 
         ```bash
           $ curl 'https://api.adsabs.harvard.edu/v1/vault/query' -H 'Authorization: Bearer:TOKEN' \
-            -X POST -d $'{"q":"*:*, "bigquery": "bibcode\\n15IAUGA..2257982A\\n2015IAUGA..2257768A\\n2015IAUGA..2257639R\\n2015ASPC..492..208G\\n2015ASPC..492..204F\\n2015ASPC..492..189A\\n2015ASPC..492..150T\\n2015ASPC..492...85E\\n2015ASPC..492...80H\\n2015AAS...22533656H"}' \
+            -X POST -d $'{"q":"*:*", "bigquery": "bibcode\\n2015IAUGA..2257982A\\n2015IAUGA..2257768A\\n2015IAUGA..2257639R", "fq": "{!bitset}"}' \
             -H 'Content-Type: application/json'
 
-          > {"qid": "dcd173130bbbbb957eafd866baf38b2c", "numFound": 9}
+          > {"qid": "00b39fe4274760f5d8b348815a661ee2", "numFound": 3}
         ```
-      parameters:
-        - name: jsonobj
-          description: JSON object holding the values to submit.
-          required: true
-          in: header
-          schema:
-            $ref: '#/components/schemas/vaultObject'
+      requestBody:
+        description: >
+          JSON object holding the values to submit.
+
+
+          Note: to correctly format the POST payload if running a bigquery,
+          including the newline (\n) characters, in a bash curl request,
+          use ANSI-C quoting (e.g. `$'...'`) as shown in the examples.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/vaultObject'
       tags:
-        - search
+        - stored search
       security:
-        - OauthSecurity:
-            - store-query
+        - ApiKeySecurity: []
       responses:
         '200':
           $ref: '#/components/responses/VaultResponse'
         '404':
           description: QID object not found
-  '/vault/query/{queryId}':
+  /vault/query/{queryId}:
     get:
       description: |
         Retrive information about the previously stored query.
@@ -537,10 +642,9 @@ paths:
           schema:
             type: string
       tags:
-        - search
+        - stored search
       security:
-        - OauthSecurity:
-            - store-query
+        - ApiKeySecurity: []
       responses:
         '200':
           $ref: '#/components/responses/VaultResponse'
@@ -619,413 +723,756 @@ paths:
           schema:
             $ref: '#/components/schemas/vaultObject'
       tags:
-        - search
+        - stored search
       security:
-        - OauthSecurity:
-            - execute-query
+        - ApiKeySecurity: []
       responses:
         '200':
           $ref: '#/components/responses/SearchResults'
         '404':
           description: QID object not found
-  /vault/user-data:
+  /biblib/libraries:
     get:
       description: >
-        Retrive stored preferences. No parameter is passed besides the
-        `Authorization` header; user
-
-        is identified based on that.
+        View all libraries for the user associated with the given API token.
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
       responses:
         '200':
-          description: JSON
-        '404':
-          description: User not found
-      security:
-        - OauthSecurity:
-            - store-preferences
-      x-ratelimit:
-        period: day
-        limit: 1000
-      tags:
-        - user
-        - store
-    post:
-      description: |
-        Endpoint for saving user preferences. Used mostly by BumbleBee client.
-
-        ## Example request
-
-        ```bash
-          $ curl -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>" "https://api.adsabs.harvard.edu/v1/vault/user-data" -X POST -d $'{"foo": "bar"}'
-          > {"foo": "bar"}
-        ```
-      parameters:
-        - $ref: '#/components/parameters/jsonpayload'
-      responses:
-        '200':
-          description: JSON
-        '404':
-          description: User not found
-      security:
-        - OauthSecurity:
-            - store-preferences
-      x-ratelimit:
-        period: day
-        limit: 100
-      tags:
-        - user
-        - store
-  '/vault/configuration/{key}':
-    get:
-      description: >
-        Retrive various configuration options for the Bumblebee client. This
-        config is static and controlled by ADS;
-
-        there is no way to update it from outside.
-
-
-        ## Example Response
-
-
-        ```JSON
-
-        {
-            "link_servers": [
-                {
-                    "gif": "http://sfx.brown.edu:8888/sfx_local/sfx.gif",
-                    "link": "http://sfx.brown.edu:8888/sfx_local",
-                    "name": "Brown University Library"
-                },
-                {
-                    "gif": "http://sfx.caltech.edu:8088/images/sfx.gif",
-                    "link": "http://sfx.caltech.edu:8088/caltech",
-                    "name": "California Institute of Technology"
-                },
-                {
-                    "gif": "http://elibrary.cf.ac.uk/sfx/img/azlist_ver3/cardiffsfx.gif",
-                    "link": "http://elibrary.cf.ac.uk/sfx",
-                    "name": "Cardiff University"
-                }]
-        }
-
-        ```
-      parameters:
-        - name: key
-          in: path
-          description: >-
-            Optional. Denotes the key that should be returned from the
-            configuration. When empty, default is to return everything.
-          schema:
-            type: string
-          required: true
-      responses:
-        '200':
-          description: JSON
-        '404':
-          description: Key not found
-      security:
-        - OauthSecurity: []
-      x-ratelimit:
-        period: day
-        limit: 100
-      tags:
-        - user
-  '/orcid/get-profile/{orcidId}':
-    get:
-      description: >
-        Check with ORCiD and downloads the fresh profile from the ORCiD API. We
-        can return the orcid profile only if a user ever logged in with
-
-        ADS (and also the OAuth access_token is stil valid).
-
-
-        ## Example Response
-
-
-        ```JSON
-          {
-          "error-desc": null,
-          "message-version": "1.2",
-          "orcid-profile": {
-              "client-type": null,
-              "group-type": null,
-              "orcid": null,
-              "orcid-activities": {
-                  "affiliations": null,
-                  "funding-list": null,
-                  "orcid-works": {
-                      "orcid-work": [
-                          {
-                              "country": null,
-                              "created-date": {
-                                  "value": 1446830582917
-                              },
-                              "journal-title": null,
-                              "language-code": null,
-                              "last-modified-date": {
-                                  "value": 1446830582917
-                              },
-                              "publication-date": {
-                                  "day": null,
-                                  "media-type": null,
-                                  "month": {
-                                      "value": "08"
-                                  },
-                                  "year": {
-                                      "value": "2015"
-                                  }
-                              },
-                              "put-code": "20054210",
-                              "short-description": "Whether or not scholarly publications are going through an evolution or revolution, one comforting certainty remains: the NASA Astrophysics Data System (ADS) is here to help the working astronomer and librarian navigate through the increasingly complex communication environment we find ourselves in. Born as a bibliographic database, today's ADS is best described as a an \"aggregator\" of scholarly resources relevant to the needs of researchers in astronomy and physics. In addition to indexing content from a variety of publishers, data and software archives, the ADS enriches its records by text-mining and indexing the full-text articles, enriching its metadata through the extraction of citations and acknowledgments and the ingest of bibliographies and data links maintained by astronomy institutions and data archives. In addition, ADS generates and maintains citation and co-readership networks to support discovery and bibliometric analysis.In this talk I will summarize new and ongoing curation activities and technology developments of the ADS in the face of the ever-changing world of scholarly publishing and the trends in information-sharing behavior of astronomers. Recent curation efforts include the indexing of non-standard scholarly content (such as software packages, IVOA documents and standards, and NASA award proposals); the indexing of additional content (full-text of articles, acknowledgments, affiliations, ORCID ids); and enhanced support for bibliographic groups and data links. Recent technology developments include a new Application Programming Interface which provides access to a variety of ADS microservices, a new user interface featuring a variety of visualizations and bibliometric analysis, and integration with ORCID services to support paper claiming.",
-                              "source": {
-                                  "source-client-id": {
-                                      "host": "orcid.org",
-                                      "path": "APP-BA5POB6F5D7CTHX2",
-                                      "uri": "http://orcid.org/client/APP-BA5POB6F5D7CTHX2",
-                                      "value": null
-                                  },
-                                  "source-date": {
-                                      "value": 1446830582917
-                                  },
-                                  "source-name": {
-                                      "value": "NASA ADS"
-                                  },
-                                  "source-orcid": null
-                              },
-            # output truncated ....
-        ```
-      parameters:
-        - $ref: '#/components/parameters/orcidId'
-      responses:
-        '200':
-          description: JSON
-        '404':
-          description: |
-            JSON
-
-            When the user revoked their OAuth ORCiD token
-
-            ```JSON
-            {
-             "error" : "We do not have access_token for: 0000-0000-0000-0000"
-            }
-            ```
-
-            If the ORCiD ID is not known to us
-
-            ```JSON
-            {
-             "error" : "We do not have a record for: 0000-0000-0000-0000"
-            }
-            ```
-      security:
-        - OauthSecurity:
-            - 'ads-consumer:orcid'
-      x-ratelimit:
-        period: day
-        limit: 100
-      tags:
-        - user
-        - orcid
-  '/orcid/export/{iso_date}':
-    get:
-      description: >
-        Return information about users who recently updated their ORCiD
-        information through Bumblebee (ADS UI). This includes also
-
-        users who just accessed their ORCiD profiles, even if they didn't make
-        new claims. This enpoint always returns maximum of 10
-
-        records created since (inclusive) the requested date. To access the next
-        records, use the `updated` date + 1 additional microsecond.
-
-
-
-        ## Example Response
-
-
-        ```JSON
-
-        [
-            {
-                "created": "2015-11-15T17:46:28.657982",
-                "orcid_id": "0000-0002-9384-846X",
-                "updated": "2015-11-15T20:58:27.656195",
-                "info": {},
-                "profile": {
-                    "error-desc": null,
-                    "message-version": "1.2",
-                    "orcid-profile": {
-                        "client-type": null,
-                        "group-type": null,
-                        "orcid": null,
-                        "orcid-activities": {
-                            "affiliations": {
-                                "affiliation": [
-                                    {
-                                        "created-date": {
-                                            "value": 1438088550409
-                                        },
-                                        "department-name": null,
-                                        "end-date": null,
-                                        "last-modified-date": {
-                                            "value": 1438088550409
-                                        },
-                                        "organization": {
-                                            "address": {
-                                                "city": "Firenze",
-                                                "country": "IT",
-                                                "region": "Toscana"
-                                            },
-                                            "disambiguated-organization": {
-                                                "disambiguated-organization-identifier": "56860",
-                                                "disambiguation-source": "RINGGOLD"
-                                            },
-                                            "name": "Osservatorio Astrofisico di Arcetri"
-                                        },
-                                        "put-code": "1060794",
-                                        "role-title": "Researcher",
-                                        "source": {
-                                            "source-client-id": null,
-                                            "source-date": {
-                                                "value": 1438088550409
-                                            },
-                                            "source-name": {
-                                                "value": "Simone Bianchi"
-                                            },
-                                            "source-orcid": {
-                                                "host": "orcid.org",
-                                                "path": "0000-0002-9384-846X",
-                                                "uri": "http://orcid.org/0000-0002-9384-846X",
-                                                "value": null
-                                            }
-                                        },
-                           # output truncated
-            },
-            {
-             ...
-            }
-        ]
-
-        ```
-      parameters:
-        - name: iso_date
-          in: path
+          description: Metadata for all libraries for a given user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  libraries:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        id:
+                          type: string
+                        description:
+                          type: string
+                        num_documents:
+                          type: integer
+                        date_created:
+                          type: string
+                        date_last_modified:
+                          type: string
+                        permission:
+                          type: string
+                        public:
+                          type: boolean
+                        num_users:
+                          type: integer
+                        owner:
+                          type: string
+        '400':
           description: >
-            Date in ISO format (RFC3339, UTC time zone, ie.
-            '2008-09-03T20:56:35.450686Z')
-          schema:
-            type: string
-          required: true
-        - name: fields
-          in: query
-          description: >-
-            List of fields to return in response, allowed values are:
-            `orcid_id`, `created`, `updated`, `profile`, `info`
-          style: form
-          explode: false
-          schema:
-            type: array
-            uniqueItems: true
-            items:
-              type: string
-              enum:
-                - orcid_id
-                - created
-                - updated
-                - profile
-                - info
-      responses:
-        '200':
-          description: JSON
-      security:
-        - OauthSecurity:
-            - 'ads-consumer:orcid'
-      x-ratelimit:
-        period: day
-        limit: 1000
-      tags:
-        - orcid
-  '/orcid/preferences/{orcidId}':
-    get:
-      description: >
-        Clients can store various data about the user (ie: Bumblebee saves here
-        alternative names
-
-        and user preferences associated to the ORCiD display).
-
-
-
-        ## Example Response
-
-
-        ```json
-
-        {
-          "alternativeNames" : ["Doe, J", "Doe X, J"]
-        }
-
-        ```
-      parameters:
-        - $ref: '#/components/parameters/orcidId'
-        - $ref: '#/components/parameters/OrcidAuthorization'
-      responses:
-        '200':
-          description: JSON
-      security:
-        - OauthSecurity: []
-      x-ratelimit:
-        period: day
-        limit: 1000
-      tags:
-        - orcid
+            No username passed
     post:
       description: >
-        Post a JSON payload to **replace** the existing stored values.
-
-
-        ## Example Request
-
-
-        ```command-line
-
-
-        $ curl
-        'https://api.adsabs.harvard.edu/v1/preferences/0000-00002-9384-846X' -H
-        'Authorization: Bearer:TOKEN' -H 'Orcid-Authorization:
-        Bearer:ea12a66a-2a07-49fc-b0cb-9d0967c484c8' -X POST -d $'{"foo":"bar"}'
-        -H 'Content-Type: application/json'
-
-
-        > {"foo": "bar"}
-
-        ```
-
-
-        ## Example Response
-
-
-        ```json
-
-        {
-          "alternativeNames" : ["Doe, J", "Doe X, J"]
-        }
-
-        ```
-      parameters:
-        - $ref: '#/components/parameters/orcidId'
-        - $ref: '#/components/parameters/OrcidAuthorization'
-        - $ref: '#/components/parameters/jsonpayload'
+        Create a library for the requesting user. Returns the metadata of the
+        library created.
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the metadata and bibcodes of the library to be created.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: >
+                    (optional) name of the library (must be unique for that user).
+                    The default is Untitled Library, with an incremented integer
+                    starting with 1 appended.
+                description:
+                  type: string
+                  description: >
+                    (optional) description of the library. The default is "My ADS library"
+                public:
+                  type: boolean
+                  default: false
+                  description: >
+                    (optional) set to true to allow public access. The default is false,
+                    or a private library
+                bibcode:
+                  type: array
+                  description: >
+                    (optional) list of bibcodes to add. The default is an empty library
+                  items:
+                    type: string
       responses:
         '200':
-          description: JSON
-      security:
-        - OauthSecurity: []
-      x-ratelimit:
-        period: day
-        limit: 1000
+          description: >
+            Metadata of the library just created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  id:
+                    type: string
+                  description:
+                    type: string
+                  bibcode:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: >
+            No username passed, or wrong type passed
+        '409':
+          description:
+            Duplicate library name exists
+  /biblib/libraries/{library_id}:
+    get:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        View metadata and contents of a specific library.
       tags:
-        - orcid
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: Metadata and contents of the given library
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    type: object
+                    properties:
+                      owner:
+                        type: string
+                        description: User who created the library
+                      num_documents:
+                        type: integer
+                        description: Number of bibcodes in the library
+                      public:
+                        type: boolean
+                        description: True means it is public
+                      num_users:
+                        type: integer
+                        description: Number of users with permissions to this library
+                      date_created:
+                        type: string
+                        description: Date library was created
+                      name:
+                        type: string
+                        description: Name of library
+                      description:
+                        type: string
+                        description: Description of library
+                      permission:
+                        type: string
+                        description: Permission type, can be 'read', 'write', 'admin', or 'owner'
+                      id:
+                        type: string
+                        description: Library ID
+                      date_last_modified:
+                        type: string
+                        description: Date library was last modified
+                  documents:
+                    type: array
+                    description: Array of bibcodes in library
+                    items:
+                      type: string
+                  solr:
+                    type: object
+                    description: Response from solr, when validating library contents
+                    properties:
+                      response:
+                        type: object
+                        properties:
+                          docs:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                bibcode:
+                                  type: string
+                          numFound:
+                            type: integer
+                          start:
+                            type: integer
+                      responseHeader:
+                        type: object
+                        properties:
+                          QTime:
+                            type: integer
+                          params:
+                            type: object
+                            properties:
+                              q:
+                                type: string
+                              fl:
+                                type: string
+                              start:
+                                type: string
+                              internal_logging_params:
+                                type: string
+                              sort:
+                                type: string
+                              fq:
+                                type: string
+                              rows:
+                                type: string
+                              wt:
+                                type: string
+                          status:
+                            type: integer
+                  updates:
+                    type: object
+                    description: Updates from Solr validation
+                    properties:
+                      duplicates_removed:
+                        type: integer
+                        description: Number of bibcodes removed because they are duplicates
+                      update_list:
+                        type: array
+                        description: >
+                          List of dictionaries such that a single element describes
+                          the original bibcode (key) and the updated bibcode now being stored (item)
+                        items:
+                          type: object
+                      num_updated:
+                        type: integer
+                        description: Number of documents modified based on the response from Solr
+  /biblib/libraries/operations/{library_id}:
+    post:
+      parameters:
+        - name: library_id
+          description: Library ID for the primary library
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Perform set operations on one or more libraries. The library_id (string) is
+        the unique identifier of the primary library, as specified in the /libraries
+        GET response. Depending on the operation, a secondary library ID may need to
+        be passed in the post payload.
+
+        ## Examples
+
+        **Union**: take the union of 3 libraries, using the default description and public settings
+
+        ``` bash
+          $ curl -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            https://api.adsabs.harvard.edu/v1/biblib/libraries/operations/iRZhyhvaSWe0uWwcXKt77w \
+            -X POST \
+            -d '{"action": "union", "libraries": ["rdRs4g4AQ522k9TJ2umtVA", "s56fjycaRMKxw6tDEr31XQ"], "name": "New union library"}'
+        ```
+
+
+        *Response*:
+
+
+        `{"id": "BeUbSWXtTPCaRhRV3nec_w", "bibcode": ["2009A&A...502..515G", "2011ApJ...734...87R", "2010ApJ...710..248C", "2003ApJ...595..665X", "2011ApJ...731L..12S", "2010ApJ...721..505R", "2010ApJ...710L.156R", "2010ApJ...723.1255R", "2006ApJ...639L..51A", "2001AJ....122.2993S", "2010ASPC..423..355R", "2010A&A...518A..59G", "2010ApJ...721L..48K"], "description": "Union of 891661ca-1bda-4967-b4b9-6c1c5cab7bef with [u'rdRs4g4AQ522k9TJ2umtVA', u's56fjycaRMKxw6tDEr31XQ']", "name": "New union library"}`
+
+
+        **Intersection**: take the intersection of 2 libraries, using the default public settings
+
+        ``` bash
+          $ curl -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            https://api.adsabs.harvard.edu/v1/biblib/libraries/operations/BeUbSWXtTPCaRhRV3nec_w \
+            -X POST \
+            -d '{"action": "intersection", "libraries": ["rdRs4g4AQ522k9TJ2umtVA"], "name": "New intersection library", "description": "Sample intersection library"}'
+        ```
+
+
+        *Response*:
+
+
+        `{"id": "8V8DzNqyQuOyTX6RF9x7qQ", "bibcode": ["2001AJ....122.2993S", "2009A&A...502..515G", "2006ApJ...639L..51A", "2010ApJ...710..248C", "2003ApJ...595..665X", "2010A&A...518A..59G", "2011ApJ...731L..12S"], "description": "Sample intersection library", "name": "New intersection library"}`
+
+
+        **Difference**: take the difference of 2 libraries
+
+        ``` bash
+          $ curl -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            https://api.adsabs.harvard.edu/v1/biblib/libraries/operations/BeUbSWXtTPCaRhRV3nec_w \
+            -X POST \
+            -d '{"action": "difference", "libraries": ["rdRs4g4AQ522k9TJ2umtVA"], "name": "New difference library", "description": "Sample difference library", "public": true}'
+        ```
+
+
+        *Response*:
+
+
+        `{"id": "9KBh8sVHQxaVkoPALtoXgg", "bibcode": ["2011ApJ...734...87R", "2010ApJ...723.1255R", "2010ApJ...710L.156R", "2010ASPC..423..355R", "2010ApJ...721L..48K", "2010ApJ...721..505R"], "description": "Sample difference library", "name": "New difference library"}`
+
+
+        **Empty**: empty a library of all of its bibcode contents
+
+        ``` bash
+          $ curl -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            https://api.adsabs.harvard.edu/v1/biblib/libraries/operations/9KBh8sVHQxaVkoPALtoXgg \
+            -X POST \
+            -d '{"action": "empty"}'
+        ```
+
+        *Response*:
+
+
+        `{"public": true, "bibcode": [], "name": "New difference library", "description": "Sample difference library"}`
+
+
+        **Copy**: copy the bibcode contents from the primary library to the secondary library (this will not empty the library first)
+
+        ``` bash
+          $ curl -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            https://api.adsabs.harvard.edu/v1/biblib/libraries/operations/BeUbSWXtTPCaRhRV3nec_w \
+            -X POST \
+            -d '{"action": "copy", "libraries": ["9KBh8sVHQxaVkoPALtoXgg"]}'
+        ```
+
+
+        *Response*:
+
+
+        `{"public": true, "bibcode": ["2009A&A...502..515G", "2010ApJ...710L.156R", "2010ApJ...710..248C", "2003ApJ...595..665X", "2011ApJ...731L..12S", "2010ApJ...721..505R", "2011ApJ...734...87R", "2010ApJ...723.1255R", "2006ApJ...639L..51A", "2001AJ....122.2993S", "2010ASPC..423..355R", "2010A&A...518A..59G", "2010ApJ...721L..48K"], "name": "New difference library", "description": "Sample difference library"}`
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the action to be performed and metadata of the library to be created.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  description: >
+                    Set operation to perform; allowed values are:
+                      * union: take the union of the primary and the secondary
+                      libraries. The result is saved to a new library.
+                      * intersection: take the intersection of the primary and the
+                      secondary libraries. The result is saved to a new library
+                      * difference: take the difference between the primary and the
+                      secondary libraries. The result is saved to a new library
+                      * copy: copy the contents of the primary library into the
+                      secondary library. The secondary library is not emptied first;
+                      use the empty operation on the secondary library first in order
+                      to create a duplicate of the primary library in the secondary library
+                      * empty: empty the primary library of its contents (no secondary
+                      library ID is needed)
+                libraries:
+                  type: array
+                  description: >
+                    list of secondary library IDs; multiple secondary libraries are allowed
+                    for [union, intersection, difference]; one secondary library is allowed
+                    for copy; no secondary libraries are allowed for empty
+                  items:
+                    type: string
+                name:
+                  type: string
+                  description: >
+                    name of the new library to be created for [union, intersection, difference];
+                    the name must be unique for a given user; if no name is specified, the
+                    name used will be "Untitled" with a timestamp
+                description:
+                  type: string
+                  description: >
+                    description of the new library to be created for [union, intersection,
+                    difference]; if no description is specified, the description used will
+                    include the set operation used and the primary and secondary library IDs
+                public:
+                  type: boolean
+                  description: >
+                    sets whether the new library created by [union, intersection,
+                    difference] is publicly viewable or not; the new library will be
+                    private unless otherwise specified
+      responses:
+        '200':
+          description: Metadata for created/modified library
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    description: ID of created library (if any)
+                    type: string
+                  name:
+                    description: Name of created/modified library
+                    type: string
+                  description:
+                    description: Description of created/modified library
+                    type: string
+                  bibcode:
+                    description: Bibcodes in created/modified library
+                    items:
+                      type: string
+        '400':
+          description: >
+            No username passed, bad library ID passed, wrong type passed,
+            secondary libraries not specified where required, too many secondary libraries
+            specified, or user requested a non-standard operation
+        '403':
+          description: >
+            User does not have permission to perform this operation
+        '409':
+          description: >
+            Duplicate library name exists
+  /biblib/documents/{library_id}:
+    post:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Add or delete a document to a given library. Returns the number
+        of documents added or removed.
+
+
+        The following type of user can add or remove documents:
+
+        * owner
+
+        * admin
+
+        * write
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the action to be performed and metadata of the library to be created.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+                - bibcode
+              properties:
+                bibcode:
+                  type: array
+                  description: >
+                    List of bibcodes to be added or removed
+                  items:
+                    type: string
+                action:
+                  type: string
+                  description: >
+                    'add' or 'remove' to add or remove the given bibcodes from the specified library
+      responses:
+        '200':
+          description:
+            Returns number of bibcodes added or removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  number_added:
+                    type: integer
+                    description: >
+                      Number of bibcodes added, if 'add' is used
+                  number_removed:
+                    type: integer
+                    description: >
+                      Number of bibcodes removed, if 'remove' is used
+        '400':
+          description: >
+            No username passed, bad library ID passed, wrong type passed,
+            or user requested a non-standard operation
+        '403':
+          description: >
+            User does not have permission to perform this operation
+    put:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Update the metadata of a given library.
+
+
+        The following type of user can edit library metadata:
+
+        * owner
+
+        * admin
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the metadata to update. If some fields don't
+          need to be changed, they don't need to be included in the payload.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: >
+                    New name of the library
+                description:
+                  type: string
+                  description: >
+                    New library description
+                public:
+                  type: boolean
+                  description: >
+                    true if the library should be publicly viewable,
+                    false if it should be private (note that this is case
+                    sensitive and should be lower case)
+      responses:
+        '200':
+          description: >
+            Returns the key/value that was requested to be updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  public:
+                    type: boolean
+        '400':
+          description: >
+            No username passed, bad library ID passed, or wrong type passed
+        '403':
+          description: >
+            User does not have permission to perform this operation
+        '409':
+          description: >
+            Duplicate library name exists
+        '410':
+          description: >
+            Library specified does not exist
+    delete:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Delete the given library.
+
+
+        The following type of user can delete the library:
+
+        * owner
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: >
+            Returns empty object
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: >
+            No username passed or bad library ID passed
+        '403':
+          description: >
+            User does not have permission to perform this operation
+        '410':
+          description: >
+            Library specified does not exist
+  /biblib/permissions/{library_id}:
+    get:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        View permissions of a specific library.
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: List of all permissions for the user for the library
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: array
+                    description: >
+                      Key is email of the user, item is a list of that user's
+                      permissions for the given library
+                    items:
+                      type: string
+        '400':
+          description: >
+            No username passed, or bad library ID passed
+        '403':
+          description: >
+            User does not have permission to perform this operation
+    post:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Edit the permissions of a library
+
+
+        The following type of user can add or remove documents:
+
+        * owner
+
+        * admin
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the email of the user whose permissions will be modified
+          and the permissions to be added or removed. User may not modify their
+          own permissions
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - permission
+              properties:
+                email:
+                  type: string
+                  description: >
+                    Email address of user whose permissions will be modified
+                permission:
+                  type: object
+                  description: >
+                    Only required to include permissions that will be modified
+                  properties:
+                    read:
+                      type: boolean
+                    write:
+                      type: boolean
+                    admin:
+                      type: boolean
+      responses:
+        '200':
+          description: >
+            Returns empty object
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: >
+            No username passed, bad library ID passed, or wrong type passed
+        '403':
+          description: >
+            User does not have permission to perform this operation
+        '404':
+          description: >
+            User does not have an ADS account
+  /biblib/transfer/{library_id}:
+    post:
+      parameters:
+        - name: library_id
+          description: Library ID
+          required: true
+          in: path
+          schema:
+            type: string
+      description: >
+        Transfer ownership of a library from one user to another
+
+
+        The following type of user can add or remove documents:
+
+        * owner
+      tags:
+        - libraries
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the email of the user that library ownership will
+          be transferred to
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  description: >
+                    Email address of user who ownership will be transferred to
+      responses:
+        '200':
+          description: >
+            Returns empty object
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: >
+            No username passed, bad library ID passed, or wrong type passed
+        '403':
+          description: >
+            User does not have permission to perform this operation
+        '404':
+          description: >
+            User does not have an ADS account
 externalDocs:
   description: Complete documentation describing how to use this API
-  url: 'https://github.com/adsabs/adsabs-dev-api'
+  url: https://github.com/adsabs/adsabs-dev-api

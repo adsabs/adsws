@@ -33,6 +33,12 @@ servers:
         default: v1
         enum:
           - v1
+tags:
+  - name: search
+  - name: stored search
+  - name: libraries
+  - name: export
+  - name: metrics
 components:
   securitySchemes:
     ApiKeySecurity:
@@ -347,7 +353,10 @@ security:
 paths:
   /search/query:
     get:
+      summary: 1. Search ADS
       description: >
+        Do a search.
+
 
         Query the search engine and return results. All parameters have to be
         properly url-encoded UTF-8. The response body will always be JSON
@@ -452,6 +461,7 @@ paths:
         - search
   /search/qtree:
     get:
+      summary: 2. Search ADS and return a query tree object
       description: >
         Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our
         query parser. The structure can be used by external applications to
@@ -497,6 +507,7 @@ paths:
         - search
   /search/bigquery:
     post:
+      summary: 3. Search using bigquery
       description: >
         Search endpoint which accepts a list of many IDs (bibcodes). Supports
         paging.
@@ -587,6 +598,7 @@ paths:
         - search
   /vault/query:
     post:
+      summary: 1. Save a query
       description: |
         Save a query for later execution. Can be either a regular query or a bigquery.
 
@@ -622,6 +634,7 @@ paths:
           description: QID object not found
   /vault/query/{queryId}:
     get:
+      summary: 2. Retrieve information about a stored query
       description: |
         Retrive information about the previously stored query.
 
@@ -650,8 +663,9 @@ paths:
           $ref: '#/components/responses/VaultResponse'
         '404':
           description: QID object not found
-  '/vault/execute_query/{queryId}':
+  /vault/execute_query/{queryId}:
     get:
+      summary: 3. Search using a stored query
       description: >
         Search using the stored query and return the same data as Search API
         endpoint.
@@ -733,6 +747,7 @@ paths:
           description: QID object not found
   /biblib/libraries:
     get:
+      summary: 1. View all libraries for a given user
       description: >
         View all libraries for the user associated with the given API token.
       tags:
@@ -776,6 +791,7 @@ paths:
           description: >
             No username passed
     post:
+      summary: 3. Create a new library
       description: >
         Create a library for the requesting user. Returns the metadata of the
         library created.
@@ -840,6 +856,7 @@ paths:
             Duplicate library name exists
   /biblib/libraries/{library_id}:
     get:
+      summary: 2. View a single library
       parameters:
         - name: library_id
           description: Library ID
@@ -962,6 +979,7 @@ paths:
                         description: Number of documents modified based on the response from Solr
   /biblib/libraries/operations/{library_id}:
     post:
+      summary: 10. Perform set operations on one or more libraries
       parameters:
         - name: library_id
           description: Library ID for the primary library
@@ -1144,6 +1162,7 @@ paths:
             Duplicate library name exists
   /biblib/documents/{library_id}:
     post:
+      summary: 4. Add or remove documents from a library
       parameters:
         - name: library_id
           description: Library ID
@@ -1213,6 +1232,7 @@ paths:
           description: >
             User does not have permission to perform this operation
     put:
+      summary: 5. Update the metadata of a library
       parameters:
         - name: library_id
           description: Library ID
@@ -1284,6 +1304,7 @@ paths:
           description: >
             Library specified does not exist
     delete:
+      summary: 6. Delete a library
       parameters:
         - name: library_id
           description: Library ID
@@ -1321,6 +1342,7 @@ paths:
             Library specified does not exist
   /biblib/permissions/{library_id}:
     get:
+      summary: 7. View permissions of a library
       parameters:
         - name: library_id
           description: Library ID
@@ -1356,6 +1378,7 @@ paths:
           description: >
             User does not have permission to perform this operation
     post:
+      summary: 8. Edit permission of a library
       parameters:
         - name: library_id
           description: Library ID
@@ -1423,6 +1446,7 @@ paths:
             User does not have an ADS account
   /biblib/transfer/{library_id}:
     post:
+      summary: 9. Transfer ownership of a library
       parameters:
         - name: library_id
           description: Library ID

@@ -2433,7 +2433,7 @@ paths:
             No result from Solr
   /metrics:
     post:
-      summary: Retrieve metrics for one or more bibcodes.
+      summary: 01. Retrieve metrics for one or more bibcodes
       description: >
         This endpoint retrieves some or all of the available citation metrics for
         one or more bibcodes. More documentation is available [here](https://github.com/adsabs/adsabs-dev-api/blob/master/Metrics_API.ipynb).
@@ -2608,7 +2608,7 @@ paths:
             Metrics request blew up
   /metrics/{bibcode}:
     get:
-      summary: Retrieve metrics for one bibcode
+      summary: 02. Retrieve metrics for one bibcode
       description: >
         Similar to the `/metrics` endpoint, but returns data for a single bibcode only.
         Does not return indicators or timeseries.
@@ -2640,7 +2640,7 @@ paths:
             Metrics request blew up
   /metrics/detail:
     post:
-      summary: Retrieve detail-level metrics for one or more bibcodes
+      summary: 03. Retrieve detail-level metrics for one or more bibcodes
       description: >
         Provides basic, year-by-year metrics on a per-bibcode basis.
       tags:

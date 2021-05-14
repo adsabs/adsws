@@ -4,7 +4,14 @@ info:
   description: |
     ## API for the NASA Astrophysics Data System
 
-    The source code for individual components can be found at https://github.com/adsabs.
+    The source code for the project can be found at https://github.com/adsabs.
+
+    Individual components:
+    * Search: https://github.com/adsabs/solr-service
+    * Stored search: https://github.com/adsabs/vault
+    * Libraries: https://github.com/adsabs/biblib-service
+    * Export: https://github.com/adsabs/export_service
+    * Metrics: https://github.com/adsabs/metrics_service
   termsOfService: https://ui.adsabs.harvard.edu/help/terms/
   contact:
     name: ADS Help
@@ -377,6 +384,182 @@ components:
           description: >
             new line separated list of bibcodes, the first line is the name of
             the index that will be searched, right now we only support search in `bibcode` index
+    basicMetricsResponse:
+      type: object
+      properties:
+        basic stats:
+          type: object
+          properties:
+            average number of downloads:
+              type: number
+            average number of reads:
+              type: number
+            median number of downloads:
+              type: number
+            median number of reads:
+              type: number
+            normalized paper count:
+              type: number
+            number of papers:
+              type: integer
+            recent number of downloads:
+              type: integer
+            recent number of reads:
+              type: integer
+            total number of downloads:
+              type: integer
+            total number of reads:
+              type: integer
+        basic stats refereed:
+          type: object
+          properties:
+            average number of downloads:
+              type: number
+            average number of reads:
+              type: number
+            median number of downloads:
+              type: number
+            median number of reads:
+              type: number
+            normalized paper count:
+              type: number
+            number of papers:
+              type: integer
+            recent number of downloads:
+              type: integer
+            recent number of reads:
+              type: integer
+            total number of downloads:
+              type: integer
+            total number of reads:
+              type: integer
+        citation stats:
+          type: object
+          properties:
+            average number of citations:
+              type: number
+            average number of refereed citations:
+              type: number
+            median number of citations:
+              type: number
+            median number of refereed citations:
+              type: number
+            normalized number of citations:
+              type: number
+            normalized number of refereed citations:
+              type: number
+            number of citing papers:
+              type: integer
+            number of self-citations:
+              type: integer
+            self-citations:
+              type: array
+              items:
+                type: string
+            total number of citations:
+              type: integer
+            total number of refereed citations:
+              type: integer
+        citation stats refereed:
+          type: object
+          properties:
+            average number of citations:
+              type: number
+            average number of refereed citations:
+              type: number
+            median number of citations:
+              type: number
+            median number of refereed citations:
+              type: number
+            normalized number of citations:
+              type: number
+            normalized number of refereed citations:
+              type: number
+            number of citing papers:
+              type: integer
+            number of self-citations:
+              type: integer
+            self-citations:
+              type: array
+              items:
+                type: string
+            total number of citations:
+              type: integer
+            total number of refereed citations:
+              type: integer
+        histograms:
+          type: object
+          properties:
+            citations:
+              type: object
+              properties:
+                nonrefereed to nonrefereed:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                nonrefereed to nonrefereed normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+                nonrefereed to refereed:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                nonrefereed to refereed normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+                refereed to nonrefereed:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                refereed to nonrefereed normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+                refereed to refereed:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                refereed to refereed normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+            reads:
+              type: object
+              properties:
+                all reads:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                all reads normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+                refereed reads:
+                  type: object
+                  properties:
+                    year:
+                      type: integer
+                refereed reads normalized:
+                  type: object
+                  properties:
+                    year:
+                      type: number
+        skipped bibcodes:
+          type: array
+          items:
+            type: string
   requestBodies:
     exportBody:
       description: >
@@ -2248,6 +2431,277 @@ paths:
         '404':
           description: >
             No result from Solr
+  /metrics:
+    post:
+      summary: Retrieve metrics for one or more bibcodes.
+      description: >
+        This endpoint retrieves some or all of the available citation metrics for
+        one or more bibcodes. More documentation is available [here](https://github.com/adsabs/adsabs-dev-api/blob/master/Metrics_API.ipynb).
+
+
+        The available statistics types are:
+
+
+        * 'basic': publication and usage stats (all papers, and just refereed papers); returns
+        'basic stats' and 'basic stats refereed'
+
+        * 'citations': citation stats; returns 'citation stats' and 'citation stats refereed'
+
+        * 'indicators': indicators, like the h-index, g-index, m-index, etc.; returns
+        'indicators' and 'indicators refereed'
+
+        * 'histograms': publication, citation, reads and downloads histograms; returns 'histograms'
+
+        * 'timeseries': time series for a set of indicators; returns 'time series'
+      tags:
+        - metrics
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the bibcode(s) to produce metrics for, as well as types of metrics desired.
+          Depending on the type of metrics requested, other options may be included in the payload.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bibcodes
+              properties:
+                bibcodes:
+                  description: Bibcode(s) to produce metrics for
+                  type: array
+                  items:
+                    type: string
+                types:
+                  description: Types of metrics to return. If not specified, all metrics will be returned.
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - basic
+                      - citations
+                      - indicators
+                      - histograms
+                      - timeseries
+                histograms:
+                  description: >
+                    If the metrics type is 'histograms', types of histograms to return.
+                    If not specified, all histograms will be returned.
+
+
+                    The available histogram types are:
+
+
+                    * 'publications': returns 'all publications', 'refereed publications', 'all publications normalized', 'refereed publications normalized'
+
+                    * 'reads': returns 'all reads', 'refereed reads', 'all reads normalized', 'refereed reads normalized'
+
+                    * 'downloads': returns 'all downloads', 'refereed downloads', 'all downloads normalized', 'refereed downloads normalized'
+
+                    * 'citations': returns 'refereed to refereed', 'nonrefereed to refereed', 'refereed to nonrefereed', 'nonrefereed to nonrefereed', 'refereed to refereed normalized', 'nonrefereed to refereed normalized', 'refereed to nonrefereed normalized', 'nonrefereed to nonrefereed normalized'
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - publications
+                      - reads
+                      - downloads
+                      - citations
+      responses:
+        '200':
+          description: >
+            JSON containing the requested metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/basicMetricsResponse'
+                  - type: object
+                    properties:
+                      indicators:
+                        type: object
+                        properties:
+                          g:
+                            type: integer
+                          h:
+                            type: integer
+                          i10:
+                            type: integer
+                          i100:
+                            type: integer
+                          m:
+                            type: number
+                          read10:
+                            type: number
+                          riq:
+                            type: integer
+                          tori:
+                            type: number
+                      indicators refereed:
+                        type: object
+                        properties:
+                          g:
+                            type: integer
+                          h:
+                            type: integer
+                          i10:
+                            type: integer
+                          i100:
+                            type: integer
+                          m:
+                            type: number
+                          read10:
+                            type: number
+                          riq:
+                            type: integer
+                          tori:
+                            type: number
+                      time series:
+                        type: object
+                        properties:
+                          g:
+                            type: object
+                            properties:
+                              year:
+                                type: integer
+                          h:
+                            type: object
+                            properties:
+                              year:
+                                type: integer
+                          i10:
+                            type: object
+                            properties:
+                              year:
+                                type: integer
+                          i100:
+                            type: object
+                            properties:
+                              year:
+                                type: integer
+                          m:
+                            type: object
+                            properties:
+                              year:
+                                type: number
+                          read10:
+                            type: object
+                            properties:
+                              year:
+                                type: number
+                          riq:
+                            type: object
+                            properties:
+                              year:
+                                type: integer
+                          tori:
+                            type: object
+                            properties:
+                              year:
+                                type: number
+        '403':
+          description: >
+            Unable to get results
+        '500':
+          description:
+            Metrics request blew up
+  /metrics/{bibcode}:
+    get:
+      summary: Retrieve metrics for one bibcode
+      description: >
+        Similar to the `/metrics` endpoint, but returns data for a single bibcode only.
+        Does not return indicators or timeseries.
+      parameters:
+        - name: bibcode
+          description: Bibcode to return metrics for
+          required: true
+          in: path
+          schema:
+            type: string
+      tags:
+        - metrics
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: >
+            JSON containing the requested metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/basicMetricsResponse'
+        '403':
+          description: >
+            Unable to get results
+        '500':
+          description:
+            Metrics request blew up
+  /metrics/detail:
+    post:
+      summary: Retrieve detail-level metrics for one or more bibcodes
+      description: >
+        Provides basic, year-by-year metrics on a per-bibcode basis.
+      tags:
+        - metrics
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: JSON containing the bibcode(s) to produce metrics for.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bibcodes
+              properties:
+                bibcodes:
+                  description: Bibcode(s) to produce metrics for
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: JSON containing the requested metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bibcode:
+                    type: object
+                    properties:
+                      citations:
+                        type: object
+                        properties:
+                          year:
+                            type: integer
+                      downloads:
+                        type: object
+                        properties:
+                          year:
+                            type: integer
+                      reads:
+                        type: object
+                        properties:
+                          year:
+                            type: integer
+                      ref_citations:
+                        type: object
+                        properties:
+                          year:
+                            type: integer
+                  skipped bibcodes:
+                    type: array
+                    items:
+                      type: string
+        '403':
+          description: >
+            Unable to get results
+        '500':
+          description:
+            Metrics request blew up
 externalDocs:
   description: Complete documentation describing how to use this API
   url: https://github.com/adsabs/adsabs-dev-api

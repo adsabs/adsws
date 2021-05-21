@@ -42,6 +42,11 @@ tags:
   - name: export (XML formats)
   - name: export (other)
   - name: metrics
+  - name: author affiliation
+  - name: citation helper
+  - name: classic import
+  - name: objects
+  - name: recommender
 components:
   securitySchemes:
     ApiKeySecurity:
@@ -2702,6 +2707,548 @@ paths:
         '500':
           description:
             Metrics request blew up
+  /author-affiliation/search:
+    post:
+      summary: Create the author-affiliations report
+      description: >
+        Create the author-affiliations report, generally used for reporting
+        co-authors and their affiliations to grant agencies. Returns
+        information in JSON.
+      tags:
+        - author affiliation
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: JSON containing the bibcode(s) to produce the author affiliations for.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bibcodes
+              properties:
+                bibcodes:
+                  description: Bibcode(s) to produce author affiliations for
+                  type: array
+                  items:
+                    type: string
+                maxauthor:
+                  description: First N authors for each paper to report on
+                  type: integer
+                numyears:
+                  description: Last N years to retrieve affiliations for
+                  type: integer
+      responses:
+        '200':
+          description: JSON containing the requested author affiliations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        authorName:
+                          type: string
+                        affiliations:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            years:
+                              type: array
+                              items:
+                                type: string
+                            lastActiveDate:
+                              type: string
+        '400':
+          description: Bad request, check payload
+        '404':
+          description: No result from Solr
+  /author-affiliation/export:
+    post:
+      summary: Export the author-affiliations report
+      description: >
+        Export the author-affiliations report, generally used for reporting
+        co-authors and their affiliations to grant agencies. Outputs to CSV,
+        Excel, text, or directly to the browser/terminal. To save to file,
+        use your terminal's flags or programming language's functionality.
+      tags:
+        - author affiliation
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: Formatted report to output, along with format string
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  description: >
+                    Formatting string for the export.
+                  type: string
+                  enum:
+                    - "| Lastname, Firstname | Affiliation | Last Active Date | [csv]"
+                    - "| Lastname | Firstname | Affiliation | Last Active Date | [csv]"
+                    - "| Lastname, Firstname | Affiliation | Last Active Date | [excel]"
+                    - "| Lastname | Firstname | Affiliation | Last Active Date | [excel]"
+                    - "Lastname, Firstname(Affiliation)Last Active Date[text]"
+                    - "Lastname, Firstname(Affiliation)Last Active Date[browser]"
+                selected:
+                  description: >
+                    Formatted data to export.
+                  type: array
+                  items:
+                    type: string
+                    description: >
+                      Format: Author name (last, first) | affiliation | last active date (year/month)
+      responses:
+        '200':
+          description: Returns file or text, depending on format requested
+        '400':
+          description: Bad request, check payload
+  /citation_helper:
+    post:
+      summary: Suggest missing citations
+      description: >
+        Given a set of bibcodes, this endpoint uses a "friends of friends" analysis
+        to suggest up to 10 missing citations. These missing citations cite
+        and/or are cited by the papers in the given list, but are not in the list.
+        The score given with each returned paper reflects how many papers in the input
+        list the result is associated with.
+      tags:
+        - citation helper
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: JSON containing the bibcode(s) to run the citation helper for
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - bibcodes
+              properties:
+                bibcodes:
+                  description: Bibcode(s) to run the citation helper for
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: JSON containing the suggested papers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    author:
+                      type: string
+                    bibcode:
+                      type: string
+                    score:
+                      type: integer
+                    title:
+                      type: string
+  /harbour/mirrors:
+    get:
+      summary: Fetch a list of ADS Classic mirrors
+      description: >
+        Returns the list of mirrors used by ADS Classic
+      tags:
+        - classic import
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: Array of available mirrors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+  /harbour/user:
+    get:
+      summary: Fetch user's ADS Classic information
+      description: >
+        Returns a user's ADS Classic registration email and mirror
+      tags:
+        - classic import
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: >
+            JSON containing user's Classic information. User is determined
+            by the API token used.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classic_email:
+                    type: string
+                  classic_mirror:
+                    type: string
+                  twopointoh_email:
+                    type: string
+        '400':
+          description: User does not have an ADS Classic account
+  /harbour/auth/classic:
+    post:
+      summary: Sign into ADS Classic account
+      description: >
+        Sign into ADS Classic account and link it to your main ADS account
+      tags:
+        - classic import
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: JSON containing the user's Classic ADS authentication
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - classic_email
+                - classic_mirror
+                - classic_password
+              properties:
+                classic_email:
+                  type: string
+                classic_mirror:
+                  type: string
+                classic_password:
+                  type: string
+      responses:
+        '200':
+          description: >
+            JSON containing user's stored Classic information.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classic_email:
+                    type: string
+                  classic_mirror:
+                    type: string
+                  classic_authed:
+                    type: boolean
+        '400':
+          description: Malformed payload; see error message for details
+        '404':
+          description: Classic authentication failed
+        '500':
+          description: Classic did not return a cookie
+        '504':
+          description: Classic timeout
+  /objects:
+    post:
+      summary: Return object identifers for a given string
+      description: >
+        For a given string, returns the object identifiers from either NED or
+        SIMBAD, whichever is specified
+      tags:
+        - objects
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing either a list of object names ("objects") or a list
+          of SIMBAD object identifiers ("identifiers")
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source:
+                  type: string
+                  enum:
+                    - simbad
+                    - ned
+                identifiers:
+                  type: array
+                  items:
+                    type: string
+                objects:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: >
+            JSON containing the input object or identifier as the key and the values
+            are the canonical names or identifiers. If the object or identifier was
+            not recognized, the value returned with be None.
+
+
+            Note: this service also returns a 200 even if an error was encountered;
+            be sure to read the returned error message carefully in that case.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object or identifier:
+                    type: object
+                    properties:
+                      id:
+                        description: Integer or string, depending on input source
+                        type: string
+                      canonical:
+                        type: string
+  /objects/query:
+    post:
+      summary: Return a Solr query with object identifiers
+      description: >
+        For a given object, return a Solr query that expands the object
+        to include the SIMBAD and NED identifiers.
+      tags:
+        - objects
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input object query to expand
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: >
+            JSON containing the expanded search query.
+
+
+            Note: this service also returns a 200 even if an error was encountered;
+            be sure to read the returned error message carefully in that case.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+  /oracle/matchdoc:
+    post:
+      summary: Given some input metadata, return the matched bibcode
+      description: >
+        Matches input metadata to an existing record and returns the bibcode
+        of the match. Can be used to find the bibcode of an input record or to
+        match various versions of the same record (e.g. the published paper
+        with its arXiv version). Also returned is the confidence score and
+        which input metadata fields were used in the matching.
+      tags:
+        - recommender
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input data for the recommender service
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - abstract
+                - title
+                - author
+                - year
+                - doctype
+              properties:
+                abstract:
+                  type: string
+                title:
+                  type: string
+                author:
+                  description: Format is "Last1, First1; Last2, First2; ..."
+                  type: string
+                year:
+                  description: Type can be string or integer
+                  type: integer
+                doctype:
+                  description: >
+                    Doctype of input metadata
+                  type: string
+                doi:
+                  type: string
+                mustmatch:
+                  description: >
+                    Set flag to true if you know ADS must have this paper; in some cases,
+                    the main matching algorithm may fail to find a match (e.g. if the
+                    abstract has changed significantly between the arXiv and published version).
+                    If this is the case, setting this flag to true allows a match to be made
+                    based on the title alone.
+                  type: boolean
+                match_doctype:
+                  description: >
+                    Expected doctype of matched record
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: >
+            JSON containing any matches, plus information about the matching process.
+            Confidence and scores range between 0 (low) and 1 (high).
+
+
+            Note: If no matches are found, the service still returns a 200, but
+            instead of the "match" keyword, the "no match" keyword will be returned
+            in the JSON.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    description: >
+                      Solr query used to find the matches
+                    type: string
+                  comment:
+                    description: >
+                      Logging from the matching algorithm
+                    type: string
+                  match:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bibcode:
+                          type: string
+                        confidence:
+                          type: integer
+                        scores:
+                          type: object
+                          properties:
+                            abstract:
+                              type: integer
+                            title:
+                              type: integer
+                            author:
+                              type: integer
+                            year:
+                              type: integer
+        '400':
+          description: No payload provided, or payload is missing needed parameters
+  /oracle/readhist:
+    post:
+      summary: Return recommendations for the current user
+      description: >
+        Returns paper recommendations for the given user, based on their reading history.
+      tags:
+        - recommender
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input data for the recommender service
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - function
+              properties:
+                function:
+                  description: >
+                    Second-order operator used to generate recommendations; default is 'similar'
+                  type: string
+                  enum:
+                    - similar
+                    - trending
+                    - reviews
+                    - useful
+                sort:
+                  description: >
+                    Sort order for recommendation query
+                  type: string
+                num_docs:
+                  description: >
+                    Number of recommendations to return
+                  type: integer
+                top_n_reads:
+                  description: >
+                    Number of input records to use in generating recomendations
+                  type: integer
+                cutoff_days:
+                  description: >
+                    Number of days back to generate recommendations; returned recommendations
+                    will have been entered into our database between now and N days ago, where N
+                    is the entered cutoff_days
+                  type: integer
+                reader:
+                  description: >
+                    Internal ID specifying the user; if not included, user will be
+                    determined via the API token used
+                  type: string
+      responses:
+        '200':
+          description: >
+            JSON containing the returned recommendations and the query used to generate them
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bibcodes:
+                    type: string
+                  query:
+                    type: string
+        '400':
+          description: No payload provided, or payload is missing needed parameters
+  /oracle/readhist/{function}/{reader}:
+    get:
+      summary: Return recommendations for the given user
+      description: >
+        Returns paper recommendations for the given user, based on their reading history.
+      tags:
+        - recommender
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: function
+          description: >
+            Second-order operator used to generate recommendations; most common is 'similar'
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: reader
+          description: >
+            Internal ID specifying the user to generate recommendations for
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: >
+            JSON containing the returned recommendations and the query used to generate them
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bibcodes:
+                    type: string
+                  query:
+                    type: string
+        '400':
+          description: Reader was not provided
 externalDocs:
   description: Complete documentation describing how to use this API
   url: https://github.com/adsabs/adsabs-dev-api

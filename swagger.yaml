@@ -47,6 +47,10 @@ tags:
   - name: classic import
   - name: objects
   - name: recommender
+  - name: reference
+  - name: resolver
+  - name: notifications
+  - name: visualizations
 components:
   securitySchemes:
     ApiKeySecurity:
@@ -311,6 +315,39 @@ components:
         application/json:
           schema:
             type: string
+    ResolverResponse:
+      description: >
+        JSON containing the available external resources,
+        including links
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              action:
+                type: string
+              links:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  link_type:
+                    type: string
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bibcode:
+                          type: string
+                        count:
+                          type: integer
+                        title:
+                          type: string
+                        type:
+                          type: string
+                        url:
+                          type: string
   schemas:
     qtree:
       type: object
@@ -565,6 +602,71 @@ components:
           type: array
           items:
             type: string
+    myADSsummaryResponse:
+      type: object
+      properties:
+        active:
+          type: boolean
+        created:
+          type: string
+        data:
+          type: string
+        frequency:
+          type: string
+          enum:
+            - daily
+            - weekly
+        id:
+          type: integer
+        name:
+          type: string
+        template:
+          type: string
+          enum:
+            - arxiv
+            - authors
+            - citations
+            - keyword
+        type:
+          type: string
+          enum:
+            - template
+            - query
+        updated:
+          type: string
+    myADSdetailResponse:
+      type: object
+      properties:
+        qid:
+          type: string
+        stateful:
+          type: boolean
+        classes:
+          type: array
+          items:
+            type: string
+    bibcodeObject:
+      type: object
+      required:
+        - bibcode
+      properties:
+        bibcode:
+          type: array
+          description: >
+            Input bibcodes
+          items:
+            type: string
+    bibcodesObject:
+      type: object
+      required:
+        - bibcodes
+      properties:
+        bibcodes:
+          type: array
+          description: >
+            Input bibcodes
+          items:
+            type: string
   requestBodies:
     exportBody:
       description: >
@@ -572,16 +674,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            required:
-              - bibcode
-            properties:
-              bibcode:
-                type: array
-                description: >
-                  Bibcodes to export
-                items:
-                  type: string
+            $ref: '#/components/schemas/bibcodeObject'
 security:
   - ApiKeySecurity: []
 paths:
@@ -979,6 +1072,32 @@ paths:
           $ref: '#/components/responses/SearchResults'
         '404':
           description: QID object not found
+  /vault/query2svg/{queryId}:
+    get:
+      summary: 04. Return an SVG for a stored query
+      description: >
+        Returns an SVG for a stored query. The image shows the number of
+        results returned by the stored query.
+      tags:
+        - stored search
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: queryId
+          description: QID returned from the POST operation
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Code of the SVG image
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                xml:
+                  name: svg
   /biblib/libraries:
     get:
       summary: 01. View all libraries for a given user
@@ -2359,40 +2478,36 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-                - style
-                - format
-              properties:
-                bibcodes:
-                  description: Bibcodes to export
-                  type: array
-                  items:
-                    type: string
-                style:
-                  description: Journal style to use
-                  type: string
-                  enum:
-                    - aastex
-                    - icarus
-                    - mnras
-                    - soph
-                    - aspc
-                    - apsj
-                    - aasj
-                    - ieee
-                format:
-                  description: Output format; use 1 for Unicode, 2 for HTML, or 3 for LaTeX
-                  type: integer
-                journalformat:
-                  description: >
-                    Format of journal name; used only for aastex, aspc, and aasj styles.
-                    Use 1 for AASTeX macros (default), 2 for journal abbreviations, or 3 for full journal name.
-                  type: integer
-                sort:
-                  description: Sort order for export
-                  type: string
+              allOf:
+                - $ref: '#/components/schemas/bibcodesObject'
+                - type: object
+                  required:
+                    - style
+                    - format
+                  properties:
+                    style:
+                      description: Journal style to use
+                      type: string
+                      enum:
+                        - aastex
+                        - icarus
+                        - mnras
+                        - soph
+                        - aspc
+                        - apsj
+                        - aasj
+                        - ieee
+                    format:
+                      description: Output format; use 1 for Unicode, 2 for HTML, or 3 for LaTeX
+                      type: integer
+                    journalformat:
+                      description: >
+                        Format of journal name; used only for aastex, aspc, and aasj styles.
+                        Use 1 for AASTeX macros (default), 2 for journal abbreviations, or 3 for full journal name.
+                      type: integer
+                    sort:
+                      description: Sort order for export
+                      type: string
       responses:
         '200':
           $ref: '#/components/responses/ExportResponse'
@@ -2415,21 +2530,17 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-                - format
-              properties:
-                bibcodes:
-                  description: Bibcodes to export
-                  type: array
-                  items:
-                    type: string
-                format:
-                  description: >
-                    Custom format; see the [main export documentation](https://ui.adsabs.harvard.edu/help/actions/export)
-                    for more information.
-                  type: string
+              allOf:
+                - $ref: '#/components/schemas/bibcodesObject'
+                - type: object
+                  required:
+                    - format
+                  properties:
+                    format:
+                      description: >
+                        Custom format; see the [main export documentation](https://ui.adsabs.harvard.edu/help/actions/export)
+                        for more information.
+                      type: string
       responses:
         '200':
           $ref: '#/components/responses/ExportResponse'
@@ -2469,50 +2580,45 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-              properties:
-                bibcodes:
-                  description: Bibcode(s) to produce metrics for
-                  type: array
-                  items:
-                    type: string
-                types:
-                  description: Types of metrics to return. If not specified, all metrics will be returned.
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - basic
-                      - citations
-                      - indicators
-                      - histograms
-                      - timeseries
-                histograms:
-                  description: >
-                    If the metrics type is 'histograms', types of histograms to return.
-                    If not specified, all histograms will be returned.
+              allOf:
+                - $ref: '#/components/schemas/bibcodesObject'
+                - type: object
+                  properties:
+                    types:
+                      description: Types of metrics to return. If not specified, all metrics will be returned.
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - basic
+                          - citations
+                          - indicators
+                          - histograms
+                          - timeseries
+                    histograms:
+                      description: >
+                        If the metrics type is 'histograms', types of histograms to return.
+                        If not specified, all histograms will be returned.
 
 
-                    The available histogram types are:
+                        The available histogram types are:
 
 
-                    * 'publications': returns 'all publications', 'refereed publications', 'all publications normalized', 'refereed publications normalized'
+                        * 'publications': returns 'all publications', 'refereed publications', 'all publications normalized', 'refereed publications normalized'
 
-                    * 'reads': returns 'all reads', 'refereed reads', 'all reads normalized', 'refereed reads normalized'
+                        * 'reads': returns 'all reads', 'refereed reads', 'all reads normalized', 'refereed reads normalized'
 
-                    * 'downloads': returns 'all downloads', 'refereed downloads', 'all downloads normalized', 'refereed downloads normalized'
+                        * 'downloads': returns 'all downloads', 'refereed downloads', 'all downloads normalized', 'refereed downloads normalized'
 
-                    * 'citations': returns 'refereed to refereed', 'nonrefereed to refereed', 'refereed to nonrefereed', 'nonrefereed to nonrefereed', 'refereed to refereed normalized', 'nonrefereed to refereed normalized', 'refereed to nonrefereed normalized', 'nonrefereed to nonrefereed normalized'
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - publications
-                      - reads
-                      - downloads
-                      - citations
+                        * 'citations': returns 'refereed to refereed', 'nonrefereed to refereed', 'refereed to nonrefereed', 'nonrefereed to nonrefereed', 'refereed to refereed normalized', 'nonrefereed to refereed normalized', 'refereed to nonrefereed normalized', 'nonrefereed to nonrefereed normalized'
+                      type: array
+                      items:
+                        type: string
+                        enum:
+                          - publications
+                          - reads
+                          - downloads
+                          - citations
       responses:
         '200':
           description: >
@@ -2657,15 +2763,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-              properties:
-                bibcodes:
-                  description: Bibcode(s) to produce metrics for
-                  type: array
-                  items:
-                    type: string
+              $ref: '#/components/schemas/bibcodesObject'
       responses:
         '200':
           description: JSON containing the requested metrics
@@ -2723,21 +2821,16 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-              properties:
-                bibcodes:
-                  description: Bibcode(s) to produce author affiliations for
-                  type: array
-                  items:
-                    type: string
-                maxauthor:
-                  description: First N authors for each paper to report on
-                  type: integer
-                numyears:
-                  description: Last N years to retrieve affiliations for
-                  type: integer
+              allOf:
+                - $ref: '#/components/schemas/bibcodesObject'
+                - type: object
+                  properties:
+                    maxauthor:
+                      description: First N authors for each paper to report on
+                      type: integer
+                    numyears:
+                      description: Last N years to retrieve affiliations for
+                      type: integer
       responses:
         '200':
           description: JSON containing the requested author affiliations
@@ -2829,15 +2922,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required:
-                - bibcodes
-              properties:
-                bibcodes:
-                  description: Bibcode(s) to run the citation helper for
-                  type: array
-                  items:
-                    type: string
+              $ref: '#/components/schemas/bibcodesObject'
       responses:
         '200':
           description: JSON containing the suggested papers
@@ -3249,6 +3334,968 @@ paths:
                     type: string
         '400':
           description: Reader was not provided
+  /reference/text/{reference}:
+    get:
+      summary: Resolve a reference string into a bibcode
+      description: >
+        Given a reference string (such as from the references section
+        of a published paper), returns the bibcode of the matching paper.
+      tags:
+        - reference
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: reference
+          description: URL-encoded reference string
+          required: true
+          in: path
+          schema:
+            type: string
+          example:
+            textExample:
+              value: "Kravchenko%20et%20al.%202020%2C%20A%26A%20637%2C%20L6"
+      responses:
+        '200':
+          description: >
+            JSON containing the input reference, the matching bibcode, and the confidence score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resolved:
+                    type: object
+                    properties:
+                      bibcode:
+                        description: Output matching bibcode
+                        type: string
+                      refstring:
+                        description: Input reference string
+                        type: string
+                      score:
+                        description: Confidence score, ranging from 0 (low) to 1 (high)
+                        type: string
+                      comment:
+                        description: Error message if parsing fails
+                        type: string
+  /reference/text:
+    post:
+      summary: Resolve one or more reference strings into a bibcode
+      description: >
+        Given one or more reference strings (such as from the references section
+        of a published paper), returns the bibcode of the matching paper.
+      tags:
+        - reference
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input reference strings
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reference
+              properties:
+                reference:
+                  type: array
+                  items:
+                    type: string
+            example:
+              textExample:
+                value: {"reference":"Kravchenko et al. 2020, A&A 637, L6"}
+      responses:
+        '200':
+          description: >
+            JSON containing the input reference, the matching bibcode, and the confidence score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resolved:
+                    type: object
+                    properties:
+                      bibcode:
+                        description: Output matching bibcode
+                        type: string
+                      refstring:
+                        description: Input reference string
+                        type: string
+                      score:
+                        description: Confidence score, ranging from 0 (low) to 1 (high)
+                        type: string
+                      comment:
+                        description: Error message if parsing fails
+                        type: string
+        '400':
+          description: Bad request, check payload
+  /reference/xml:
+    post:
+      summary: Resolve one or more parsed references into a bibcode
+      description: >
+        Given one or more parsed reference strings, returns the bibcode
+        of the matching paper.
+      tags:
+        - reference
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the parsed input references.
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - parsed_reference
+              properties:
+                parsed_reference:
+                  type: array
+                  items:
+                    type: string
+                    description: >
+                      Parsed references, passed as serialized JSON. The following
+                      keywords are accepted (note that each value should be formatted
+                      as a string):
+
+                      * authors (value is formatted as "Last1, First1, Last2, First2")
+
+                      * journal
+
+                      * title
+
+                      * volume
+
+                      * issue
+
+                      * page
+
+                      * year
+
+                      * doi
+
+                      * arxiv
+
+                      * refstr (used for output only)
+
+                      * issn
+
+                      * refplaintext (if the parsed input fails, this is used for parsing)
+            example:
+              xmlExample:
+                summary: A parsed reference example
+                value: {"parsed_reference":["{'authors': 'Baumjohann, W., Haerendel, G.H.', 'journal': 'Geophysical Monograph', 'title': 'Physics of Magnetic Flux Ropes', 'volume': '58', 'page': '627', 'year': '1990', 'refstr': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.', 'refplaintext': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.'}"]}
+      responses:
+        '200':
+          description: >
+            JSON containing the input reference, the matching bibcode, and the confidence score
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resolved:
+                    type: object
+                    properties:
+                      bibcode:
+                        description: Output matching bibcode
+                        type: string
+                      refstring:
+                        description: Input reference string
+                        type: string
+                      score:
+                        description: Confidence score, ranging from 0 (low) to 1 (high)
+                        type: string
+                      comment:
+                        description: Error message if parsing fails
+                        type: string
+        '400':
+          description: Bad request, check payload
+  /resolver/{bibcode}:
+    get:
+      summary: Return links to external resources for a given bibcode
+      description: >
+        Return links to external resources, such as a publisher's full text,
+        data links, etc., for a given bibcode
+      tags:
+        - resolver
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: bibcode
+          description: Bibcode to return resources for
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ResolverResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: Did not find any matching records
+  /resolver/{bibcode}/{link_type}:
+    get:
+      summary: Return links to a given external resource for a bibcode
+      description: >
+        Return links to a specific external resource, such as a publisher's
+        full text or data links, for a given bibcode
+      tags:
+        - resolver
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: bibcode
+          description: Bibcode to return resources for
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: link_type
+          description: >
+            External resource type to return (case-insensitive). The available link types
+            for a given bibcode can be discovered by returning all available resources
+            for a bibcode (via `/resolver/{bibcode}`) and looking at the `type` keywords.
+
+            Note: for `link_type` of `arXiv` or `doi`, an additional parameter, the `id`
+            is required. The syntax is `/resolver/{bibcode}/{link_type}:{id}`.
+
+
+            For example:
+
+
+            `/resolver/2010ApJ...713L.103B/doi:10.1088/2041-8205/713/2/L103`
+
+
+            `/resolver/2018arXiv180303598K/arXiv:1803.03598`
+
+
+            Available values for `link_type`:
+
+            * `abstract` Abstract
+
+            * `citations` Citations to the Article
+
+            * `references` References in the Article
+
+            * `coreads` Also-Read Articles
+
+            * `toc` Table of Contents
+
+            * `openurl`
+
+            * `metrics`
+
+            * `graphics`
+
+            * `esource` Full text sources
+
+              * `pub_pdf` Publisher PDF
+
+              * `eprint_pdf` Arxiv eprint
+
+              * `author_pdf` Link to PDF page provided by author
+
+              * `ads_pdf` ADS PDF
+
+              * `pub_html` Electronic on-line publisher article (HTML)
+
+              * `eprint_html` Arxiv article
+
+              * `author_html` Link to HTML page provided by author
+
+              * `ads_scan` ADS scanned article
+
+              * `gif` backward compatibility similar to /ads_scan
+
+              * `preprint` backward compatibility similar to /eprint_html
+
+              * `ejournal` backward compatibility similar to /pub_html
+
+            * `data` On-line data
+
+              * `aca` Acta Astronomica Data Files
+
+              * `alma` Atacama Large Millimeter/submillimeter Array
+
+              * `ari` Astronomisches Rechen-Institut
+
+              * `astroverse` CfA Dataverse
+
+              * `atnf` Australia Telescope Online Archive
+
+              * `author` Author Hosted Dataset
+
+              * `bavj` Data of the German Association for Variable Stars
+
+              * `bicep2` BICEP/Keck Data
+
+              * `cadc` Canadian Astronomy Data Center
+
+              * `cds` Strasbourg Astronomical Data Center
+
+              * `chandra` Chandra X-Ray Observatory
+
+              * `dryad` International Repository of Research Data
+
+              * `esa` ESAC Science Data Center
+
+              * `eso` European Southern Observatory
+
+              * `figshare` Online Open Access Repository
+
+              * `gcpd` The General Catalogue of Photometric Data
+
+              * `github` Git Repository Hosting Service
+
+              * `gtc` Gran Telescopio CANARIAS Public Archive
+
+              * `heasarc` NASA's High Energy Astrophysics Science Archive Research Center
+
+              * `herschel` Herschel Science Center
+
+              * `ibvs` Information Bulletin on Variable Stars
+
+              * `ines` IUE Newly Extracted Spectra
+
+              * `iso` Infrared Space Observatory
+
+              * `jwst` JWST Proposal Info
+
+              * `koa` Keck Observatory Archive
+
+              * `mast` Mikulski Archive for Space Telescopes
+
+              * `ned` NASA/IPAC Extragalactic Database
+
+              * `nexsci` NASA Exoplanet Archive
+
+              * `noao` National Optical Astronomy Observatory
+
+              * `pangaea` Digital Data Library and a Data Publisher for Earth System Science
+
+              * `pasa` Publication of the Astronomical Society of Australia Datasets
+
+              * `pdg` Particle Data Group
+
+              * `pds` The NASA Planetary Data System
+
+              * `protocols` Collaborative Platform and Preprint Server for Science Methods and Protocols
+
+              * `simbad` SIMBAD Database at the CDS
+
+              * `spitzer` Spitzer Space Telescope
+
+              * `tns` Transient Name Server
+
+              * `vizier` VizieR Catalog Service
+
+              * `xmm` XMM Newton Science Archive
+
+              * `zenodo` Zenodo Archive
+
+            * `inspire` HEP/Spires Information
+
+            * `librarycatalog`
+
+            * `presentation` Multimedia Presentation
+
+            * `associated` Associated Articles
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/ResolverResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: Did not find any matching records
+  /vault/notifications:
+    get:
+      summary: View all myADS notifications set up for the current user
+      description: >
+        View all myADS notifications set up for the current user, associated
+        with the given API token
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      responses:
+        '200':
+          description: Details of notifications set up for the current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/myADSsummaryResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: No notifications found for the given user
+    post:
+      summary: Create a myADS notification
+      description: >
+        Create a myADS notification for the current user
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the notifications setup. There are two types of notifications:
+
+
+          * template-type notifications: Notify the user about new papers that match a templated query.
+          The following keywords are required:
+
+            * template: The template to use to construct the query. The options are:
+
+              * arxiv: Meant for daily frequency; notifies of new arXiv papers. Requires the data and classes keywords:
+
+                * classes: (required) Array of arXiv categories and sub-categories to include in notifications
+
+                * data: (optional) Formatted search terms to search for within designated classes. If included,
+                  notifications will include all papers that match the given categories, and papers that match
+                  the search terms in this data keyword will be highlighted.
+
+              * authors: Meant for weekly frequency; notify the user of up to 5 new papers about given authors.
+              Requires the data keyword:
+
+                * data: (required) Must be formatted as `author:\"Last, First\"` or `orcid:\"ORCID-ID\"`. Can
+                combine multiple author queries using `OR`
+
+              * citations: Meant for weekly frequency; notify the user of new citations to papers by a given author.
+              Requires the data keyword:
+
+                * data: (required) Must be formatted as `author:\"Last, First\"` or `orcid:\"ORCID-ID\"`
+
+              * keyword: Meant for weekly frequency; notify the user of new papers matching a given set of
+              keywords. Three queries are constructed for the given set of search terms: recent papers,
+              trending papers, and useful papers. Requires the data keyword:
+
+                * data: (required) Formatted search terms or keywords
+
+          * query-type notifications: These notify the user about new papers that match a given query.
+          The following keywords are required:
+
+            * name: Name to call the notification
+
+            * qid: Query ID returned from the `/vault/query` endpoint, pointing to the stored query
+
+            * frequency: Daily or weekly notification frequency
+
+            * stateful: Set to true to only be notified of new papers; set to false to be notified of
+            the top matches to a query, whether or not you've seen them before
+
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  enum:
+                    - template
+                    - query
+                name:
+                  description: Optional for type=template; required for type=query
+                  type: string
+                qid:
+                  description: Only used for type=query
+                  type: string
+                active:
+                  description: Set to true to receive this notification
+                  type: boolean
+                stateful:
+                  description: Only used for type=query
+                  type: boolean
+                frequency:
+                  type: string
+                  enum:
+                    - daily
+                    - weekly
+                template:
+                  description: Only used for type=template
+                  type: string
+                  enum:
+                    - arxiv
+                    - authors
+                    - citations
+                    - keyword
+                classes:
+                  description: Only used for type=template and template=arxiv
+                  type: array
+                  items:
+                    type: string
+                data:
+                  type: string
+      responses:
+        '200':
+          description: Returns notification setup details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/myADSsummaryResponse'
+                  - $ref: '#/components/schemas/myADSdetailResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: Query associated with give QID does not exist
+        '500':
+          description: User does not exist or other error
+  /vault/notifications/{myads_id}:
+    get:
+      summary: View the details for one myADS notification
+      description: >
+        View the details for one myADS notification set up for the current user, associated
+        with the given API token
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: myads_id
+          description: ID from one myADS notification, taken from the response to `/vault/notifications`
+          required: true
+          in: path
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Details of none otification set up for the current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/myADSsummaryResponse'
+                  - $ref: '#/components/schemas/myADSdetailResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: Notification not found
+    put:
+      summary: Edit the details for one myADS notification
+      description: >
+        Edit the details for one myADS notification set up for the current user, associated
+        with the given API token
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: myads_id
+          description: ID from one myADS notification, taken from the response to `/vault/notifications`
+          required: true
+          in: path
+          schema:
+            type: integer
+      requestBody:
+        description: >
+          JSON containing metadata of notification to edit.
+
+
+          Note: only need to include information that needs to be changed.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                name:
+                  type: string
+                classes:
+                  type: array
+                  items:
+                    type: string
+                active:
+                  type: boolean
+                stateful:
+                  type: boolean
+                frequency:
+                  type: string
+                  enum:
+                    - daily
+                    - weekly
+      responses:
+        '200':
+          description: Details of none otification set up for the current user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/myADSsummaryResponse'
+                  - $ref: '#/components/schemas/myADSdetailResponse'
+        '400':
+          description: Malformed request
+        '404':
+          description: Notification not found
+        '500':
+          description: User does not exist or other error
+    delete:
+      summary: Delete one myADS notification
+      description: >
+        Delete one myADS notification set up for the current user, associated
+        with the given API token
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: myads_id
+          description: ID from one myADS notification, taken from the response to `/vault/notifications`
+          required: true
+          in: path
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Successfully deleted the notification
+        '404':
+          description: Notification not found
+        '500':
+          description: Error during request
+  /vault/notification_query/{myads_id}:
+    get:
+      summary: Return a constructed myADS query
+      description: >
+        Given a myADS ID for a single notification setup, use the inputed data
+        to build the full query(ies), ready for execution.
+      tags:
+        - notifications
+      security:
+        - ApiKeySecurity: []
+      parameters:
+        - name: myads_id
+          description: ID from one myADS notification, taken from the response to `/vault/notifications`
+          required: true
+          in: path
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: >
+            Constructed query and sort parameter. For the keyword and arxiv template-type queries,
+            more than one query and sort parameter will be returned.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    q:
+                      type: string
+                    sort:
+                      type: string
+        '400':
+          description: Malformed request
+        '404':
+          description: Notification not found
+  /vis/author-network:
+    post:
+      summary: Returns author network data
+      description: >
+        Used to generate our author network visualization, given an input set of bibcodes,
+        returns the author network data
+      tags:
+        - visualizations
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input bibcodes
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bibcodesObject'
+      responses:
+        '200':
+          description: Author network data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: object
+                    properties:
+                      start:
+                        type: integer
+                      rows:
+                        type: integer
+                      numFound:
+                        type: integer
+                  data:
+                    type: object
+                    properties:
+                      bibcode_dict:
+                        type: object
+                        properties:
+                          bibcode:
+                            type: object
+                            properties:
+                              read_count:
+                                type: integer
+                              authors:
+                                type: array
+                                items:
+                                  type: string
+                              citation_count:
+                                type: integer
+                              title:
+                                type: string
+                      root:
+                        type: object
+                        properties:
+                          name:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                nodeName:
+                                  type: string
+                                nodeWeight:
+                                  type: integer
+                                delete:
+                                  type: boolean
+                          children:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                read_count:
+                                  type: integer
+                                name:
+                                  type: string
+                                citation_count:
+                                  type: integer
+                                numberName:
+                                  type: integer
+                                papers:
+                                  type: array
+                                  items:
+                                    type: string
+                                size:
+                                  type: number
+                      link_data:
+                        type: array
+                        items:
+                          type: array
+                          items:
+                            type: integer
+        '403':
+          description: Error with request
+  /vis/paper-network:
+    post:
+      summary: Returns author network data
+      description: >
+        Used to generate our author network visualization, given an input set of bibcodes,
+        returns the author network data
+      tags:
+        - visualizations
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input bibcodes
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bibcodesObject'
+      responses:
+        '200':
+          description: Paper network data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: object
+                    properties:
+                      start:
+                        type: integer
+                      rows:
+                        type: integer
+                      numFound:
+                        type: integer
+                  data:
+                    type: object
+                    properties:
+                      summaryGraph:
+                        type: object
+                        properties:
+                          directed:
+                            type: boolean
+                          graph:
+                            type: array
+                            default: []
+                            items:
+                              type: integer
+                          nodes:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                paper_count:
+                                  type: integer
+                                node_label:
+                                  type: object
+                                  properties:
+                                    label:
+                                      type: number
+                                total_citations:
+                                  type: integer
+                                node_name:
+                                  type: integer
+                                top_common_references:
+                                  type: object
+                                  properties:
+                                    bibcode:
+                                      type: number
+                                total_reads:
+                                  type: integer
+                                stable_index:
+                                  type: integer
+                                id:
+                                  type: integer
+                          links:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: integer
+                                target:
+                                  type: integer
+                                weight:
+                                  type: integer
+                          multigraph:
+                            type: boolean
+                      fullGraph:
+                        type: object
+                        properties:
+                          directed:
+                            type: boolean
+                          graph:
+                            type: array
+                            default: []
+                            items:
+                              type: integer
+                          nodes:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                read_count:
+                                  type: integer
+                                group:
+                                  type: integer
+                                title:
+                                  type: string
+                                first_author:
+                                  type: string
+                                citation_count:
+                                  type: integer
+                                node_name:
+                                  type: string
+                                id:
+                                  type: integer
+                                nodeWeight:
+                                  type: integer
+                          links:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                source:
+                                  type: integer
+                                overlap:
+                                  type: array
+                                  items:
+                                    type: string
+                                weight:
+                                  type: integer
+                                target:
+                                  type: integer
+        '403':
+          description: Error with request
+  /vis/word-cloud:
+    post:
+      summary: Returns the word cloud data
+      description: >
+        Used to generate our word/concept cloud visualization, given an input query,
+        returns the word cloud data
+      tags:
+        - visualizations
+      security:
+        - ApiKeySecurity: []
+      requestBody:
+        description: >
+          JSON containing the input query
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                q:
+                  description: >
+                    Query string; can include search tags. If using
+                    quotes, make sure to escape them.
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    qExample:
+                      value: ["author:\"huchra, john\""]
+                sort:
+                  type: array
+                  items:
+                    type: string
+                  example:
+                    sortExample:
+                      value: ["date desc, bibcode desc"]
+                rows:
+                  description: >
+                    Number of records to use in generating the word cloud;
+                    currently the maximum allowed is 500.
+                  type: array
+                  items:
+                    type: integer
+                  example:
+                    rowsExample:
+                      value: [150]
+      responses:
+        '200':
+          description: Word cloud data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  word:
+                    description: Keywords are the words in the cloud
+                    type: object
+                    properties:
+                      idf:
+                        description: Inverse document frequency
+                        type: number
+                      record_count:
+                        type: integer
+                      total_occurrences:
+                        type: integer
+        '403':
+          description: Error with request
 externalDocs:
   description: Complete documentation describing how to use this API
   url: https://github.com/adsabs/adsabs-dev-api

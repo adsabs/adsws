@@ -12,6 +12,15 @@ info:
     * Libraries: https://github.com/adsabs/biblib-service
     * Export: https://github.com/adsabs/export_service
     * Metrics: https://github.com/adsabs/metrics_service
+    * Author affiliation: https://github.com/adsabs/author_affiliation_service
+    * Citation helper: https://github.com/adsabs/citation_helper_service
+    * Classic import: https://github.com/adsabs/harbour-service
+    * Objects: https://github.com/adsabs/object_service
+    * Recommender: https://github.com/adsabs/oracle_service
+    * Reference: https://github.com/adsabs/reference_service
+    * Resolver: https://github.com/adsabs/resolver_service
+    * Notifications: https://github.com/adsabs/vault
+    * Visualizations: https://github.com/adsabs/vis-services
   termsOfService: https://ui.adsabs.harvard.edu/help/terms/
   contact:
     name: ADS Help
@@ -67,6 +76,7 @@ components:
       required: true
       schema:
         type: string
+      example: "author%3Amart%C3%ADnez+neutron+star"
     rows:
       name: rows
       description: How many records to return for this request (default=10, maximum=200)
@@ -94,6 +104,7 @@ components:
       in: query
       style: form
       explode: false
+      example: "bibcode,author,title"
       schema:
         type: array
         default: id
@@ -225,17 +236,6 @@ components:
         'access_token' of the orcid user (will be passed on to the ORCiD API)
       schema:
         type: string
-    jsonpayload:
-      name: jsonpayload
-      in: header
-      description: >
-        JSON object, to be stored for the user. **WARNING**: the JSON will
-        replace the existing one.
-
-        If you send an empty POST request, the stored data will be replaced with
-        `{}`.
-      schema:
-        type: object
     bibcode:
       name: bibcode
       description: Bibcode to export
@@ -250,6 +250,20 @@ components:
       in: path
       schema:
         type: string
+    queryId:
+      name: queryId
+      description: QID returned from the POST operation
+      required: true
+      in: path
+      schema:
+        type: string
+    myadsId:
+      name: myads_id
+      description: ID from one myADS notification, taken from the response to `/vault/notifications`
+      required: true
+      in: path
+      schema:
+        type: integer
   responses:
     QTree:
       description: Abstract Syntax Tree of a Parsed query
@@ -287,15 +301,6 @@ components:
                 type: string
                 description: >
                   Serialized JSON input search parameters
-    ErrorResponse:
-      description: Response returned with an error status code
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
     ExportResponse:
       description: >
             Returns export
@@ -667,6 +672,39 @@ components:
             Input bibcodes
           items:
             type: string
+    libraryMetadata:
+      type: object
+      properties:
+        owner:
+          type: string
+          description: User who created the library
+        num_documents:
+          type: integer
+          description: Number of bibcodes in the library
+        public:
+          type: boolean
+          description: True means it is public
+        num_users:
+          type: integer
+          description: Number of users with permissions to this library
+        date_created:
+          type: string
+          description: Date library was created
+        name:
+          type: string
+          description: Name of library
+        description:
+          type: string
+          description: Description of library
+        permission:
+          type: string
+          description: Permission type, can be 'read', 'write', 'admin', or 'owner'
+        id:
+          type: string
+          description: Library ID
+        date_last_modified:
+          type: string
+          description: Date library was last modified
   requestBodies:
     exportBody:
       description: >
@@ -680,7 +718,7 @@ security:
 paths:
   /search/query:
     get:
-      summary: 01. Search ADS
+      summary: Search ADS
       description: >
         Do a search.
 
@@ -788,7 +826,7 @@ paths:
         - search
   /search/qtree:
     get:
-      summary: 02. Search ADS and return a query tree object
+      summary: (advanced) Search ADS and return a query tree object
       description: >
         Returns a `query tree` (Abstract Syntax Tree - AST) as understood by our
         query parser. The structure can be used by external applications to
@@ -834,7 +872,7 @@ paths:
         - search
   /search/bigquery:
     post:
-      summary: 03. Search using bigquery
+      summary: Search using bigquery
       description: >
         Search endpoint which accepts a list of many IDs (bibcodes). Supports
         paging.
@@ -975,12 +1013,7 @@ paths:
         }
         ```
       parameters:
-        - name: queryId
-          description: QID returned from the POST operation
-          required: true
-          in: path
-          schema:
-            type: string
+        - $ref: '#/components/parameters/queryId'
       tags:
         - stored search
       security:
@@ -1049,12 +1082,7 @@ paths:
           }
         ```
       parameters:
-        - name: queryId
-          description: QID returned from the POST operation
-          required: true
-          in: path
-          schema:
-            type: string
+        - $ref: '#/components/parameters/queryId'
         - name: jsonobj
           description: >-
             You can submit query parameters that override parts of the saved
@@ -1083,12 +1111,7 @@ paths:
       security:
         - ApiKeySecurity: []
       parameters:
-        - name: queryId
-          description: QID returned from the POST operation
-          required: true
-          in: path
-          schema:
-            type: string
+        - $ref: '#/components/parameters/queryId'
       responses:
         '200':
           description: Code of the SVG image
@@ -1118,28 +1141,7 @@ paths:
                   libraries:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        name:
-                          type: string
-                        id:
-                          type: string
-                        description:
-                          type: string
-                        num_documents:
-                          type: integer
-                        date_created:
-                          type: string
-                        date_last_modified:
-                          type: string
-                        permission:
-                          type: string
-                        public:
-                          type: boolean
-                        num_users:
-                          type: integer
-                        owner:
-                          type: string
+                      $ref: '#/components/schemas/libraryMetadata'
         '400':
           description: >
             No username passed
@@ -1232,38 +1234,7 @@ paths:
                 type: object
                 properties:
                   metadata:
-                    type: object
-                    properties:
-                      owner:
-                        type: string
-                        description: User who created the library
-                      num_documents:
-                        type: integer
-                        description: Number of bibcodes in the library
-                      public:
-                        type: boolean
-                        description: True means it is public
-                      num_users:
-                        type: integer
-                        description: Number of users with permissions to this library
-                      date_created:
-                        type: string
-                        description: Date library was created
-                      name:
-                        type: string
-                        description: Name of library
-                      description:
-                        type: string
-                        description: Description of library
-                      permission:
-                        type: string
-                        description: Permission type, can be 'read', 'write', 'admin', or 'owner'
-                      id:
-                        type: string
-                        description: Library ID
-                      date_last_modified:
-                        type: string
-                        description: Date library was last modified
+                    $ref: '#/components/schemas/libraryMetadata'
                   documents:
                     type: array
                     description: Array of bibcodes in library
@@ -2549,7 +2520,7 @@ paths:
             No result from Solr
   /metrics:
     post:
-      summary: 01. Retrieve metrics for one or more bibcodes
+      summary: Retrieve metrics for one or more bibcodes
       description: >
         This endpoint retrieves some or all of the available citation metrics for
         one or more bibcodes. More documentation is available [here](https://github.com/adsabs/adsabs-dev-api/blob/master/Metrics_API.ipynb).
@@ -2719,7 +2690,7 @@ paths:
             Metrics request blew up
   /metrics/{bibcode}:
     get:
-      summary: 02. Retrieve metrics for one bibcode
+      summary: Retrieve metrics for one bibcode
       description: >
         Similar to the `/metrics` endpoint, but returns data for a single bibcode only.
         Does not return indicators or timeseries.
@@ -2751,7 +2722,7 @@ paths:
             Metrics request blew up
   /metrics/detail:
     post:
-      summary: 03. Retrieve detail-level metrics for one or more bibcodes
+      summary: Retrieve detail-level metrics for one or more bibcodes
       description: >
         Provides basic, year-by-year metrics on a per-bibcode basis.
       tags:
@@ -3059,14 +3030,17 @@ paths:
                   enum:
                     - simbad
                     - ned
+                  example: "SIMBAD"
                 identifiers:
                   type: array
                   items:
                     type: string
+                  example: ["1575544"]
                 objects:
                   type: array
                   items:
                     type: string
+                  example: ["M31"]
       responses:
         '200':
           description: >
@@ -3090,6 +3064,7 @@ paths:
                         type: string
                       canonical:
                         type: string
+                example: {"1575544": {"id": "1575544","canonical": "M  31"}}
   /objects/query:
     post:
       summary: Return a Solr query with object identifiers
@@ -3112,6 +3087,7 @@ paths:
                   type: array
                   items:
                     type: string
+              example: {"query":["object:m31"]}
       responses:
         '200':
           description: >
@@ -3127,6 +3103,7 @@ paths:
                 properties:
                   query:
                     type: string
+                example: {"query": "((=abs:m31 OR simbid:1575544 OR nedid:MESSIER_031) database:astronomy)"}
   /oracle/matchdoc:
     post:
       summary: Given some input metadata, return the matched bibcode
@@ -3184,6 +3161,7 @@ paths:
                   type: array
                   items:
                     type: string
+              example: {"abstract":"The nucleus of our nearest, large galactic neighbour, M31, contains an eccentric nuclear disc - a disc of stars on eccentric, apsidally aligned orbits around a supermassive black hole (SMBH). Previous studies of eccentric nuclear discs considered only an isolated disc, and did not study their dynamics under galaxy mergers (particularly a perturbing SMBH). Here, we present the first study of how eccentric discs are affected by a galactic merger. We perform N-body simulations to study the disc under a range of different possible SMBH initial conditions. A second SMBH in the disc always disrupts it, but more distant SMBHs can shut off differential precession and stabilize the disc. This results in a more aligned disc, nearly uniform eccentricity profile, and suppression of tidal disruption events compared to the isolated disc. We also discuss implications of our work for the presence of a secondary SMBH in M31.","title":"Galactic merger implications for eccentric nuclear discs: a mechanism for disc alignment","author":"Rodriguez, Alexander; Generozov, Aleksey; Madigan, Ann-Marie","year":2021,"doctype":"article","match_doctype":["article"],"mustmatch":false}
       responses:
         '200':
           description: >
@@ -3227,6 +3205,7 @@ paths:
                               type: integer
                             year:
                               type: integer
+                example: {"query": "topn(10, similar(\"The nucleus of our nearest, large galactic neighbour, M31, contains an eccentric nuclear disc - a disc of stars on eccentric, apsidally aligned orbits around a supermassive black hole (SMBH). Previous studies of eccentric nuclear discs considered only an isolated disc, and did not study their dynamics under galaxy mergers (particularly a perturbing SMBH). Here, we present the first study of how eccentric discs are affected by a galactic merger. We perform N-body simulations to study the disc under a range of different possible SMBH initial conditions. A second SMBH in the disc always disrupts it, but more distant SMBHs can shut off differential precession and stabilize the disc. This results in a more aligned disc, nearly uniform eccentricity profile, and suppression of tidal disruption events compared to the isolated disc. We also discuss implications of our work for the presence of a secondary SMBH in M31.\", input abstract, 43, 1, 1)) doctype:(article) property:REFEREED", "comment": "Matching doctype `article`.", "match": [{"bibcode": "2021MNRAS.503.2713R", "confidence": 1, "scores": {"abstract": 1.0, "title": 1.0, "author": 1, "year": 1}}]}
         '400':
           description: No payload provided, or payload is missing needed parameters
   /oracle/readhist:
@@ -3351,9 +3330,7 @@ paths:
           in: path
           schema:
             type: string
-          example:
-            textExample:
-              value: "Kravchenko%20et%20al.%202020%2C%20A%26A%20637%2C%20L6"
+          example: "Kravchenko%20et%20al.%202020%2C%20A%26A%20637%2C%20L6"
       responses:
         '200':
           description: >
@@ -3378,6 +3355,7 @@ paths:
                       comment:
                         description: Error message if parsing fails
                         type: string
+                example: {"resolved": {"refstring": "Kravchenko et al. 2020, A&A 637, L6", "score": "1.0", "bibcode": "2020A&A...637L...6K"}}
   /reference/text:
     post:
       summary: Resolve one or more reference strings into a bibcode
@@ -3402,9 +3380,7 @@ paths:
                   type: array
                   items:
                     type: string
-            example:
-              textExample:
-                value: {"reference":"Kravchenko et al. 2020, A&A 637, L6"}
+              example: {"reference":["Kravchenko et al. 2020, A&A 637, L6"]}
       responses:
         '200':
           description: >
@@ -3429,6 +3405,7 @@ paths:
                       comment:
                         description: Error message if parsing fails
                         type: string
+                example: {'refstring': 'Kravchenko et al. 2020, A&A 637, L6', 'score': '1.0', 'bibcode': '2020A&A...637L...6K'}
         '400':
           description: Bad request, check payload
   /reference/xml:
@@ -3483,10 +3460,7 @@ paths:
                       * issn
 
                       * refplaintext (if the parsed input fails, this is used for parsing)
-            example:
-              xmlExample:
-                summary: A parsed reference example
-                value: {"parsed_reference":["{'authors': 'Baumjohann, W., Haerendel, G.H.', 'journal': 'Geophysical Monograph', 'title': 'Physics of Magnetic Flux Ropes', 'volume': '58', 'page': '627', 'year': '1990', 'refstr': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.', 'refplaintext': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.'}"]}
+                  example: ["{'authors': 'Baumjohann, W., Haerendel, G.H.', 'journal': 'Geophysical Monograph', 'title': 'Physics of Magnetic Flux Ropes', 'volume': '58', 'page': '627', 'year': '1990', 'refstr': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.', 'refplaintext': 'Baumjohann, W., Haerendel, G.H., 1990. Geophysical Monograph, Physics of Magnetic Flux Ropes, 58, 627.'}"]
       responses:
         '200':
           description: >
@@ -3863,12 +3837,7 @@ paths:
       security:
         - ApiKeySecurity: []
       parameters:
-        - name: myads_id
-          description: ID from one myADS notification, taken from the response to `/vault/notifications`
-          required: true
-          in: path
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/myadsId'
       responses:
         '200':
           description: Details of none otification set up for the current user
@@ -3892,12 +3861,7 @@ paths:
       security:
         - ApiKeySecurity: []
       parameters:
-        - name: myads_id
-          description: ID from one myADS notification, taken from the response to `/vault/notifications`
-          required: true
-          in: path
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/myadsId'
       requestBody:
         description: >
           JSON containing metadata of notification to edit.
@@ -3951,12 +3915,7 @@ paths:
       security:
         - ApiKeySecurity: []
       parameters:
-        - name: myads_id
-          description: ID from one myADS notification, taken from the response to `/vault/notifications`
-          required: true
-          in: path
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/myadsId'
       responses:
         '204':
           description: Successfully deleted the notification
@@ -3975,12 +3934,7 @@ paths:
       security:
         - ApiKeySecurity: []
       parameters:
-        - name: myads_id
-          description: ID from one myADS notification, taken from the response to `/vault/notifications`
-          required: true
-          in: path
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/myadsId'
       responses:
         '200':
           description: >
@@ -4255,16 +4209,12 @@ paths:
                   type: array
                   items:
                     type: string
-                  example:
-                    qExample:
-                      value: ["author:\"huchra, john\""]
+                  example: ["author:\"huchra, john\""]
                 sort:
                   type: array
                   items:
                     type: string
-                  example:
-                    sortExample:
-                      value: ["date desc, bibcode desc"]
+                  example: ["date desc, bibcode desc"]
                 rows:
                   description: >
                     Number of records to use in generating the word cloud;
@@ -4272,9 +4222,7 @@ paths:
                   type: array
                   items:
                     type: integer
-                  example:
-                    rowsExample:
-                      value: [150]
+                  example: [150]
       responses:
         '200':
           description: Word cloud data

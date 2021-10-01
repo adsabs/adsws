@@ -48,7 +48,7 @@ jobs:
     steps:
     - name: Enable citext extension
       run: |
-         PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres test_adsws -tc "CREATE EXTENSION 'citext';"
+         PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres test_adsws -tc "CREATE EXTENSION citext;"
 
     - name: Start Redis
       uses: supercharge/redis-github-action@1.2.0

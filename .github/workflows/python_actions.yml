@@ -13,6 +13,11 @@
 name: GitHub Actions CI
 
 on: [pull_request]
+env:
+  PGDATABASE: test_adsws
+  PGPASSWORD: postgres
+  PGUSER: postgres
+  PGHOST: localhost
 
 jobs:
   build:

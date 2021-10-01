@@ -75,6 +75,10 @@ class ApiTestCase(_APITestCase):
         r = self.open('GET', url_for('userresolver', identifier=self.user_email))
         self.assertEqual(r.json['id'], self.user_id)
 
+        # Test case insensitivity on email
+        r = self.open('GET', url_for('userresolver', identifier=self.user_email.upper()))
+        self.assertEqual(r.json['id'], self.user_id)
+
 
 TESTSUITE = make_test_suite(
     ApiTestCase,

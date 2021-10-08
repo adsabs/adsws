@@ -71,6 +71,7 @@ class AccountsSetup(TestCase):
         httpretty.reset()
         self.bootstrap_user = None
         self.real_user = None
+        db.close_all_sessions()
         db.drop_all(app=self.app)
 
     def setUp(self):
@@ -93,7 +94,7 @@ class AccountsSetup(TestCase):
     def create_app(self):
         app = accounts.create_app(
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='postgres://postgres:postgres@localhost/test_adsws',
+            SQLALCHEMY_DATABASE_URI='postgresql+psycopg2://postgres:postgres@localhost/test_adsws',
             TESTING=False,
             DEBUG=False,
             SITE_SECURE_URL='http://localhost',

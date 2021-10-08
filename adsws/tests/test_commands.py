@@ -17,6 +17,18 @@ class TestManageScopes(AccountsSetup):
 
     def _create_client(self, client_id='test', user_id=0, scopes='adsws:internal'):
         # create a client in the database
+
+        user = db.session.query(User).filter_by(id=user_id).first()
+        if not user:
+            u = user_manipulator.create(
+                id=user_id,
+                email="user{}@unittest".format(user_id),
+                registered_at=datetime.datetime.now(),
+                confirmed_at=datetime.datetime.now(),
+            )
+            db.session.add(u)
+            db.session.commit()
+
         c1 = OAuthClient(
             client_id=client_id,
             client_secret='client secret %s' % random.random(),

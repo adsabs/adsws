@@ -4,12 +4,23 @@ from api_base import ApiTestCase as _APITestCase
 from adsws import api
 from flask import url_for
 import time
-
+import testing.postgresql
 
 class ApiTestCase(_APITestCase):
     """
     Tests adsws-API specific endpoints
     """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.postgresql = \
+            testing.postgresql.Postgresql(host='127.0.0.1', port=5432, user='postgres',
+                                          database='test_adsws')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.postgresql.stop()
+
     def create_app(self):
         app = api.create_app(
             WEBSERVICES={},

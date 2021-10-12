@@ -10,6 +10,7 @@ from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 from sqlalchemy import func
+import testing.postgresql
 
 from unittest import TestCase as UnitTestCase
 
@@ -59,6 +60,16 @@ class TestUtils(UnitTestCase):
 
 
 class AccountsSetup(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.postgresql = \
+            testing.postgresql.Postgresql(host='127.0.0.1', port=5432, user='postgres',
+                                          database='test_adsws')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.postgresql.stop()
+
     def tearDown(self):
         # [hack]
         # When testing, an app is created for every single test but the limiter is

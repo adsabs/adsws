@@ -14,7 +14,7 @@ class ApiTestCase(_APITestCase):
     @classmethod
     def setUpClass(cls):
         cls.postgresql = \
-            testing.postgresql.Postgresql(host='127.0.0.1', port=5432, user='postgres',
+            testing.postgresql.Postgresql(host='127.0.0.1', port=15678, user='postgres',
                                           database='test_adsws')
 
     @classmethod

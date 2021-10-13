@@ -105,7 +105,7 @@ class AccountsSetup(TestCase):
     def create_app(self):
         app = accounts.create_app(
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='postgresql+psycopg2://postgres:postgres@localhost/test_adsws',
+            SQLALCHEMY_DATABASE_URI='postgresql://postgres@127.0.0.1:15678/test_adsws',
             TESTING=False,
             DEBUG=False,
             SITE_SECURE_URL='http://localhost',

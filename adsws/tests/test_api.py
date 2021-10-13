@@ -25,7 +25,7 @@ class ApiTestCase(_APITestCase):
         app = api.create_app(
             WEBSERVICES={},
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='postgresql+psycopg2://postgres:postgres@localhost/test_adsws',
+            SQLALCHEMY_DATABASE_URI='postgresql://postgres@127.0.0.1:15678/test_adsws',
             WTF_CSRF_ENABLED=False,
             TESTING=False,
             DEBUG=False,

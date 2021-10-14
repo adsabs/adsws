@@ -10,12 +10,24 @@ class ApiTestCase(_APITestCase):
     """
     Tests adsws-API specific endpoints
     """
+    postgresql_url_dict = {
+        'port': 15678,
+        'host': '127.0.0.1',
+        'user': 'postgres',
+        'database': 'test'
+    }
+    postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
+        .format(
+        user=postgresql_url_dict['user'],
+        host=postgresql_url_dict['host'],
+        port=postgresql_url_dict['port'],
+        database=postgresql_url_dict['database']
+    )
 
     @classmethod
     def setUpClass(cls):
         cls.postgresql = \
-            testing.postgresql.Postgresql(host='127.0.0.1', port=15678, user='postgres',
-                                          database='test_adsws')
+            testing.postgresql.Postgresql(**cls.postgresql_url_dict)
 
     @classmethod
     def tearDownClass(cls):
@@ -25,7 +37,7 @@ class ApiTestCase(_APITestCase):
         app = api.create_app(
             WEBSERVICES={},
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='postgresql://postgres@127.0.0.1:15678/test_adsws',
+            SQLALCHEMY_DATABASE_URI=self.postgresql_url,
             WTF_CSRF_ENABLED=False,
             TESTING=False,
             DEBUG=False,
@@ -39,6 +51,8 @@ class ApiTestCase(_APITestCase):
         return app
 
     def setUp(self):
+        engine = db.get_engine(self.app)
+        engine.execute('CREATE EXTENSION IF NOT EXISTS citext')
         super(self.__class__, self).setUp()
 
         # Create a test user that will be queried for

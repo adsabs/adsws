@@ -60,11 +60,24 @@ class TestUtils(UnitTestCase):
 
 
 class AccountsSetup(TestCase):
+    postgresql_url_dict = {
+        'port': 15678,
+        'host': '127.0.0.1',
+        'user': 'postgres',
+        'database': 'test'
+    }
+    postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
+        .format(
+        user=postgresql_url_dict['user'],
+        host=postgresql_url_dict['host'],
+        port=postgresql_url_dict['port'],
+        database=postgresql_url_dict['database']
+    )
+
     @classmethod
     def setUpClass(cls):
         cls.postgresql = \
-            testing.postgresql.Postgresql(host='127.0.0.1', port=15678, user='postgres',
-                                          database='test_adsws')
+            testing.postgresql.Postgresql(**cls.postgresql_url_dict)
 
     @classmethod
     def tearDownClass(cls):
@@ -86,6 +99,8 @@ class AccountsSetup(TestCase):
         db.drop_all(app=self.app)
 
     def setUp(self):
+        engine = db.get_engine(self.app)
+        engine.execute('CREATE EXTENSION IF NOT EXISTS citext')
         db.create_all(app=self.app)
         self.bootstrap_user = user_manipulator.create(
             email=self.app.config['BOOTSTRAP_USER_EMAIL'],
@@ -105,7 +120,7 @@ class AccountsSetup(TestCase):
     def create_app(self):
         app = accounts.create_app(
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='postgresql://postgres@127.0.0.1:15678/test_adsws',
+            SQLALCHEMY_DATABASE_URI=self.postgresql_url,
             TESTING=False,
             DEBUG=False,
             SITE_SECURE_URL='http://localhost',

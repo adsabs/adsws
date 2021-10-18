@@ -10,6 +10,7 @@ from adsws.accounts import utils
 from adsws.accounts.emails import PasswordResetEmail, VerificationEmail
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
 from sqlalchemy import func
+import testing.postgresql
 
 from unittest import TestCase as UnitTestCase
 
@@ -59,6 +60,29 @@ class TestUtils(UnitTestCase):
 
 
 class AccountsSetup(TestCase):
+    postgresql_url_dict = {
+        'port': 15678,
+        'host': '127.0.0.1',
+        'user': 'postgres',
+        'database': 'test'
+    }
+    postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
+        .format(
+        user=postgresql_url_dict['user'],
+        host=postgresql_url_dict['host'],
+        port=postgresql_url_dict['port'],
+        database=postgresql_url_dict['database']
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.postgresql = \
+            testing.postgresql.Postgresql(**cls.postgresql_url_dict)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.postgresql.stop()
+
     def tearDown(self):
         # [hack]
         # When testing, an app is created for every single test but the limiter is
@@ -71,9 +95,12 @@ class AccountsSetup(TestCase):
         httpretty.reset()
         self.bootstrap_user = None
         self.real_user = None
+        db.close_all_sessions()
         db.drop_all(app=self.app)
 
     def setUp(self):
+        engine = db.get_engine(self.app)
+        engine.execute('CREATE EXTENSION IF NOT EXISTS citext')
         db.create_all(app=self.app)
         self.bootstrap_user = user_manipulator.create(
             email=self.app.config['BOOTSTRAP_USER_EMAIL'],
@@ -93,7 +120,7 @@ class AccountsSetup(TestCase):
     def create_app(self):
         app = accounts.create_app(
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='sqlite://',
+            SQLALCHEMY_DATABASE_URI=self.postgresql_url,
             TESTING=False,
             DEBUG=False,
             SITE_SECURE_URL='http://localhost',
@@ -669,6 +696,23 @@ class TestAccounts(AccountsSetup):
             r = c.post(url_for('logoutview'),headers={'X-CSRFToken': csrf})
             self.assertRaises(AttributeError, lambda: current_user.email)
 
+            # Test case insensitivity
+            payload = {
+                'username': self.real_user.email.upper(),
+                'password': self.passwords[self.real_user]}
+
+            r = c.post(
+                url,
+                data=json.dumps(payload),
+                headers={'X-CSRFToken': csrf},
+            )
+            self.assertStatus(r, 200)
+            self.assertEqual(current_user.email, self.real_user.email)
+            self.assertEqual(current_user.login_count, 2)
+
+            r = c.post(url_for('logoutview'), headers={'X-CSRFToken': csrf})
+            self.assertRaises(AttributeError, lambda: current_user.email)
+
     def test_bootstrap_bumblebee(self):
         """
         test the bootstrap bumblebee functionality, namely that
@@ -973,6 +1017,25 @@ class TestAccounts(AccountsSetup):
             self.assertStatus(r, 200)
             u = user_manipulator.first(email="me@email")
             self.assertIsNotNone(u)
+            self.assertIsNone(u.confirmed_at)
+
+            # Test email case insensitivity
+            payload = {
+                'email': 'Me@email',
+                'password1': 'Password1',
+                'password2': 'Password1',
+                'g-recaptcha-response': 'correct_response',
+                'verify_url': 'http://not_relevant.com'
+            }
+            r = c.post(
+                url,
+                data=json.dumps(payload),
+                headers={'X-CSRFToken': csrf}
+            )
+
+            self.assertStatus(r, 409)
+            u = user_manipulator.first(email="Me@email")
+            self.assertEqual(u.email, "me@email")
             self.assertIsNone(u.confirmed_at)
 
     def test_repeated_bootstrap(self):

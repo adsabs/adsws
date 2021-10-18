@@ -4,17 +4,40 @@ from api_base import ApiTestCase as _APITestCase
 from adsws import api
 from flask import url_for
 import time
-
+import testing.postgresql
 
 class ApiTestCase(_APITestCase):
     """
     Tests adsws-API specific endpoints
     """
+    postgresql_url_dict = {
+        'port': 15678,
+        'host': '127.0.0.1',
+        'user': 'postgres',
+        'database': 'test'
+    }
+    postgresql_url = 'postgresql://{user}@{host}:{port}/{database}' \
+        .format(
+        user=postgresql_url_dict['user'],
+        host=postgresql_url_dict['host'],
+        port=postgresql_url_dict['port'],
+        database=postgresql_url_dict['database']
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.postgresql = \
+            testing.postgresql.Postgresql(**cls.postgresql_url_dict)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.postgresql.stop()
+
     def create_app(self):
         app = api.create_app(
             WEBSERVICES={},
             SQLALCHEMY_BINDS=None,
-            SQLALCHEMY_DATABASE_URI='sqlite://',
+            SQLALCHEMY_DATABASE_URI=self.postgresql_url,
             WTF_CSRF_ENABLED=False,
             TESTING=False,
             DEBUG=False,
@@ -28,6 +51,8 @@ class ApiTestCase(_APITestCase):
         return app
 
     def setUp(self):
+        engine = db.get_engine(self.app)
+        engine.execute('CREATE EXTENSION IF NOT EXISTS citext')
         super(self.__class__, self).setUp()
 
         # Create a test user that will be queried for
@@ -73,6 +98,10 @@ class ApiTestCase(_APITestCase):
 
         # Passing the email should return the correct uid
         r = self.open('GET', url_for('userresolver', identifier=self.user_email))
+        self.assertEqual(r.json['id'], self.user_id)
+
+        # Test case insensitivity on email
+        r = self.open('GET', url_for('userresolver', identifier=self.user_email.upper()))
         self.assertEqual(r.json['id'], self.user_id)
 
 

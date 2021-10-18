@@ -10,7 +10,7 @@ from adsws.ext.sqlalchemy import db
 from sqlalchemy.orm import synonym
 from flask.ext.security.utils import encrypt_password, verify_password
 from flask import current_app
-
+from citext import CIText
 
 roles_users = db.Table(
     'roles_users',
@@ -25,8 +25,8 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(255), unique=True)
-    _password = db.Column(db.String(120), name='password')
+    email = db.Column(CIText(), unique=True)
+    _password = db.Column(db.String(255), name='password')
     name = db.Column(db.String(255))
     active = db.Column(db.Boolean())
     confirmed_at = db.Column(db.DateTime())

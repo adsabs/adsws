@@ -252,12 +252,12 @@ class OAuthToken(db.Model):
     """ Object ID """
 
     client_id = db.Column(
-        db.String(40), db.ForeignKey('oauth2client.client_id'),
+        db.String(40), db.ForeignKey('oauth2client.client_id', ondelete='CASCADE'),
         nullable=False,
     )
     """ Foreign key to client application """
 
-    client = db.relationship('OAuthClient')
+    client = db.relationship('OAuthClient', backref=db.backref('oauth2client', passive_deletes=True))
     """ SQLAlchemy relationship to client application """
 
     user_id = db.Column(

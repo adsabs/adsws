@@ -12,7 +12,6 @@ down_revision = 'c619e555696'
 
 from alembic import op
 import sqlalchemy as sa
-from adsws.ext.sqlalchemy import db
 from citext import CIText
 
 
@@ -22,11 +21,11 @@ def upgrade():
     #   db.session.commit()
 
     op.alter_column('users', 'email',
-                    existing_type=db.String(255),
+                    existing_type=sa.String(255),
                     type_=CIText())
 
 
 def downgrade():
     op.alter_column('users', 'email',
                     existing_type=CIText(),
-                    type_=db.String(255))
+                    type_=sa.String(255))

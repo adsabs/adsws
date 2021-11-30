@@ -101,11 +101,7 @@ class ForgotPasswordView(Resource):
         """
         if token == current_app.config['BOOTSTRAP_USER_EMAIL']:
             abort(403)
-        try:
-            data = get_post_data(request)
-            reset_url = data['reset_url']
-        except (AttributeError, KeyError):
-            return {'error': 'malformed request'}, 400
+
         if not verify_recaptcha(request):
             return {'error': 'captcha was not verified'}, 403
 
@@ -119,7 +115,7 @@ class ForgotPasswordView(Resource):
         send_email(
             email_addr=token,
             email_template=PasswordResetEmail,
-            base_url=reset_url,
+            base_url=current_app.config['PASSWORD_RESET_URL'],
             payload=token
         )
         return {"message": "success"}, 200

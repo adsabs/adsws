@@ -41,4 +41,4 @@ RATELIMIT_KEY_PREFIX = "limiter"
 GOOGLE_RECAPTCHA_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify'
 MAIL_DEFAULT_SENDER = 'no-reply@adslabs.org'
 
-PASSWORD_RESET_URL = 'https://ui.adsabs.harvard.edu/#user/account/verify/reset-password'
+VERIFY_URL = 'https://ui.adsabs.harvard.edu/#user/account/verify'

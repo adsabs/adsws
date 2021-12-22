@@ -22,7 +22,7 @@ from .emails import PasswordResetEmail, VerificationEmail, \
 from sqlalchemy import func
 from sqlalchemy.orm import load_only
 from adsmutils import get_date
-from urlparse import urljoin
+
 
 class StatusView(Resource):
     """
@@ -116,7 +116,7 @@ class ForgotPasswordView(Resource):
         send_email(
             email_addr=token,
             email_template=PasswordResetEmail,
-            base_url=urljoin(current_app.config['VERIFY_URL'], 'reset-password'),
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'reset-password'),
             payload=token
         )
         return {"message": "success"}, 200
@@ -473,7 +473,7 @@ class ChangeEmailView(Resource):
             }, 403
         send_email(
             email_addr=email,
-            base_url=urljoin(current_app.config['VERIFY_URL'], 'change-email'),
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'change-email'),
             email_template=VerificationEmail,
             payload=[email, u.id]
         )
@@ -627,7 +627,7 @@ class UserRegistrationView(Resource):
                              ' registered for {0}'.format(email)}, 409
         send_email(
             email_addr=email,
-            base_url=urljoin(current_app.config['VERIFY_URL'], 'register'),
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'register'),
             email_template=WelcomeVerificationEmail,
             payload=email
         )

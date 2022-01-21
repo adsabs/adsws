@@ -1,7 +1,7 @@
 from flask import Flask
 from views import Resources, GET, POST, GETPOST, SCOPED, LOW_RATE_LIMIT, \
     PUT, EchoHeaders, DELETE, _410Response, RETAIN_HEADERS
-from flask.ext.restful import Api
+from flask_restful import Api
 
 
 def create_app():

@@ -7,7 +7,7 @@ import json
 import requests
 import copy
 from flask import current_app, request, render_template
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from adsws.feedback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data

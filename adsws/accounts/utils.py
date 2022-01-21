@@ -3,9 +3,9 @@ import requests
 from functools import wraps
 
 from flask import current_app, session
-from flask.ext.mail import Message
-from flask.ext.login import current_user as cu
-from flask.ext.login import logout_user as flask_logout_user
+from flask_mail import Message
+from flask_login import current_user as cu
+from flask_login import logout_user as flask_logout_user
 
 from .exceptions import ValidationError
 from .emails import Email
@@ -53,7 +53,7 @@ def send_email(email_addr='', base_url='', email_template=Email, payload=None):
     :param payload: payload to encrypt, joined with ' '. __str__() should return url-safe string
 
     :return: msg,token
-    :rtype flask.ext.mail.Message, basestring
+    :rtype flask_mail.Message, basestring
     """
     if payload is None:
         payload = []

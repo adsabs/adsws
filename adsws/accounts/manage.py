@@ -9,7 +9,7 @@ from adsws.core.users import User
 from adsws.core import db
 from adsws.accounts import create_app
 from sqlalchemy import or_, exc, and_
-from flask.ext.script import Manager
+from flask_script import Manager
 
 accounts_manager = Manager(create_app())
 accounts_manager.__doc__ = __doc__  # Overwrite default docstring

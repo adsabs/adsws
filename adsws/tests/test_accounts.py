@@ -1,5 +1,5 @@
-from flask.ext.testing import TestCase
-from flask.ext.login import current_user
+from flask_testing import TestCase
+from flask_login import current_user
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app, url_for, session
 

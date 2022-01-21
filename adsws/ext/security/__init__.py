@@ -1,4 +1,4 @@
-from flask.ext.security import Security, SQLAlchemyUserDatastore, \
+from flask_security import Security, SQLAlchemyUserDatastore, \
     UserMixin, RoleMixin, login_required, login_user
 from warnings import warn
 

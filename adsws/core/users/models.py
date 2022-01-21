@@ -5,10 +5,10 @@
 
     Models for the users database
 """
-from flask.ext.security import UserMixin, RoleMixin
+from flask_security import UserMixin, RoleMixin
 from adsws.ext.sqlalchemy import db
 from sqlalchemy.orm import synonym
-from flask.ext.security.utils import encrypt_password, verify_password
+from flask_security.utils import encrypt_password, verify_password
 from flask import current_app
 from citext import CIText
 
@@ -58,7 +58,7 @@ class User(UserMixin, db.Model):
 
     def get_id(self):
         """
-        flask.ext.login:
+        flask_login:
         Returns a unicode that uniquely identifies this user, and can be used
         to load the user from the user_loader callback. Note that this must be
         a unicode - if the ID is natively an int or some other type, you will

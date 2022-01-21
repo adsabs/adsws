@@ -1,5 +1,5 @@
 from flask import current_app, g
-from flask.ext.login import login_user, current_user
+from flask_login import login_user, current_user
 from adsws.core import user_manipulator, db
 from api_base import ApiTestCase
 from adsws import api
@@ -497,7 +497,7 @@ class DiscoverConsulServiceTestCase(ApiTestCase, DiscovererTestCase):
     @classmethod
     def setUpClass(cls):
         cls.patcher_resolve = mock.patch(
-            'flask.ext.consulate.ConsulService._resolve'
+            'flask_consulate.ConsulService._resolve'
         )
         mocked_resolve = cls.patcher_resolve.start()
         mocked_resolve.side_effect = lambda: ["http://localhost:5005"]

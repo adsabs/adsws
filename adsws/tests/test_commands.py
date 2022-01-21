@@ -3,7 +3,7 @@ import datetime
 import random
 from werkzeug.security import gen_salt
 
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 from adsws.modules.oauth2server.models import OAuthClient, Scope, OAuthToken
 from adsws.tests.test_accounts import AccountsSetup
 from adsws.core.users import User
@@ -111,7 +111,7 @@ class TestManageScopes(AccountsSetup):
 
 class TestManage_Accounts(TestCase):
     """
-    Tests for manage.py/flask.ext.script commands
+    Tests for manage.py/flask_script commands
     """
 
     def tearDown(self):

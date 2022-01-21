@@ -30,9 +30,9 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, abort, redirect, \
     url_for, flash, session
-from flask.ext.login import login_required, current_user
-from flask.ext.menu import register_menu
-from flask.ext.breadcrumbs import register_breadcrumb
+from flask_login import login_required, current_user
+from flask_menu import register_menu
+from flask_breadcrumbs import register_breadcrumb
 from flask import current_app
 
 from adsws.core import db

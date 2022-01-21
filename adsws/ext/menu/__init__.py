@@ -1,6 +1,6 @@
 """Administration menu."""
 
-from flask.ext.menu import Menu, register_menu
+from flask_menu import Menu, register_menu
 
 menu = Menu()
 

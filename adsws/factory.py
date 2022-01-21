@@ -13,9 +13,9 @@ import logging.handlers
 
 from werkzeug.contrib.fixers import ProxyFix
 from flask import g, request, jsonify, session, current_app
-from flask.ext.login import current_user
-from flask.ext.sslify import SSLify
-from flask.ext.consulate import Consul, ConsulConnectionError
+from flask_login import current_user
+from flask_sslify import SSLify
+from flask_consulate import Consul, ConsulConnectionError
 from adsws.modules.oauth2server.provider import oauth2
 from werkzeug.datastructures import Headers
 
@@ -27,14 +27,14 @@ from adsmutils import ADSFlask
 from .middleware import HTTPMethodOverrideMiddleware
 
 
-def create_app(app_name=None, instance_path=None, static_path=None,
+def create_app(app_name=None, instance_path=None, static_url_path=None,
                static_folder=None, **config):
     """Returns a :class:`Flask` application instance configured with common
     functionality for the AdsWS platform.
 
     :param app_name: application package name
     :param instance_path: application package path
-    :param static_path: flask.Flask static_path kwarg
+    :param static_url_path: flask.Flask static_url_path kwarg
     :param static_folder: flask.Flask static_folder kwarg
     :param config: a dictionary of settings to override
     """
@@ -57,7 +57,7 @@ def create_app(app_name=None, instance_path=None, static_path=None,
         app_name,
         instance_path=instance_path,
         instance_relative_config=False,
-        static_path=static_path,
+        static_url_path=static_url_path,
         static_folder=static_folder,
         local_config=config or {}
     )

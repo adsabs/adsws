@@ -4,7 +4,7 @@ for this module. But are also used in differing modules insidide the same
 project, and so do not belong to anything specific.
 """
 from flask import current_app
-from flask.ext.mail import Message
+from flask_mail import Message
 import json
 #from dictdiffer import diff
 from jsondiff import diff

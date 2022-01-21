@@ -3,7 +3,7 @@ import requests
 import json
 import re
 import Cookie
-from flask.ext.headers import headers
+from flask_headers import headers
 from flask import request
 from views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
@@ -11,7 +11,7 @@ from urlparse import urljoin
 import traceback
 from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
-from flask.ext.consulate import ConsulService
+from flask_consulate import ConsulService
 from functools import wraps
 from .affinity import affinity_decorator
 

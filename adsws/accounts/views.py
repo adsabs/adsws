@@ -11,7 +11,7 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask.sessions import SecureCookieSessionInterface
 from flask_login import current_user, login_user
 from flask_restful import Resource, abort, reqparse, inputs
-from flask.ext.wtf.csrf import generate_csrf
+from flask_wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
@@ -428,7 +428,7 @@ class PersonalTokenView(Resource):
 
 class LogoutView(Resource):
     """
-    View that calls flask.ext.login.logout_user()
+    View that calls flask_login.logout_user()
     """
     def post(self):
         logout_user()

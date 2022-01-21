@@ -37,6 +37,9 @@ def setup_app():
     """
     Setup OAuth2 provider
     """
+    import traceback
+    traceback.print_stack()
+
     # Initialize OAuth2 provider
     oauth2.init_app(current_app)
 

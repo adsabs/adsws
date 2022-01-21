@@ -7,7 +7,7 @@
 from jinja2.utils import import_string
 
 def setup_app(app):
-    backend = app.config.get('EMAIL_BACKEND', 'flask.ext.email:ConsoleMail')
+    backend = app.config.get('EMAIL_BACKEND', 'flask_email:ConsoleMail')
     module = import_string(backend)
     backimpl = module()
     backimpl.init_app(app)

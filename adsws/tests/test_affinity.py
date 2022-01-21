@@ -1,6 +1,6 @@
 from unittest import TestCase
 from adsws.api.discoverer import affinity
-from flask.ext.restful import Resource
+from flask_restful import Resource
 import flask
 from flask_restful import Resource, Api
 import mock

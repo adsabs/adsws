@@ -3,7 +3,7 @@ from adsws.testsuite import make_test_suite, run_test_suite
 from adsws import api
 
 from flask import current_app
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 
 
 class ApiCORSTestCase(TestCase):

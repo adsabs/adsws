@@ -1,6 +1,6 @@
 from .. import factory
 
-from flask.ext.restful import Api
+from flask_restful import Api
 from .views import GlobalResourcesView, StatusView
 
 

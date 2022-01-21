@@ -1,6 +1,6 @@
 from flask import request, current_app
-from flask.ext.restful import Resource
-from flask.ext.consulate import ConsulService
+from flask_restful import Resource
+from flask_consulate import ConsulService
 from flask_login import current_user
 from urlparse import urljoin
 import requests

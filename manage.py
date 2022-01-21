@@ -8,7 +8,7 @@
 
 import os
 import flask
-from flask.ext.script import Manager
+from flask_script import Manager
 from adsws.accounts.manage import accounts_manager
 
 manager = Manager(flask.Flask('manager'))

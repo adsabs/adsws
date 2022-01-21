@@ -3,10 +3,10 @@ Application factory
 """
 
 from .. import factory
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
+from flask_restful import Api
+from flask_cors import CORS
 from adsws.feedback.views import UserFeedback
-from flask.ext.mail import Mail
+from flask_mail import Mail
 
 
 def create_app(**kwargs_config):

@@ -1,10 +1,10 @@
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
-from flask.ext.wtf.csrf import CsrfProtect
-from flask.ext.mail import Mail
+from flask_restful import Api
+from flask_cors import CORS
+from flask_wtf.csrf import CsrfProtect
+from flask_mail import Mail
 from flask import jsonify, abort
 from itsdangerous import URLSafeTimedSerializer
 

@@ -1,7 +1,7 @@
 import time
 import json
 import requests
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.core import db
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask import current_app, request

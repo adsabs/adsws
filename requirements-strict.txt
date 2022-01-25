@@ -37,7 +37,7 @@ Flask-Mail==0.9.1
 Flask-Menu==0.7.2
 Flask-OAuthlib==0.9.6
 Flask-Principal==0.4.0
-Flask-Registry==0.2.1.dev20140801
+git+https://github.com/tfehring/flask-registry.git@02dab5f5717e040d9f3649e78189b4ecc34981f2#egg=Flask-Registry
 Flask-RESTful==0.3.8
 Flask-Script==2.0.6
 Flask-Security==3.0.0

@@ -20,7 +20,7 @@ def scopes_multi_checkbox(field, **kwargs):
     html = ['<div class="row">']
 
     for value, label, checked in field.iter_choices():
-        choice_id = u'%s-%s' % (field_id, value)
+        choice_id = '%s-%s' % (field_id, value)
 
         options = dict(
             kwargs,
@@ -33,16 +33,16 @@ def scopes_multi_checkbox(field, **kwargs):
         if checked:
             options['checked'] = 'checked'
 
-        html.append(u'<div class="col-md-3">')
-        html.append(u'<label for="%s" class="checkbox-inline">' % field_id)
-        html.append(u'<input %s /> ' % widgets.html_params(**options))
+        html.append('<div class="col-md-3">')
+        html.append('<label for="%s" class="checkbox-inline">' % field_id)
+        html.append('<input %s /> ' % widgets.html_params(**options))
         html.append("%s <br/><small class='text-muted'>%s</small>" % (
             value, label.help_text)
         )
-        html.append(u'</label></div>')
-    html.append(u'</div>')
+        html.append('</label></div>')
+    html.append('</div>')
 
-    return u''.join(html)
+    return ''.join(html)
 
 
 #
@@ -56,7 +56,7 @@ class RedirectURIField(fields.TextAreaField):
         if valuelist:
             self.data = "\n".join([
                 x.strip() for x in
-                filter(lambda x: x, "\n".join(valuelist).splitlines())
+                [x for x in "\n".join(valuelist).splitlines() if x]
             ])
 
     def process_data(self, value):

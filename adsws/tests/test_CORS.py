@@ -3,7 +3,7 @@ from adsws.testsuite import make_test_suite, run_test_suite
 from adsws import api
 
 from flask import current_app
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 
 
 class ApiCORSTestCase(TestCase):
@@ -36,7 +36,7 @@ class ApiCORSTestCase(TestCase):
         :param _list: List to comapre against, after parsing the header
         :return: Exception or None
         """
-        if isinstance(header, basestring):
+        if isinstance(header, str):
             header = [i.strip() for i in header.split(',')]
         self.assertItemsEqual(header, _list)
 

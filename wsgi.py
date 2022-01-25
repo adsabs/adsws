@@ -6,7 +6,7 @@
     adsws wsgi module
 """
 from werkzeug.serving import run_simple
-from werkzeug.wsgi import DispatcherMiddleware
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 from adsws import feedback
 from adsws import accounts

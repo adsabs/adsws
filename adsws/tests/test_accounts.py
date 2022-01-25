@@ -1,5 +1,5 @@
-from flask.ext.testing import TestCase
-from flask.ext.login import current_user
+from flask_testing import TestCase
+from flask_login import current_user
 from flask.sessions import SecureCookieSessionInterface
 from flask import current_app, url_for, session
 
@@ -212,7 +212,7 @@ class TestAccounts(AccountsSetup):
             url = url_for('userinfoview', account_data=account_data)
             r = c.get(url, headers=headers)
             self.assertStatus(r, 200)
-            expected_json['source'] = u'client_id'
+            expected_json['source'] = 'client_id'
             self.assertEqual(r.json, expected_json)
 
             # 4) session
@@ -226,7 +226,7 @@ class TestAccounts(AccountsSetup):
             url = url_for('userinfoview', account_data=account_data)
             r = c.get(url, headers=headers)
             self.assertStatus(r, 200)
-            expected_json['source'] = u'session:client_id'
+            expected_json['source'] = 'session:client_id'
             self.assertEqual(r.json, expected_json)
 
 
@@ -853,7 +853,7 @@ class TestAccounts(AccountsSetup):
             assert j['ratelimit'] == 1.4
             assert j['client_id'] != client.client_id
             assert j['scopes'] == ['user']
-            assert j['expire_in'] == u'2500-01-01T00:00:00'
+            assert j['expire_in'] == '2500-01-01T00:00:00'
             x = db.session.query(OAuthClient).filter_by(client_id=j['client_id']).one()
             assert x.user_id == self.real_user.id
             assert x.ratelimit == 1.4
@@ -865,7 +865,7 @@ class TestAccounts(AccountsSetup):
         with self.client as c:
             r = c.get(url, query_string={'ratelimit': 0.2, 'create_new': True}, headers=headers)
             j = r.json
-            assert j == {u'error': u'The current user account (real_user@unittests) does not have enough capacity to create a new client. Requested: 0.2, Available: 0.1'}
+            assert j == {'error': 'The current user account (real_user@unittests) does not have enough capacity to create a new client. Requested: 0.2, Available: 0.1'}
     
         with self.client as c:
             r = c.get(url, query_string={'ratelimit': 0.01, 'create_new': True}, headers=headers)
@@ -891,7 +891,7 @@ class TestAccounts(AccountsSetup):
         # this should result in error
         with self.client as c:
             r = c.get(url, query_string={'ratelimit': 0.01, 'create_new': True, 'scope': 'ads:internal'}, headers=headers)
-            assert r.json == {u'error': u'You have requested a scope not available to the current user'}
+            assert r.json == {'error': 'You have requested a scope not available to the current user'}
             assert r.status_code == 400
         
         

@@ -1,5 +1,5 @@
 from adsws.modules.oauth2server.provider import oauth2
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.core import user_manipulator
 from flask import current_app, request, abort
 

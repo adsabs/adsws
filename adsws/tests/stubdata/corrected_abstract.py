@@ -58,4 +58,4 @@ data = {
   "diff": "%0A%20%20%3E%3E%3E%3E%20Title%0A%20%20test%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20Publication%0A%20%20test%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20PublicationDate%0A%20%202020-01%0A%20%20%3C%3C%3C%3C%0A%0A%20%20%3E%3E%3E%3E%20Comments%0A%20%20test%0A%20%20%3C%3C%3C%3C"
 }
 
-response = u'From: Tim Hostetler\nAddress: twhostetler0@gmail.com\n\nCorrection for 2021NewA...8301464S:\n\n>>>> $delete\nemail\nrecaptcha\nentryType\nname\n>>>>\n>>>> collection\nastronomy\nphysics\n>>>>\n'
+response = 'From: Tim Hostetler\nAddress: twhostetler0@gmail.com\n\nCorrection for 2021NewA...8301464S:\n\n>>>> $delete\nemail\nrecaptcha\nentryType\nname\n>>>>\n>>>> collection\nastronomy\nphysics\n>>>>\n'

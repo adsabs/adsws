@@ -1,7 +1,7 @@
 from flask import current_app
 from flask_login import current_user
 
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
 
 

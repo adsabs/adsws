@@ -4,7 +4,7 @@ for this module. But are also used in differing modules insidide the same
 project, and so do not belong to anything specific.
 """
 from flask import current_app
-from flask.ext.mail import Message
+from flask_mail import Message
 import json
 #from dictdiffer import diff
 from jsondiff import diff
@@ -30,14 +30,14 @@ def make_diff(original, updated):
     diffdata = diff(original, updated)
 
     results = ''
-    if diffdata.has_key('comments'):
+    if 'comments' in diffdata:
         results += "\n\nComments: %s\n\n" % diffdata['comments']
-    for field, changes in diffdata.items():
+    for field, changes in list(diffdata.items()):
         if field == 'comments':
             continue
         results += ">>>> %s\n" % field
         if isinstance(changes,dict):
-            for k,v in changes.items():
+            for k,v in list(changes.items()):
                 results += "{0} -- {1}\n".format(k,v)
         elif isinstance(changes,list):
             for item in changes:

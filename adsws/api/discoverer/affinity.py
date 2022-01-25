@@ -1,4 +1,4 @@
-import Cookie
+import http.cookies
 from flask import request, current_app
 from functools import wraps
 from werkzeug.datastructures import Headers
@@ -41,7 +41,7 @@ def _build_updated_cookies(request, user_token, route, name):
     attributes.
     """
     # Interpret cookie header content
-    cookies_header = Cookie.SimpleCookie()
+    cookies_header = http.cookies.SimpleCookie()
     currrent_cookie_content = request.headers.get('cookie', None)
     if currrent_cookie_content:
         cookies_header.load(currrent_cookie_content.encode("utf8"))
@@ -80,7 +80,7 @@ def affinity_decorator(storage, name="sroute"):
         def decorated_function(*args, **kwargs):
             # Obtain user token, giving priority to forwarded authorization field (used when a microservice uses its own token)
             user_token = request.headers.get('X-Forwarded-Authorization', None)
-            if user_token is None or user_token == u"-":
+            if user_token is None or user_token == "-":
                 user_token = request.headers.get('Authorization', None)
             if user_token and len(user_token) > 7: # This should be always true
                 user_token = user_token[7:] # Get rid of "Bearer:" or "Bearer "
@@ -103,7 +103,7 @@ def affinity_decorator(storage, name="sroute"):
                 set_cookie = response_headers.pop('Set-Cookie', None)
                 if set_cookie:
                     # If solr issued a set cookie, store the value in redis linked to the user token
-                    cookie = Cookie.SimpleCookie()
+                    cookie = http.cookies.SimpleCookie()
                     cookie.load(set_cookie.encode("utf8"))
                     route = cookie.get(name, None)
                     if route:

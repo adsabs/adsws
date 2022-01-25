@@ -1,4 +1,4 @@
-from flask.ext.security import Security, SQLAlchemyUserDatastore, \
+from flask_security import Security, SQLAlchemyUserDatastore, \
     UserMixin, RoleMixin, login_required, login_user
 from warnings import warn
 
@@ -12,6 +12,9 @@ def setup_app(app):
     app.config.setdefault('SECURITY_PASSWORD_HASH', 'pbkdf2_sha512')
     app.config.setdefault('SECURITY_PASSWORD_SALT', app.config.get('SECRET_KEY'))
     register_blueprint = app.config.get('SECURITY_REGISTER_BLUEPRINT', True)
+
+    with open("/home/tom/adsws/test.log", "a") as file:
+        print("Running security.setup_app", file=file)
 
     # if desired, we'll use ADS Classic as a source for authenticating
     # users

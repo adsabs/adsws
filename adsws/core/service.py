@@ -105,7 +105,7 @@ class Service(object):
         :param **kwargs: update parameters
         """
         self._isinstance(model)
-        for k, v in self._preprocess_params(kwargs).items():
+        for k, v in list(self._preprocess_params(kwargs).items()):
             setattr(model, k, v)
         self.save(model)
         return model

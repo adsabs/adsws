@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from flask_registry import RegistryProxy, DictRegistry, RegistryError
 from .models import Scope
@@ -17,7 +17,7 @@ class ScopesRegistry(DictRegistry):
         super(ScopesRegistry, self).register(scope.id, scope)
 
     def choices(self, exclude_internal=True):
-        items = self.items()
+        items = list(self.items())
         items.sort()
         return [(k, scope) for k, scope in items if
                 not exclude_internal or not scope.is_internal]

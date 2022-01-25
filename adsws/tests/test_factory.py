@@ -35,7 +35,7 @@ class FactoryTest(FlaskAppTestCase):
 class FactoryTestCustomInstanceDir(FlaskAppTestCase):
     @property
     def config(self):
-        if not self._config.has_key('instance_path'):
+        if 'instance_path' not in self._config:
             instance_path = tempfile.mkdtemp()
             with open(os.path.join(instance_path, 'local_config.py'), 'w') as fo:
                 fo.write("BAR='baz'\n")

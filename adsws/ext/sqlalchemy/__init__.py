@@ -11,6 +11,9 @@ def setup_app(app):
     """Setup SQLAlchemy extension."""
     if 'SQLALCHEMY_DATABASE_URI' not in app.config:
         app.config.setdefault('SQLALCHEMY_DATABASE_URI', 'sqlite://')
+    
+    if 'SQLALCHEMY_TRACK_MODIFICATIONS' not in app.config:
+        app.config.setdefault('SQLALCHEMY_TRACK_MODIFICATIONS', False)
 
     ## Let's initialize database.
     db.init_app(app)

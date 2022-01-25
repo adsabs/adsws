@@ -3,7 +3,7 @@ import datetime
 import random
 from werkzeug.security import gen_salt
 
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 from adsws.modules.oauth2server.models import OAuthClient, Scope, OAuthToken
 from adsws.tests.test_accounts import AccountsSetup
 from adsws.core.users import User
@@ -111,7 +111,7 @@ class TestManageScopes(AccountsSetup):
 
 class TestManage_Accounts(TestCase):
     """
-    Tests for manage.py/flask.ext.script commands
+    Tests for manage.py/flask_script commands
     """
 
     def tearDown(self):
@@ -261,7 +261,7 @@ class TestManage_Accounts(TestCase):
         original_tokens = db.session.query(OAuthToken).all()
         self.assertEqual(5, len(original_tokens))
         self.assertItemsEqual(
-            filter(None, [i.expires for i in original_tokens]),
+            [_f for _f in [i.expires for i in original_tokens] if _f],
             self.times,
         )
 
@@ -271,7 +271,7 @@ class TestManage_Accounts(TestCase):
         self.assertNotEqual(original_tokens, current_tokens)
         self.assertEqual(3, len(current_tokens))
         self.assertEqual(
-            filter(None, [i.expires for i in current_tokens]),
+            [_f for _f in [i.expires for i in current_tokens] if _f],
             [i for i in self.times if i >= datetime.datetime.now()],
         )
 
@@ -284,7 +284,7 @@ class TestManage_Accounts(TestCase):
         self.assertNotEqual(original_tokens, current_tokens)
         self.assertEqual(2, len(current_tokens))
         self.assertEqual(
-            filter(None, [i.expires for i in current_tokens]),
+            [_f for _f in [i.expires for i in current_tokens] if _f],
             [i for i in self.times if i >= datetime.datetime.now()],
         )
 
@@ -296,7 +296,7 @@ class TestManage_Accounts(TestCase):
         original_clients = db.session.query(OAuthClient).all()
         self.assertEqual(5, len(original_clients))
         self.assertItemsEqual(
-            filter(None, [i.last_activity for i in original_clients]),
+            [_f for _f in [i.last_activity for i in original_clients] if _f],
             self.times,
         )
 

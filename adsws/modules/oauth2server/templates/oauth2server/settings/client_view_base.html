@@ -60,8 +60,9 @@
         <div class="col-md-6">
             <p>
                 <strong class="">Authorize URL (GET)</strong><br>
+                <!-- oauth2server is a blueprint -->
                 {{url_for('oauth2server.authorize', _external=True, _scheme='https')}}<br/>
-                <small class="text-muted">Query parameters (<a href="{{url_for('oauth2server.authorize', response_type='code', client_id=client.client_id, scope='deposit:write deposit:actions', state='CHANGEME', redirect_uri=client.default_redirect_uri, _external=True, _scheme='https')}}">example request</a>):
+                <small class="text-muted">Query parameters (<a href="{{url_for('oauth2server/authorize', response_type='code', client_id=client.client_id, scope='deposit:write deposit:actions', state='CHANGEME', redirect_uri=client.default_redirect_uri, _external=True, _scheme='https')}}">example request</a>):
                 <ul>
                     <li>response_type (required, use <code>code</code> or <code>token</code>)</li>
                     <li>client_id (required)</li>

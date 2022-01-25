@@ -35,7 +35,7 @@ class ApiTestCase(FlaskAppTestCase):
         def username():
             if current_user.is_authenticated():
                 return current_user.email
-            return u'Anonymous'
+            return 'Anonymous'
 
         @self.app.errorhandler(404)
         def handle_404(e):

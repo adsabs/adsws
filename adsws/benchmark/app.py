@@ -1,12 +1,12 @@
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
+from flask_restful import Api
+from flask_cors import CORS
 from flask import jsonify
 
-from views import BenchmarkEndView, BenchmarkRedirectView, BenchmarkDoubleRedirectView
-from views import BenchmarkTimeoutEndView, BenchmarkTimeoutRedirectView
+from .views import BenchmarkEndView, BenchmarkRedirectView, BenchmarkDoubleRedirectView
+from .views import BenchmarkTimeoutEndView, BenchmarkTimeoutRedirectView
 
 """
 curl -d '{"sent_from": ["client"] }' -H "Content-Type: application/json" -X POST http://localhost:5000/benchmark/end

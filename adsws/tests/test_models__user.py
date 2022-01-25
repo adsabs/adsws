@@ -2,7 +2,7 @@ from datetime import datetime
 
 from adsws.testsuite import make_test_suite, run_test_suite
 from adsws.core import db, user_manipulator
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 from adsws.factory import create_app
 
 

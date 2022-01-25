@@ -3,7 +3,7 @@ Utility functions for adsws.ext.ratelimiter
 """
 
 from flask import request, current_app
-from flask.ext.login import current_user
+from flask_login import current_user
 from flask_limiter.util import get_remote_address
 
 

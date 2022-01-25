@@ -9,7 +9,7 @@ from adsws.core.users import User
 from adsws.core import db
 from adsws.accounts import create_app
 from sqlalchemy import or_, exc, and_
-from flask.ext.script import Manager
+from flask_script import Manager
 
 accounts_manager = Manager(create_app())
 accounts_manager.__doc__ = __doc__  # Overwrite default docstring
@@ -61,7 +61,7 @@ def cleanup_users(app_override=None, timedelta="hours=24"):
 
         try:
             db.session.commit()
-        except Exception, e:
+        except Exception as e:
             db.session.rollback()
             app.logger.error("Could not cleanup stale users. "
                              "Database error; rolled back: {0}".format(e))
@@ -105,7 +105,7 @@ def cleanup_tokens(app_override=None):
                 db.session.commit()
                 total += deletions
                 app.logger.info("Deleted {0} expired oauth2tokens/oauth2clients".format(deletions))
-            except Exception, e:
+            except Exception as e:
                 db.session.rollback()
                 app.logger.error("Could not cleanup expired oauth2tokens. "
                                  "Database error; rolled back: {0}".format(e))
@@ -167,7 +167,7 @@ def cleanup_clients(app_override=None, timedelta="days=90",
                 deletions += 1
         try:
             db.session.commit()
-        except Exception, e:
+        except Exception as e:
             db.session.rollback()
             app.logger.error("Could not cleanup expired oauth2clients. "
                              "Database error; rolled back: {0}".format(e))
@@ -237,7 +237,7 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
 
                     app.logger.info("Updated {0} oauth2tokens (out of total: {1}) for {2}"
                         .format(updated, total, client.client_id))
-                except exc.IntegrityError, e:
+                except exc.IntegrityError as e:
                     db.session.rollback()
                     app.logger.error("Could not update scope of oauth2client: {0}. "
                                      "Database error; rolled back: {1}"
@@ -251,7 +251,7 @@ def update_scopes(app_override=None, old_scopes='', new_scopes='',
                 try:
                     token._scopes = new_scopes
                     db.session.commit()
-                except exc.IntegrityError, e:
+                except exc.IntegrityError as e:
                     db.session.rollback()
                     app.logger.error("Could not update scope of oauth2token: {0}. "
                                      "Database error; rolled back: {1}"

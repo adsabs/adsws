@@ -1,8 +1,8 @@
 from flask import current_app, request
-from flask.ext.restful import Resource
+from flask_restful import Resource
 import inspect
 import sys
-from stubdata import Stubdata
+from .stubdata import Stubdata
 
 
 class Resources(Resource):

@@ -4,7 +4,7 @@
 OAuth 2.0 Provider
 """
 
-from __future__ import absolute_import
+
 
 from flask import Blueprint, current_app, request, render_template, jsonify, \
     abort, session
@@ -37,11 +37,13 @@ def setup_app():
     """
     Setup OAuth2 provider
     """
+    with open("/home/tom/adsws/test.log", "a") as file:
+        print("Running setup_app", file=file)
     # Initialize OAuth2 provider
     oauth2.init_app(current_app)
 
     # Register default scopes (note, each module will)
-    for scope, options in current_app.config['OAUTH2_DEFAULT_SCOPES'].items():
+    for scope, options in list(current_app.config['OAUTH2_DEFAULT_SCOPES'].items()):
         if scope not in scopes:
             scopes.register(Scope(scope, options))
 
@@ -95,7 +97,7 @@ def authorize(*args, **kwargs):
         ctx = dict(
             client=client,
             oauth_request=kwargs.get('request'),
-            scopes=map(lambda x: scopes[x], kwargs.get('scopes', []))
+            scopes=[scopes[x] for x in kwargs.get('scopes', [])]
         )
         return render_template('oauth2server/authorize.html', **ctx)
 

@@ -76,14 +76,14 @@ def upgrade():
             )  
         elif user.ratelimit_level and float(user.ratelimit_level) > 1.0:
             # count all the clients (stupid way, dunno how to issue 'count' with alembic)
-            print 'counting ', user.id
+            print('counting ', user.id)
             i = 0.0
             for c in connection.execute(clients.select().where(clients.c.user_id==user.id)):
                 i += 1.0
-            print 'result', i
+            print('result', i)
             if i > 0:
                 new_limit = float(user.ratelimit_level) / i
-                print 'updating'
+                print('updating')
                 connection.execute(clients.update().where(
                     clients.c.user_id == user.id
                 ).values(

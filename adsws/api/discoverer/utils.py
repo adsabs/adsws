@@ -2,16 +2,16 @@ import os
 import requests
 import json
 import re
-import Cookie
-from flask.ext.headers import headers
+import http.cookies
+from flask_headers import headers
 from flask import request
-from views import ProxyView
+from .views import ProxyView
 from adsws.modules.oauth2server.provider import oauth2
-from urlparse import urljoin
+from urllib.parse import urljoin
 import traceback
 from importlib import import_module
 from adsws.ext.ratelimiter import ratelimit, limit_func, scope_func, key_func
-from flask.ext.consulate import ConsulService
+from flask_consulate import ConsulService
 from functools import wraps
 from .affinity import affinity_decorator
 
@@ -45,7 +45,7 @@ def bootstrap_local_module(service_uri, deploy_path, app):
 
     # Add the target app's config to the parent app's config.
     # Do not overwrite any config already present in the parent app
-    for k, v in local_app.config.iteritems():
+    for k, v in local_app.config.items():
         if k not in app.config:
             app.config[k] = v
 
@@ -123,7 +123,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
             cs.base_url,
             app.config.get('WEBSERVICES_PUBLISH_ENDPOINT', '/')
         )
-        print "base url", cs.base_url
+        print("base url", cs.base_url)
     else:
         url = urljoin(
             service_uri,
@@ -160,7 +160,7 @@ def bootstrap_remote_service(service_uri, deploy_path, app):
     # the /resources route.
     # If any part of this procedure fails, log that we couldn't produce this
     # ProxyView, but otherwise continue.
-    for resource, properties in resource_json.iteritems():
+    for resource, properties in resource_json.items():
 
         properties.setdefault('rate_limit', [1000, 86400])
         properties.setdefault('scopes', [])
@@ -235,7 +235,7 @@ def discover(app):
     webservices = app.config.get('WEBSERVICES')
     if not webservices:
         webservices = {}
-    for service_uri, deploy_path in webservices.iteritems():
+    for service_uri, deploy_path in webservices.items():
         try:
             if any([
                     service_uri.startswith(prefix) for prefix in
@@ -271,7 +271,7 @@ def _update_symbolic_ratelimits(app, route, properties):
 
     # check if the remote endpoint ratelimit should belong to a
     # virtual ratelimit group (and build the info accordingly)
-    for ratelimit_group, values in app.config.get('RATELIMIT_GROUPS', {}).items():
+    for ratelimit_group, values in list(app.config.get('RATELIMIT_GROUPS', {}).items()):
 
 
         # if not supplied, we'll use limits of the endpoint

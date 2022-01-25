@@ -1,12 +1,12 @@
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
+from flask_restful import Api
+from flask_cors import CORS
 from flask import jsonify
 
-from views import StatusView, ProtectedView, UserResolver
-from discoverer import discover
+from .views import StatusView, ProtectedView, UserResolver
+from .discoverer import discover
 
 
 def create_app(**kwargs_config):

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+
 
 from flask import current_app
-from flask.ext.login import current_user
+from flask_login import current_user
 from werkzeug.security import gen_salt
 from wtforms import validators
 from sqlalchemy_utils import URLType
@@ -85,14 +85,14 @@ class OAuthClient(db.Model):
         info=dict(
             label='Name',
             description='Name of application (displayed to users).',
-            validators=[validators.Required()]
+            validators=[validators.DataRequired()]
         )
     )
     """ Human readable name of the application. """
 
     description = db.Column(
         db.Text(),
-        default=u'',
+        default='',
         info=dict(
             label='Description',
             description='Optional. Description of the application'
@@ -107,7 +107,7 @@ class OAuthClient(db.Model):
             label='Website URL',
             description='URL of your application (displayed to users).',
         ),
-        default=u'',
+        default='',
     )
 
     user_id = db.Column(db.ForeignKey('users.id'))

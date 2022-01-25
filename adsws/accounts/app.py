@@ -1,14 +1,14 @@
 from ..core import AdsWSError, AdsWSFormError, JSONEncoder
 from .. import factory
 
-from flask.ext.restful import Api
-from flask.ext.cors import CORS
-from flask.ext.wtf.csrf import CsrfProtect
-from flask.ext.mail import Mail
+from flask_restful import Api
+from flask_cors import CORS
+from flask_wtf.csrf import CSRFError, CSRFProtect
+from flask_mail import Mail
 from flask import jsonify, abort
 from itsdangerous import URLSafeTimedSerializer
 
-from views import \
+from .views import \
     UserAuthView, LogoutView, UserRegistrationView, \
     VerifyEmailView, ChangePasswordView, \
     PersonalTokenView, UserInfoView, Bootstrap, StatusView, OAuthProtectedView, \
@@ -29,7 +29,7 @@ def create_app(**kwargs_config):
     api = Api(app)
     api.unauthorized = lambda noop: noop #Overwrite WWW-Authenticate challenge on 401
 
-    csrf = CsrfProtect(app)
+    csrf = CSRFProtect(app)
 
     mail = Mail(app)
 
@@ -70,7 +70,7 @@ def create_app(**kwargs_config):
         app.errorhandler(AdsWSError)(on_adsws_error)
         app.errorhandler(AdsWSFormError)(on_adsws_form_error)
 
-        @csrf.error_handler
+        @app.errorhandler(CSRFError)
         def csrf_error(reason):
             app.logger.warning("CSRF Blocked: {reason}".format(reason=reason))
             return jsonify(dict(error="Invalid CSRF token")), 400

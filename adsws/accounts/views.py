@@ -11,7 +11,7 @@ from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask.sessions import SecureCookieSessionInterface
 from flask_login import current_user, login_user
 from flask_restful import Resource, abort, reqparse, inputs
-from flask.ext.wtf.csrf import generate_csrf
+from flask_wtf.csrf import generate_csrf
 from flask import current_app, session, abort, request
 from .utils import validate_email, validate_password, \
     verify_recaptcha, get_post_data, send_email, login_required, \
@@ -151,7 +151,7 @@ class ForgotPasswordView(Resource):
             return {'error': 'passwords do not match'}, 400
         try:
             validate_password(new_password1)
-        except ValidationError, e:
+        except ValidationError as e:
             return {'error': 'validation error'}, 400
 
         u = user_manipulator.first(email=email)
@@ -194,7 +194,7 @@ class ChangePasswordView(Resource):
             return {'error': 'passwords do not match'}, 400
         try:
             validate_password(new_password1)
-        except ValidationError, e:
+        except ValidationError as e:
             return {'error': 'validation error'}, 400
 
         u = user_manipulator.first(email=current_user.email)
@@ -248,7 +248,7 @@ class UserInfoView(Resource):
                 # in the session (typically for authenticated users) we pick
                 # just the first in the database that corresponds to BBB since
                 # sessions are used by BBB and not API requests
-                client = OAuthClient.query.filter_by(user_id=session_data['user_id'], name=u'BB client').first()
+                client = OAuthClient.query.filter_by(user_id=session_data['user_id'], name='BB client').first()
                 if client:
                     token = OAuthToken.query.filter_by(client_id=client.client_id, user_id=session_data['user_id']).first()
                     if token:
@@ -324,7 +324,7 @@ class PersonalTokenView(Resource):
         """
         client = OAuthClient.query.filter_by(
             user_id=current_user.get_id(),
-            name=u'ADS API client',
+            name='ADS API client',
         ).first()
         if not client:
             return {'message': 'no ADS API client found'}, 200
@@ -356,14 +356,14 @@ class PersonalTokenView(Resource):
 
         client = OAuthClient.query.filter_by(
             user_id=current_user.get_id(),
-            name=u'ADS API client',
+            name='ADS API client',
         ).first()
 
         if client is None:  # If no client exists, create a new one
             client = OAuthClient(
                 user_id=current_user.get_id(),
-                name=u'ADS API client',
-                description=u'ADS API client',
+                name='ADS API client',
+                description='ADS API client',
                 is_confidential=False,
                 is_internal=True,
                 _default_scopes=' '.join(
@@ -389,7 +389,7 @@ class PersonalTokenView(Resource):
             db.session.add(token)
             try:
                 db.session.commit()
-            except Exception, e:
+            except Exception as e:
                 current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
             current_app.logger.info(
@@ -407,7 +407,7 @@ class PersonalTokenView(Resource):
             db.session.add(token)
             try:
                 db.session.commit()
-            except Exception, e:
+            except Exception as e:
                 db.session.rollback()
                 current_app.logger.error("Unknown DB error: {0}".format(e))
                 abort(503)
@@ -427,7 +427,7 @@ class PersonalTokenView(Resource):
 
 class LogoutView(Resource):
     """
-    View that calls flask.ext.login.logout_user()
+    View that calls flask_login.logout_user()
     """
     def post(self):
         logout_user()
@@ -620,7 +620,7 @@ class UserRegistrationView(Resource):
         try:
             validate_email(email)
             validate_password(password)
-        except ValidationError, e:
+        except ValidationError as e:
             return {'error': 'validation error'}, 400
 
         if user_manipulator.first(email=email) is not None:
@@ -707,7 +707,7 @@ class Bootstrap(Resource):
 
         try:
             scopes = self._sanitize_scopes(kwargs.get('scope', None))
-        except ValidationError, e:
+        except ValidationError as e:
             return {'error': e.value}, 400
 
 
@@ -739,7 +739,7 @@ class Bootstrap(Resource):
                 else:
                     client, token = self.bootstrap_user(client_name, scopes=scopes, 
                                                         ratelimit=ratelimit, expires=expires)
-            except ValidationError, e:
+            except ValidationError as e:
                 return {'error': e.value}, 400
         
             

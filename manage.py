@@ -8,7 +8,7 @@
 
 import os
 import flask
-from flask.ext.script import Manager
+from flask_script import Manager
 from adsws.accounts.manage import accounts_manager
 
 manager = Manager(flask.Flask('manager'))
@@ -21,7 +21,7 @@ def generate_secret_key():
     Generate a random string suitable for using a the SECRET_KEY value
     """
     key = "'{0}{1}'".format(os.urandom(15), os.urandom(15))
-    print "\nSECRET_KEY = '{0}'\n".format(key.encode('hex'))
+    print("\nSECRET_KEY = '{0}'\n".format(key.encode('hex')))
 
 
 @manager.shell

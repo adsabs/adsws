@@ -1,7 +1,7 @@
 
 import mechanize
 import json
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import requests
 import sys
 import getpass
@@ -65,13 +65,13 @@ def dance_oauth_dance(api_url='https://devapi.adsabs.harvard.edu',
     
     
     # ok, this should be it
-    print 'Response from the server'
-    print response
+    print('Response from the server')
+    print(response)
     
     # let's use the new access token for something useful
-    print 'Using the new access_token for searching'
+    print('Using the new access_token for searching')
     r = requests.get(api_url + '/v1/search/query', params={'q': '*:*'}, headers={'Authorization': 'Bearer:'  + response['access_token']})
-    print r.text
+    print(r.text)
     
 
 
@@ -93,26 +93,26 @@ def login_with_ads(base_url, username, password):
 
 
 def bootstrap_oauth_application(base_url, browser, redirect_uri, scopes):
-    print 'Creating OAuth application at:'
-    print base_url + '/v1/accounts/bootstrap?redirect_uri={redirect_uri}&scope={scopes}'.format(redirect_uri=urllib.quote(redirect_uri), scopes=urllib.quote(scopes))
+    print('Creating OAuth application at:')
+    print(base_url + '/v1/accounts/bootstrap?redirect_uri={redirect_uri}&scope={scopes}'.format(redirect_uri=urllib.parse.quote(redirect_uri), scopes=urllib.parse.quote(scopes)))
     
     # create OAuth client and set the redirect_uri
-    browser.open(base_url + '/v1/accounts/bootstrap?redirect_uri={redirect_uri}&scope={scopes}'.format(redirect_uri=urllib.quote(redirect_uri), scopes=urllib.quote(scopes)))
+    browser.open(base_url + '/v1/accounts/bootstrap?redirect_uri={redirect_uri}&scope={scopes}'.format(redirect_uri=urllib.parse.quote(redirect_uri), scopes=urllib.parse.quote(scopes)))
     
     # in response, the ADS returns the client_id and client_secret info
     data = json.loads(browser.response().get_data())
-    print 'Response:', data
+    print('Response:', data)
     
     assert 'client_secret' in data
     return data
     
 
 def ask_for_authorization_code(browser, base_url, scopes, client_id):
-    print 'Redirecting user to: '
-    print base_url + '/oauth/authorize?scope={scopes}&client_id={client_id}&response_type=code'.format(scopes=urllib.quote(scopes), client_id=client_id)
+    print('Redirecting user to: ')
+    print(base_url + '/oauth/authorize?scope={scopes}&client_id={client_id}&response_type=code'.format(scopes=urllib.parse.quote(scopes), client_id=client_id))
     
     # the rest is what happens in the browsers of your users
-    browser.open(base_url + '/oauth/authorize?scope={scopes}&client_id={client_id}&response_type=code'.format(scopes=urllib.quote(scopes), client_id=client_id))
+    browser.open(base_url + '/oauth/authorize?scope={scopes}&client_id={client_id}&response_type=code'.format(scopes=urllib.parse.quote(scopes), client_id=client_id))
     
     # if the user is not logged in, he/she will be automatically redirected to the /login page
     # but since we are already logged in, we'll be presented with the form that we can accept/decline
@@ -124,15 +124,15 @@ def ask_for_authorization_code(browser, base_url, scopes, client_id):
     
     try:
         browser.submit(nr=0)
-    except Exception, e:
+    except Exception as e:
         if '403' in str(e) or '404' in str(e):
-            print 'Ignoring 40x errors: ' + str(e)
+            print('Ignoring 40x errors: ' + str(e))
         else:
             raise 
     
     # we should have been redirected
     redirect_url = browser.response().geturl()
-    print 'Server returned (?)', redirect_url
+    print('Server returned (?)', redirect_url)
     return redirect_url.split('code=')[1]
 
 
@@ -156,11 +156,11 @@ def exchange_code_for_token(base_url, oauth_app, code, scopes, redirect_uri):
 
 if __name__ == '__main__':
     if len(sys.argv) == 5:
-        print 'Logging in with admin=%s, and user=%' % (sys.argv[1], sys.argv[3])
+        print('Logging in with admin=%s, and user=%' % (sys.argv[1], sys.argv[3]))
         dance_oauth_dance(admin_name=sys.argv[1], admin_password=sys.argv[2], 
                     user_name=sys.argv[3], user_password=sys.argv[4])
     elif len(sys.argv) == 3:
-        print 'Logging in with admin=%s, and user=%' % (sys.argv[1], sys.argv[2])
+        print('Logging in with admin=%s, and user=%' % (sys.argv[1], sys.argv[2]))
         dance_oauth_dance(admin_name=sys.argv[1], admin_password=sys.argv[2], 
                     user_name=sys.argv[1], user_password=sys.argv[2])
     else:
@@ -170,6 +170,6 @@ if __name__ == '__main__':
             if 'pass' in x:
                 kws[x] = getpass.getpass('%s:' % x)
             else:
-                kws[x] = raw_input('%s:' % x)
-        print 'Running with', map(lambda x: (x[0], 'pass' in x[0] and '***' or x[1]), kws.items())
+                kws[x] = input('%s:' % x)
+        print('Running with', [(x[0], 'pass' in x[0] and '***' or x[1]) for x in list(kws.items())])
         dance_oauth_dance(**kws)

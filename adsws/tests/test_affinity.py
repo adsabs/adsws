@@ -1,6 +1,6 @@
 from unittest import TestCase
 from adsws.api.discoverer import affinity
-from flask.ext.restful import Resource
+from flask_restful import Resource
 import flask
 from flask_restful import Resource, Api
 import mock
@@ -50,7 +50,7 @@ class AffinityRouteTestCase(TestCase):
         affinity._set_route = mock.Mock()
         rv = self.app.get('/set_cookie', headers=[['Authorization', "Bearer:TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT"]])
         self.assertIn('Set-Cookie', rv.headers)
-        self.assertEquals(rv.headers['Set-Cookie'], 'sroute=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; Path=/; HttpOnly')
+        self.assertEqual(rv.headers['Set-Cookie'], 'sroute=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; Path=/; HttpOnly')
         affinity._get_route.assert_called_once()
         affinity._set_route.assert_called_once()
 

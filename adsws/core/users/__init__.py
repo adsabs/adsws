@@ -5,4 +5,4 @@
 
     'client' means any application or human user who/that are accessing adsws services
 """
-from models import User, Role
+from .models import User, Role

@@ -6,7 +6,7 @@
     middleware module
 """
 
-from werkzeug import url_decode
+from werkzeug.urls import url_decode
 
 
 class HTTPMethodOverrideMiddleware(object):

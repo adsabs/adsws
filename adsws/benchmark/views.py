@@ -1,7 +1,7 @@
 import time
 import json
 import requests
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.core import db
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from flask import current_app, request
@@ -123,7 +123,7 @@ class BenchmarkTimeoutEndView(Resource):
 
         if sleep > 0:
             one_second = 1
-            for i in xrange(sleep):
+            for i in range(sleep):
                 current_app.logger.info('Iteration %s - Waiting %s second(s) for a total of %s seconds', i, one_second, sleep)
                 sql = text("SELECT datid, datname, pid, usename, client_addr, state, query FROM pg_stat_activity, pg_sleep({}) where datname = 'adsws';".format(one_second))
                 result = db.session.execute(sql)

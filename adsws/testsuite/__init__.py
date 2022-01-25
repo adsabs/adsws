@@ -6,7 +6,7 @@
     tests package
 """
 
-from __future__ import print_function, with_statement
+
 
 # pylint: disable=E1102
 
@@ -26,7 +26,7 @@ from adsws.factory import create_app
 
 from unittest import TestCase
 from .utils import FlaskTestCaseMixin
-from flask.ext.testing import TestCase as FlaskTestCase
+from flask_testing import TestCase as FlaskTestCase
 
 from flask import url_for
 

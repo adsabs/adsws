@@ -7,13 +7,13 @@ import json
 import requests
 import copy
 from flask import current_app, request, render_template
-from flask.ext.restful import Resource
+from flask_restful import Resource
 from adsws.ext.ratelimiter import ratelimit, scope_func
 from adsws.feedback.utils import err
 from adsws.accounts.utils import verify_recaptcha, get_post_data
 from werkzeug.exceptions import BadRequestKeyError
-from utils import send_feedback_email, make_diff
-from urllib import unquote
+from .utils import send_feedback_email, make_diff
+from urllib.parse import unquote
 
 API_DOCS = 'https://github.com/adsabs/adsabs-dev-api'
 ERROR_UNVERIFIED_CAPTCHA = dict(
@@ -118,7 +118,7 @@ class UserFeedback(Resource):
         else:
             current_app.logger.info('Skipped captcha!')
         # We only allow POST data from certain origins
-        allowed_origins = [v for k,v in current_app.config.items() if k.endswith('_ORIGIN')]
+        allowed_origins = [v for k,v in list(current_app.config.items()) if k.endswith('_ORIGIN')]
         origin = post_data.get('origin', 'NA')
         if origin == 'NA' or origin not in allowed_origins:
             return err(ERROR_UNKNOWN_ORIGIN)

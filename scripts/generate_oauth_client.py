@@ -116,7 +116,7 @@ def get_token():
           matching_tokens.append(t)
       if not matching_tokens:
         raise NoResultFound
-      print "%s tokens with those definitions found, returning the first" % len(matching_tokens)
+      print("%s tokens with those definitions found, returning the first" % len(matching_tokens))
       token = matching_tokens[0]
     except NoResultFound:
       token = OAuthToken(
@@ -140,5 +140,5 @@ def get_token():
 
 
 if __name__=="__main__":
-  print '\n'
-  print json.dumps(get_token(),indent=1)
+  print('\n')
+  print(json.dumps(get_token(),indent=1))

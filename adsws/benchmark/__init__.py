@@ -1,3 +1,3 @@
-import app
-from app import create_app
-import config
+from . import app
+from .app import create_app
+from . import config

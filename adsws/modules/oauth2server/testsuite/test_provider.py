@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function
+
 
 import os
 import logging
@@ -375,7 +375,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
         self.assert200(r)
         assert r.json.get('client') == 'confidential'
         assert r.json.get('user') == self.objects[0].id
-        assert r.json.get('scopes') == [u'test:scope']
+        assert r.json.get('scopes') == ['test:scope']
 
         # Access token doesn't provide access to this URL.
         r = self.client.get(
@@ -438,7 +438,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             self.assert200(r)
             assert r.json.get('client') == client_id
             assert r.json.get('user') == self.objects[0].id
-            assert r.json.get('scopes') == [u'test:scope']
+            assert r.json.get('scopes') == ['test:scope']
     
     def test_client_flow(self):
         data = dict(
@@ -482,7 +482,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
         self.assert200(r)
         assert r.json.get('client') == 'confidential'
         assert r.json.get('user') == self.objects[0].id
-        assert r.json.get('scopes') == [u'test:scope']
+        assert r.json.get('scopes') == ['test:scope']
         
     def test_auth_flow_denied(self):
         # First login on provider site

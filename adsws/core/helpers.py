@@ -47,7 +47,7 @@ class JsonSerializer(object):
         rv = dict()
         for key in public:
             rv[key] = getattr(self, key)
-        for key, modifier in modifiers.items():
+        for key, modifier in list(modifiers.items()):
             value = getattr(self, key)
             rv[key] = modifier(value, self)
         for key in hidden:

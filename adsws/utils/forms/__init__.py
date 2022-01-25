@@ -1,5 +1,5 @@
 from flask import session, current_app
-from flask.ext.wtf import Form
+from flask_wtf import Form
 from wtforms.ext.csrf.session import SessionSecureForm
 
 class AdsWSBaseForm(Form, SessionSecureForm):

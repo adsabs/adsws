@@ -9,7 +9,7 @@ import requests
 
 from adsws import feedback
 from flask import url_for, current_app
-from flask.ext.testing import TestCase
+from flask_testing import TestCase
 from httpretty import HTTPretty
 from adsws.feedback.views import UserFeedback, verify_recaptcha
 from adsws.tests.stubdata import missing_references, associated_other, associated_errata, new_abstract, corrected_abstract, general_feedback

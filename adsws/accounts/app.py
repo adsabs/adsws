@@ -3,7 +3,7 @@ from .. import factory
 
 from flask_restful import Api
 from flask_cors import CORS
-from flask_wtf.csrf import CsrfProtect
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from flask_mail import Mail
 from flask import jsonify, abort
 from itsdangerous import URLSafeTimedSerializer

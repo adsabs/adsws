@@ -10,7 +10,7 @@ class StatusView(Resource):
     def get(self):
         return {'app': current_app.name,
                 'status': 'online',
-                'user': current_user.is_authenticated() and current_user.email or 'anonymous'
+                'user': current_user.is_authenticated and current_user.email or 'anonymous'
                 }, 200
 
 

@@ -37,8 +37,6 @@ def setup_app():
     """
     Setup OAuth2 provider
     """
-    with open("/home/tom/adsws/test.log", "a") as file:
-        print("Running setup_app", file=file)
     # Initialize OAuth2 provider
     oauth2.init_app(current_app)
 

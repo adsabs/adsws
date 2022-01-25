@@ -23,6 +23,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import load_only
 from adsmutils import get_date
 
+
 class StatusView(Resource):
     """
     Health check resource
@@ -115,7 +116,7 @@ class ForgotPasswordView(Resource):
         send_email(
             email_addr=token,
             email_template=PasswordResetEmail,
-            base_url=current_app.config['PASSWORD_RESET_URL'],
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'reset-password'),
             payload=token
         )
         return {"message": "success"}, 200
@@ -459,7 +460,6 @@ class ChangeEmailView(Resource):
             data = get_post_data(request)
             email = data['email']
             password = data['password']
-            verify_url = data['verify_url']
         except (AttributeError, KeyError):
             return {'error': 'malformed request'}, 400
 
@@ -473,7 +473,7 @@ class ChangeEmailView(Resource):
             }, 403
         send_email(
             email_addr=email,
-            base_url=verify_url,
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'change-email'),
             email_template=VerificationEmail,
             payload=[email, u.id]
         )
@@ -609,7 +609,6 @@ class UserRegistrationView(Resource):
             email = data['email']
             password = data['password1']
             repeated = data['password2']
-            verify_url = data['verify_url']
         except (AttributeError, KeyError):
             return {'error': 'malformed request'}, 400
 
@@ -628,7 +627,7 @@ class UserRegistrationView(Resource):
                              ' registered for {0}'.format(email)}, 409
         send_email(
             email_addr=email,
-            base_url=verify_url,
+            base_url="{}/{}".format(current_app.config['VERIFY_URL'], 'register'),
             email_template=WelcomeVerificationEmail,
             payload=email
         )

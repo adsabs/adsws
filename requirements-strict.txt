@@ -1,4 +1,4 @@
-adsmutils==1.1.9
+git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.1.9
 adsws==0.0.1.dev20140901
 alembic==1.7.5
 aniso8601==9.0.1
@@ -31,7 +31,7 @@ Flask-Cors==1.9.0
 flask-discoverer==0.1.5
 Flask-Email==1.4.4
 Flask-Headers==1.0
-Flask-Limiter==0.9.5.1+36.gfb1bbd3
+git+https://github.com/adsabs/flask-limiter.git@fb1bbd3e4894c4298798601121dbf9782a6bafe8#egg=flask-limiter
 Flask-Login==0.5.0
 Flask-Mail==0.9.1
 Flask-Menu==0.7.2

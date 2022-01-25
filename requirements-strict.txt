@@ -1,5 +1,4 @@
 git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.1.9
-adsws==0.0.1.dev20140901
 alembic==1.7.5
 aniso8601==9.0.1
 asn1crypto==1.4.0

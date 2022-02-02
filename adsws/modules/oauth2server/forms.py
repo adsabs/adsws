@@ -96,7 +96,7 @@ class ClientFormBase(model_form_factory(AdsWSBaseForm)):
         ]
         strip_string_fields = True
         field_args = dict(website=dict(
-            validators=[validators.Required(), validators.URL()],
+            validators=[validators.InputRequired(), validators.URL()],
             widget=widgets.TextInput(),
         ))
 
@@ -108,15 +108,15 @@ class OAuthClientForm(ClientFormBase):
         description="One redirect URI per line. This is your applications"
                     " authorization callback URLs. HTTPS must be used for all "
                     "hosts except localhost (for testing purposes).",
-        validators=[RedirectURIValidator(), validators.Required()],
+        validators=[RedirectURIValidator(), validators.InputRequired()],
         default='',
     )
 
 
 class OAuthTokenForm(AdsWSBaseForm):
-    name = fields.TextField(
+    name = fields.TextAreaField(
         description="Name of personal access token.",
-        validators=[validators.Required()],
+        validators=[validators.InputRequired()],
     )
     scopes = fields.SelectMultipleField(
         widget=scopes_multi_checkbox,

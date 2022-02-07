@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Configuration of flask-oauthlib provider
+Configuration of authlib provider
 """
 
+from authlib.integrations.flask_oauth2 import AuthorizationServer
 from datetime import datetime, timedelta
 
 from flask import current_app, request
@@ -43,23 +44,25 @@ class OAuth2bProvider(OAuth2Provider):
             return decorated
         return wrapper
 
-oauth2 = OAuth2bProvider()
+oauth2_provider = OAuth2bProvider()
 
-@oauth2.clientgetter
+authlib_provider = AuthorizationServer()
+
+@oauth2_provider.clientgetter
 def load_client(client_id):
     """
     Loads the client that is sending the requests.
     """
     return OAuthClient.query.filter_by(client_id=client_id).first()
 
-@oauth2.grantgetter
+@oauth2_provider.grantgetter
 def load_grant(client_id, code):
     """
     Grant is a temporary token (a ticket to 'access_token').
     """
     return OAuthGrant.query.filter_by(client_id=client_id, code=code).first()
 
-@oauth2.grantsetter
+@oauth2_provider.grantsetter
 def save_grant(client_id, code, request, *args, **kwargs):
     """
     Method to create/save grant token - it is bound to the
@@ -84,7 +87,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
     db.session.commit()
     return grant
 
-@oauth2.usergetter
+@oauth2_provider.usergetter
 def load_user(username, password, *args, **kwargs):
     """
     Loads the user (resource owner)
@@ -100,7 +103,7 @@ def load_user(username, password, *args, **kwargs):
         return user
 
 
-@oauth2.tokengetter
+@oauth2_provider.tokengetter
 def load_token(access_token=None, refresh_token=None):
     """
     Load an access token
@@ -125,7 +128,7 @@ def load_token(access_token=None, refresh_token=None):
         return None
 
 
-@oauth2.tokensetter
+@oauth2_provider.tokensetter
 def save_token(token, request, *args, **kwargs):
     """
     Token persistence

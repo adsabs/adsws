@@ -1,4 +1,5 @@
 git+https://github.com/adsabs/ADSMicroserviceUtils.git@v1.1.9
+authlib
 flask-headers
 git+https://github.com/adsabs/flask-limiter.git@fb1bbd3e4894c4298798601121dbf9782a6bafe8#egg=flask-limiter
 flask-cors

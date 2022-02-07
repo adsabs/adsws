@@ -16,7 +16,7 @@ from adsws.ext.security import login_user, login_required
 from flask_login import current_user
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 
-from ..provider import oauth2
+from ..provider import oauth2_provider
 from ..models import OAuthClient, OAuthUserProxy, Scope
 from ..registry import scopes
 
@@ -38,7 +38,7 @@ def setup_app():
     Setup OAuth2 provider
     """
     # Initialize OAuth2 provider
-    oauth2.init_app(current_app)
+    oauth2_provider.init_app(current_app)
 
     # Register default scopes (note, each module will)
     for scope, options in list(current_app.config['OAUTH2_DEFAULT_SCOPES'].items()):
@@ -47,11 +47,11 @@ def setup_app():
 
     # Configures the OAuth2 provider to use the SQLALchemy models for getters
     # and setters for user, client and tokens.
-    bind_sqlalchemy(oauth2, db.session, client=OAuthClient)
+    bind_sqlalchemy(oauth2_provider, db.session, client=OAuthClient)
 
     # Configures an OAuth2Provider instance to use configured caching system
     # to get and set the grant token.
-    bind_cache_grant(current_app, oauth2, OAuthUserProxy.get_current_user)
+    bind_cache_grant(current_app, oauth2_provider, OAuthUserProxy.get_current_user)
 
     for x in ['oauthlib', 'flask_oauthlib']:
         logger = logging.getLogger('flask_oauthlib')
@@ -62,7 +62,7 @@ def setup_app():
 
 
 
-@oauth2.after_request
+@oauth2_provider.after_request
 def login_oauth2_user(valid, oauth):
     """
     Login a user after having been verified
@@ -77,7 +77,7 @@ def login_oauth2_user(valid, oauth):
 #
 @blueprint.route('/authorize', methods=['GET', 'POST'])
 @login_required
-@oauth2.authorize_handler
+@oauth2_provider.authorize_handler
 def authorize(*args, **kwargs):
     """
     View for rendering authorization request.
@@ -104,7 +104,7 @@ def authorize(*args, **kwargs):
 
 
 @blueprint.route('/token', methods=['POST', 'GET'])
-@oauth2.token_handler
+@oauth2_provider.token_handler
 def access_token():
     """
     Token view handles exchange/refresh access tokens
@@ -125,7 +125,7 @@ def errors():
 
 @blueprint.route('/ping/', methods=['GET', 'POST'])
 @blueprint.route('/ping/')
-@oauth2.require_oauth()
+@oauth2_provider.require_oauth()
 def ping():
     """
     Test to verify that you have been authenticated.
@@ -134,7 +134,7 @@ def ping():
 
 
 @blueprint.route('/info/')
-@oauth2.require_oauth('test:scope')
+@oauth2_provider.require_oauth('test:scope')
 def info():
     """Test to verify that you have been authenticated."""
     if current_app.testing or current_app.debug:
@@ -148,7 +148,7 @@ def info():
 
 
 @blueprint.route('/invalid/')
-@oauth2.require_oauth('invalid_scope')
+@oauth2_provider.require_oauth('invalid_scope')
 def invalid():
     """Test to verify that you have been authenticated."""
     if current_app.testing or current_app.debug:

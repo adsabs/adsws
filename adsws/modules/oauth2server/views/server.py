@@ -11,12 +11,12 @@ from flask import Blueprint, current_app, request, render_template, jsonify, \
 from flask_oauthlib.contrib.oauth2 import bind_cache_grant, bind_sqlalchemy
 
 from adsws.core import db, user_manipulator
-from adsws.ext.security import login_user, login_required
+from flask_security import login_user, login_required
 
 from flask_login import current_user
 from oauthlib.oauth2.rfc6749.errors import OAuth2Error
 
-from ..provider import oauth2_provider
+from ..provider import oauth2_provider, authlib_server, require_oauth
 from ..models import OAuthClient, OAuthUserProxy, Scope
 from ..registry import scopes
 
@@ -61,7 +61,7 @@ def setup_app():
                 logger.addHandler(h)
 
 
-
+# TODO: Find authlib equivalent for this
 @oauth2_provider.after_request
 def login_oauth2_user(valid, oauth):
     """
@@ -76,13 +76,13 @@ def login_oauth2_user(valid, oauth):
 # Views
 #
 @blueprint.route('/authorize', methods=['GET', 'POST'])
-@login_required
-@oauth2_provider.authorize_handler
+# @login_required  # TODO: Why is this needed? 
+# @oauth2_provider.authorize_handler
 def authorize(*args, **kwargs):
     """
     View for rendering authorization request.
     """
-    assert current_user.is_anonymous() is False
+    assert current_user().is_anonymous() is False
 
     if request.method == 'GET':
         client = OAuthClient.query.filter_by(
@@ -104,7 +104,7 @@ def authorize(*args, **kwargs):
 
 
 @blueprint.route('/token', methods=['POST', 'GET'])
-@oauth2_provider.token_handler
+# @oauth2_provider.token_handler
 def access_token():
     """
     Token view handles exchange/refresh access tokens
@@ -125,7 +125,7 @@ def errors():
 
 @blueprint.route('/ping/', methods=['GET', 'POST'])
 @blueprint.route('/ping/')
-@oauth2_provider.require_oauth()
+@require_oauth()
 def ping():
     """
     Test to verify that you have been authenticated.
@@ -134,7 +134,7 @@ def ping():
 
 
 @blueprint.route('/info/')
-@oauth2_provider.require_oauth('test:scope')
+@require_oauth('test:scope')
 def info():
     """Test to verify that you have been authenticated."""
     if current_app.testing or current_app.debug:
@@ -148,7 +148,7 @@ def info():
 
 
 @blueprint.route('/invalid/')
-@oauth2_provider.require_oauth('invalid_scope')
+@require_oauth('invalid_scope')
 def invalid():
     """Test to verify that you have been authenticated."""
     if current_app.testing or current_app.debug:

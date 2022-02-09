@@ -3,7 +3,7 @@ import hashlib, binascii
 from werkzeug.security import gen_salt
 
 from adsws.modules.oauth2server.models import OAuthClient, OAuthToken
-from adsws.modules.oauth2server.provider import oauth2
+from adsws.modules.oauth2server.provider import require_oauth
 
 from adsws.core import db, user_manipulator
 
@@ -36,7 +36,7 @@ class OAuthProtectedView(Resource):
     """
     Resource for checking that oauth2.require_oauth is satisfied
     """
-    decorators = [oauth2.require_oauth()]
+    decorators = [require_oauth]
 
     def get(self):
         return {'app': current_app.name, 'oauth': request.oauth.user.email}

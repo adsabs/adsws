@@ -4,7 +4,8 @@
 Configuration of authlib provider
 """
 
-from authlib.integrations.flask_oauth2 import AuthorizationServer
+from authlib.integrations.flask_oauth2 import AuthorizationServer, ResourceProtector
+from authlib.integrations.sqla_oauth2 import create_query_client_func, create_save_token_func
 from datetime import datetime, timedelta
 
 from flask import current_app, request
@@ -17,52 +18,26 @@ from adsws.core import db, user_manipulator
 from .models import OAuthToken, OAuthClient, OAuthGrant
 from functools import wraps
 
-class OAuth2bProvider(OAuth2Provider):
-    def optional_oauth(self, *scopes):
-        """Protect resource with specified scopes."""
-        def wrapper(f):
-            @wraps(f)
-            def decorated(*args, **kwargs):
-                for func in self._before_request_funcs:
-                    func()
+query_client = create_query_client_func(db.session, OAuthClient)
+save_token = create_save_token_func(db.session, OAuthToken)
+authlib_server = AuthorizationServer(query_client=query_client, save_token=save_token)
+require_oauth = ResourceProtector()
 
-                if hasattr(request, 'oauth') and request.oauth:
-                    return f(*args, **kwargs)
-
-                server = self.server
-                uri, http_method, body, headers = extract_params()
-                valid, req = server.verify_request(
-                    uri, http_method, body, headers, scopes
-                )
-
-                for func in self._after_request_funcs:
-                    valid, req = func(valid, req)
-
-                if valid:
-                    request.oauth = req
-                return f(*args, **kwargs)
-            return decorated
-        return wrapper
-
-oauth2_provider = OAuth2bProvider()
-
-authlib_provider = AuthorizationServer()
-
-@oauth2_provider.clientgetter
+# @oauth2_provider.clientgetter
 def load_client(client_id):
     """
     Loads the client that is sending the requests.
     """
     return OAuthClient.query.filter_by(client_id=client_id).first()
 
-@oauth2_provider.grantgetter
+# @oauth2_provider.grantgetter
 def load_grant(client_id, code):
     """
     Grant is a temporary token (a ticket to 'access_token').
     """
     return OAuthGrant.query.filter_by(client_id=client_id, code=code).first()
 
-@oauth2_provider.grantsetter
+# @oauth2_provider.grantsetter
 def save_grant(client_id, code, request, *args, **kwargs):
     """
     Method to create/save grant token - it is bound to the
@@ -87,7 +62,7 @@ def save_grant(client_id, code, request, *args, **kwargs):
     db.session.commit()
     return grant
 
-@oauth2_provider.usergetter
+# @oauth2_provider.usergetter
 def load_user(username, password, *args, **kwargs):
     """
     Loads the user (resource owner)
@@ -103,7 +78,7 @@ def load_user(username, password, *args, **kwargs):
         return user
 
 
-@oauth2_provider.tokengetter
+# @oauth2_provider.tokengetter
 def load_token(access_token=None, refresh_token=None):
     """
     Load an access token
@@ -128,8 +103,8 @@ def load_token(access_token=None, refresh_token=None):
         return None
 
 
-@oauth2_provider.tokensetter
-def save_token(token, request, *args, **kwargs):
+# @oauth2_provider.tokensetter
+def save_token_old(token, request, *args, **kwargs):
     """
     Token persistence
     """

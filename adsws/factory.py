@@ -17,7 +17,7 @@ from flask_login import current_user
 from flask_sslify import SSLify
 from flask_consulate import Consul
 from flask_consulate.exceptions import ConsulConnectionError
-from adsws.modules.oauth2server.provider import oauth2
+from adsws.modules.oauth2server.provider import authlib_server
 from werkzeug.datastructures import Headers
 
 from flask_registry import Registry, ExtensionRegistry, \
@@ -120,7 +120,7 @@ def create_app(app_name=None, instance_path=None, static_url_path=None,
         app.errorhandler(429)(on_429)
         app.errorhandler(405)(on_405)
 
-    @oauth2.after_request
+    @app.after_request
     def set_adsws_uid_header(valid, oauth):
         """
         If the user is authenticated, inject the header "X-adsws-uid" into

@@ -2,14 +2,13 @@ import os
 import logging
 import json
 from adsws.testsuite import FlaskAppTestCase
+from authlib.integrations.flask_client import OAuth
 from flask import Flask, session, url_for, request, jsonify, abort
 from adsws.core import user_manipulator, db
 from adsws import api
 from flask_login import current_user, login_user, logout_user
 
-from flask_oauthlib.client import OAuth
 from mock import MagicMock
-from flask_oauthlib.client import prepare_request
 try:
     from six.moves.urllib.parse import urlparse
 except ImportError:
@@ -140,7 +139,7 @@ def create_client(app, name, **kwargs):
     default.update(kwargs)
 
     oauth = OAuth(app)
-    remote = oauth.remote_app(name, **default)
+    remote = oauth.register(name, **default)
     stack = []
 
     @app.route('/oauth2test/login')

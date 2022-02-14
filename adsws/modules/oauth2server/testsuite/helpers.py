@@ -2,8 +2,8 @@
 
 """Helper module to create an oauthclient for testing purposes."""
 
+from authlib.integrations.flask_client import OAuth
 from flask import url_for, request, session, jsonify, abort
-from flask_oauthlib.client import OAuth
 
 
 def create_client(app, name, **kwargs):
@@ -21,7 +21,7 @@ def create_client(app, name, **kwargs):
     default.update(kwargs)
 
     oauth = OAuth(app)
-    remote = oauth.remote_app(name, **default)
+    remote = oauth.register(name, **default)
 
     @app.route('/oauth2test/login')
     def login():

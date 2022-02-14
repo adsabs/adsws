@@ -10,9 +10,8 @@ from sqlalchemy_utils import URLType
 
 from adsws.core import db, user_manipulator
 from adsmutils import get_date, UTCDateTime
-
-from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, \
-    InvalidRedirectURIError
+from authlib.integrations.sqla_oauth2 import OAuth2ClientMixin, OAuth2TokenMixin
+from oauthlib.oauth2.rfc6749.errors import InsecureTransportError, InvalidRedirectURIError
 import six
 from six.moves.urllib_parse import urlparse
 
@@ -55,7 +54,7 @@ class Scope(object):
         self.is_internal = internal
         
 
-class OAuthClient(db.Model):
+class OAuthClient(db.Model, OAuth2ClientMixin):
     """
     A client is the app which want to use the resource of a user. It is
     suggested that the client is registered by a user on your site, but it
@@ -242,7 +241,7 @@ class OAuthClient(db.Model):
             current_app.config.get('OAUTH2_CLIENT_SECRET_SALT_LEN')
         )
 
-class OAuthToken(db.Model):
+class OAuthToken(db.Model, OAuth2TokenMixin):
     """
     A bearer token is the final token that can be used by the client.
     """

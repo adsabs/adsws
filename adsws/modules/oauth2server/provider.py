@@ -10,8 +10,6 @@ from datetime import datetime, timedelta
 
 from flask import current_app, request
 from flask_login import current_user
-from flask_oauthlib.provider import OAuth2Provider
-from flask_oauthlib.utils import extract_params
 from flask_login import current_user
 
 from adsws.core import db, user_manipulator

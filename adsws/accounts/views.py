@@ -211,7 +211,7 @@ class UserInfoView(Resource):
     """
 
     @ratelimit.shared_limit_and_check("500/43200 second", scope=scope_func)
-    @oauth2.require_oauth('adsws:internal')
+    @require_oauth('adsws:internal')
     def get(self, account_data):
         """
         This endpoint provides the full identifying data associated to a given
@@ -648,7 +648,7 @@ class Bootstrap(Resource):
     other adsws-api resources.
     """
     
-    decorators = [oauth2.optional_oauth()]
+    # decorators = [oauth2.optional_oauth()]
 
     def get(self):
         """

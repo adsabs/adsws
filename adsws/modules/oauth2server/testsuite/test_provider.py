@@ -11,9 +11,8 @@ from flask import url_for
 from adsws.testsuite import FlaskAppTestCase, make_test_suite, \
     run_test_suite
 from adsws.core import db
-
+from adsws.utils import prepare_request
 from mock import MagicMock
-from flask_oauthlib.client import prepare_request
 try:
     from six.moves.urllib.parse import urlparse
 except ImportError:
@@ -65,6 +64,7 @@ class OAuth2ProviderTestCase(FlaskAppTestCase):
             uri, headers, data, method = prepare_request(
                 uri, headers, data, method
             )
+
             if not headers and data is not None:
                 headers = {
                     'Content-Type': ' application/x-www-form-urlencoded'

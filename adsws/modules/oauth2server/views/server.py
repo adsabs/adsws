@@ -45,20 +45,11 @@ def setup_app():
         if scope not in scopes:
             scopes.register(Scope(scope, options))
 
-    # Configures the OAuth2 provider to use the SQLALchemy models for getters
-    # and setters for user, client and tokens.
-    bind_sqlalchemy(oauth2_provider, db.session, client=OAuthClient)
-
-    # Configures an OAuth2Provider instance to use configured caching system
-    # to get and set the grant token.
-    bind_cache_grant(current_app, oauth2_provider, OAuthUserProxy.get_current_user)
-
-    for x in ['oauthlib', 'flask_oauthlib']:
-        logger = logging.getLogger('flask_oauthlib')
-        logger.setLevel(current_app.logger.getEffectiveLevel())
-        for h in current_app.logger.handlers:
-            if h not in logger.handlers:
-                logger.addHandler(h)
+    logger = logging.getLogger('authlib')
+    logger.setLevel(current_app.logger.getEffectiveLevel())
+    for h in current_app.logger.handlers:
+        if h not in logger.handlers:
+            logger.addHandler(h)
 
 
 # TODO: Find authlib equivalent for this

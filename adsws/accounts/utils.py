@@ -2,6 +2,7 @@ import datetime
 import requests
 from functools import wraps
 
+from authlib.common.urls import add_params_to_uri
 from flask import current_app, session
 from flask_mail import Message
 from flask_login import current_user as cu
@@ -183,3 +184,23 @@ def print_token(token):
         'scopes': token.scopes,
         'anonymous': anon
     }
+
+def prepare_request(uri, headers=None, data=None, method=None):
+    """
+    Make request parameters right.
+
+    From deprecated flask_oauthlib library, see https://github.com/lepture/flask-oauthlib/blob/master/LICENSE
+    """
+    if headers is None:
+        headers = {}
+
+    if data and not method:
+        method = 'POST'
+    elif not method:
+        method = 'GET'
+
+    if method == 'GET' and data:
+        uri = add_params_to_uri(uri, data)
+        data = None
+
+    return uri, headers, data, method

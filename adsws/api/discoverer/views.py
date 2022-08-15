@@ -40,7 +40,7 @@ class ProxyView(Resource):
             #   requests sessions)
             # http://docs.python-requests.org/en/latest/api/?highlight=max_retries#requests.adapters.HTTPAdapter
             #
-            http_adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=1000, max_retries=3, pool_block=False)
+            http_adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=1000, max_retries=1, pool_block=False)
             self.session.mount('http://', http_adapter)
 
     @staticmethod

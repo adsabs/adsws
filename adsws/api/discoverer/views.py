@@ -18,9 +18,15 @@ class ProxyView(Resource):
         self.cs = None
         try:
             self.default_request_timeout = current_app.config.get("DEFAULT_REQUEST_TIMEOUT", 60)
+            self.pool_connections = current_app.config.get("REQUESTS_POOL_CONNECTIONS", 20)
+            self.pool_maxsize = current_app.config.get("REQUESTS_POOL_MAXSIZE", 1000)
+            self.max_retries = current_app.config.get("REQUESTS_MAX_RETRIES", 1)
         except RuntimeError:
             # Unit testing fails: "RuntimeError: Working outside of application context."
             self.default_request_timeout = 60
+            self.pool_connections = 20
+            self.pool_maxsize = 1000
+            self.max_retries = 1
         if service_uri.startswith('consul://'):
             self.cs = ConsulService(
                 service_uri,
@@ -40,7 +46,10 @@ class ProxyView(Resource):
             #   requests sessions)
             # http://docs.python-requests.org/en/latest/api/?highlight=max_retries#requests.adapters.HTTPAdapter
             #
-            http_adapter = requests.adapters.HTTPAdapter(pool_connections=current_app.config.get("REQUESTS_POOL_CONNECTIONS", 20), pool_maxsize=current_app.config.get("REQUESTS_POOL_MAXSIZE", 1000), max_retries=current_app.config.get("REQUESTS_POOL_RETRIES", 1), pool_block=False)
+            http_adapter = requests.adapters.HTTPAdapter(pool_connections=self.pool_connections, \
+                                                         pool_maxsize=self.pool_maxsize, \
+                                                         max_retries=self.max_retries, \
+                                                         pool_block=False)
             self.session.mount('http://', http_adapter)
 
     @staticmethod

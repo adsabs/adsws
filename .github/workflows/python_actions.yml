@@ -23,7 +23,9 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    container:
+      image: python:2.7.18
 
     services:
       postgres:
@@ -55,10 +57,10 @@ jobs:
       with:
         redis-version: 6
 
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 2.7
+    # - uses: actions/checkout@v2
+    # - uses: actions/setup-python@v2
+    #   with:
+    #     python-version: 2.7
 
 
     - name: Install dependencies

@@ -48,6 +48,10 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: install postgres on ubuntu
+      run: |
+         sudo apt update
+         sudo apt install postgresql postgres-contrib
     - name: Enable citext extension
       run: |
          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres test_adsws -tc "CREATE EXTENSION citext;"

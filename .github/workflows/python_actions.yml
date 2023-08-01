@@ -71,8 +71,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        useradd ads
-        su ads
         python -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
         pip install -U -r requirements.txt
@@ -80,6 +78,8 @@ jobs:
 
     - name: Test with pytest
       run: |
+        useradd ads
+        su ads
         py.test adsws
 
     - uses: actions/upload-artifact@v2

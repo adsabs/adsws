@@ -71,6 +71,8 @@ jobs:
 
     - name: Install dependencies
       run: |
+        useradd ads
+        su ads
         python -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
         pip install -U -r requirements.txt

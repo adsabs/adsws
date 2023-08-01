@@ -79,8 +79,7 @@ jobs:
     - name: Test with pytest
       run: |
         useradd ads
-        su ads
-        py.test adsws
+        runuser -l ads py.test adsws
 
     - uses: actions/upload-artifact@v2
       with:

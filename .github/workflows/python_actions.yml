@@ -103,7 +103,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        py.test /adsws
+        py.test adsws
 
     - uses: actions/upload-artifact@v2
       with:

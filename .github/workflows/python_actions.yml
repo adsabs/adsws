@@ -87,7 +87,6 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python2 -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
         pip install -U -r requirements.txt
         pip install -U -r dev-requirements.txt

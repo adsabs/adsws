@@ -79,7 +79,8 @@ jobs:
     - name: Test with pytest
       run: |
         useradd ads
-        runuser -l ads py.test adsws
+        usermod -d /tmp ads
+        runuser -l ads py.test /adsws
 
     - uses: actions/upload-artifact@v2
       with:

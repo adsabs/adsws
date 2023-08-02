@@ -46,11 +46,36 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: install postgres on ubuntu
+    - name: install python2
       run: |
          echo $USER
+
          sudo apt-get update
          sudo apt-get install python2.7 -y
+         sudo update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+
+         venv_base_path="/tmp/python27/venv"
+         venv_dir="bin"
+
+         echo "Bootstrapping pip"
+
+         curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+         python get-pip.py
+         rm -f get-pip.py
+
+         echo "Installing virtualenv"
+         python -m pip install virtualenv
+
+         python -m virtualenv ${venv_base_path}
+
+         source ${venv_base_path}/${venv_dir}/activate
+
+         python -m pip --no-python-version-warning --disable-pip-version-check install --upgrade pip setuptools
+
+         echo "${venv_base_path}/${venv_dir}" >> $GITHUB_PATH
+
+         echo "Python venv version:"
+         python --version
   
     - name: Enable citext extension
       run: |
@@ -71,10 +96,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python2 -m pip2 install --upgrade setuptools pip
+        python2 -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
-        pip2 install -U -r requirements.txt
-        pip2 install -U -r dev-requirements.txt
+        pip install -U -r requirements.txt
+        pip install -U -r dev-requirements.txt
 
     - name: Test with pytest
       run: |

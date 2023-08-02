@@ -51,6 +51,9 @@ jobs:
     - name: install postgres on ubuntu
       run: |
          apt update
+         apt install sudo
+         useradd ads
+         usermod -d /tmp ads
          apt install -y postgresql postgresql-contrib
     - name: Enable citext extension
       run: |
@@ -71,6 +74,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        su --preserve-environment ads
         python -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
         pip install -U -r requirements.txt
@@ -78,8 +82,6 @@ jobs:
 
     - name: Test with pytest
       run: |
-        useradd ads
-        usermod -d /tmp ads
         runuser -l ads py.test /adsws
 
     - uses: actions/upload-artifact@v2

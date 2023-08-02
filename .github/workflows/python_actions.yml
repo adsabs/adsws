@@ -24,8 +24,6 @@ jobs:
   build:
 
     runs-on: ubuntu-20.04
-    container:
-      image: python:2.7.18
 
     services:
       postgres:
@@ -55,6 +53,8 @@ jobs:
          useradd ads
          usermod -d /tmp ads
          apt install -y postgresql postgresql-contrib
+         apt install python2.7 -y
+  
     - name: Enable citext extension
       run: |
          PGPASSWORD=postgres psql -h postgres -p 5432 -U postgres test_adsws -tc "CREATE EXTENSION citext;"
@@ -74,15 +74,14 @@ jobs:
 
     - name: Install dependencies
       run: |
-        su --preserve-environment ads
-        python -m pip install --upgrade setuptools pip
-        git config --global url."https://".insteadOf git://
-        pip install -U -r requirements.txt
-        pip install -U -r dev-requirements.txt
+        runuser -l ads python -m pip install --upgrade setuptools pip
+        runuser -l ads git config --global url."https://".insteadOf git://
+        runuser -l ads pip install -U -r requirements.txt
+        runuser -l pip install -U -r dev-requirements.txt
 
     - name: Test with pytest
       run: |
-        runuser -l ads py.test /adsws
+        runuser -l ads pytest /adsws
 
     - uses: actions/upload-artifact@v2
       with:

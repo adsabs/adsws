@@ -71,10 +71,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade setuptools pip
+        python2 -m pip2 install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
-        pip install -U -r requirements.txt
-        pip install -U -r dev-requirements.txt
+        pip2 install -U -r requirements.txt
+        pip2 install -U -r dev-requirements.txt
 
     - name: Test with pytest
       run: |

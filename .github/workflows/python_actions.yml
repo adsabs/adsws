@@ -48,12 +48,9 @@ jobs:
     steps:
     - name: install postgres on ubuntu
       run: |
-         apt update
-         apt install sudo
-         useradd ads
-         usermod -d /tmp ads
-         apt install -y postgresql postgresql-contrib
-         apt install python2.7 -y
+         echo $USER
+         sudo apt update
+         sudo apt install python2.7 -y
   
     - name: Enable citext extension
       run: |

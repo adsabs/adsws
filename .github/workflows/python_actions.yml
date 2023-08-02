@@ -49,8 +49,8 @@ jobs:
     - name: install postgres on ubuntu
       run: |
          echo $USER
-         sudo apt update
-         sudo apt install python2.7 -y
+         sudo apt-get update
+         sudo apt-get install python2.7 -y
   
     - name: Enable citext extension
       run: |
@@ -73,7 +73,7 @@ jobs:
       run: |
         python -m pip install --upgrade setuptools pip
         git config --global url."https://".insteadOf git://
-        ads pip install -U -r requirements.txt
+        pip install -U -r requirements.txt
         pip install -U -r dev-requirements.txt
 
     - name: Test with pytest

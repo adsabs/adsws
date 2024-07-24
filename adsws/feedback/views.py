@@ -138,6 +138,8 @@ class UserFeedback(Resource):
             return err(ERROR_EMAILBODY_PROBLEM)
         # Retrieve the name of the person submitting the feedback
         name = post_data.get('name', 'TownCrier')
+        subject = post_data.get('_subject')
+
         # There are some origin-specific actions
         if origin == current_app.config['FEEDBACK_FORMS_ORIGIN']:
             # The reply_to for feedback form data
@@ -148,11 +150,15 @@ class UserFeedback(Resource):
             if post_data.get('_subject') == 'Updated Record':
                 attachments.append(('updated_record.json', post_data['new']))
                 attachments.append(('original_record.json', post_data['original']))
+            # For associated articles append the relationship type to the subject
+            if post_data.get('_subject') == 'Associated Articles':
+                subject = '{0} ({1})'.format(subject, post_data.get('relationship'))
+
             # Prepare a minimal Slack message
             channel = post_data.get('channel', '#feedback')
             username = post_data.get('username', 'TownCrier')
             icon_emoji = current_app.config['FORM_SLACK_EMOJI']
-            text = 'Received data from feedback form "{0}" from {1}'.format(post_data.get('_subject'), post_data.get('email'))
+            text = 'Received data from feedback form "{0}" from {1}'.format(subject, post_data.get('email'))
             slack_data = {
                 'text': text,
                 'username': username,
@@ -177,7 +183,7 @@ class UserFeedback(Resource):
         if email_body:
             email_sent = False
             try:
-                res = send_feedback_email(name, reply_to, post_data['_subject'], email_body, attachments=attachments)
+                res = send_feedback_email(name, reply_to, subject, email_body, attachments=attachments)
                 email_sent = True
             except Exception as e:
                 current_app.logger.error('Fatal error while processing feedback form data: {0}'.format(e))

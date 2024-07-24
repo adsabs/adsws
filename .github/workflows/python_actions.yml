@@ -118,7 +118,7 @@ jobs:
         pip install coverage==5.2.1
         pip install coveralls==2.2.0
 
-    - uses: actions/download-artifact@master
+    - uses: actions/download-artifact@v3
       with:
         name: coverage-adsws
 

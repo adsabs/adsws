@@ -19,7 +19,7 @@ Flask-Email==1.4.4
 Flask-Mail==0.9.1
 sqlalchemy-utils==0.30.3
 alembic==0.8.1
-redis==2.10.5
+redis==4.4.4
 flask-consulate==0.1.2
 email-validator==1.1.0
 jsondiff==1.2.0

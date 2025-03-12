@@ -1,4 +1,5 @@
 import datetime
+import json
 import requests
 from functools import wraps
 
@@ -86,11 +87,13 @@ def verify_recaptcha(request, ep=None):
         'remoteip': request.remote_addr,
         'response': data['g-recaptcha-response']
     }
+    current_app.logger.debug("repcaptcha payload: {}".format(json.dumps(payload)))
     try:
         r = requests.post(ep,data=payload, timeout=60)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         return False
     r.raise_for_status()
+    current_app.logger.debug("recaptcha response: {}".format(json.dumps(r.json())))
     return True if r.json()['success'] == True else False
 
 

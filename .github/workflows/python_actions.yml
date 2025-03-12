@@ -97,6 +97,8 @@ jobs:
 
     - uses: actions/upload-artifact@v4
       with:
+        with:
+        include-hidden-files: true
         name: coverage-adsws
         path: .coverage
 

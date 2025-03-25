@@ -95,8 +95,10 @@ jobs:
       run: |
         py.test adsws
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v4
       with:
+        with:
+        include-hidden-files: true
         name: coverage-adsws
         path: .coverage
 
@@ -118,7 +120,7 @@ jobs:
         pip install coverage==5.2.1
         pip install coveralls==2.2.0
 
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: coverage-adsws
 

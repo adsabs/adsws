@@ -116,7 +116,7 @@ class UserFeedback(Resource):
             current_app.logger.info('The captcha was not verified!')
             return err(ERROR_UNVERIFIED_CAPTCHA)
         else:
-            current_app.logger.info('Skipped captcha!')
+            current_app.logger.info('Passed captcha!')
         # We only allow POST data from certain origins
         allowed_origins = [v for k,v in current_app.config.items() if k.endswith('_ORIGIN')]
         origin = post_data.get('origin', 'NA')
